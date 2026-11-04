@@ -1,0 +1,12 @@
+{
+  "name": "MEASURE 2.0",
+  "short_name": "MEASURE",
+  "description": "Gestão de contratos e despesas públicas",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f2a4a",
+  "lang": "pt-BR",
+  "icons": [{ "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
