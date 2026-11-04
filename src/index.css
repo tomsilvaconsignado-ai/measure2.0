@@ -38,3 +38,21 @@ body {
 .numero {
   font-variant-numeric: tabular-nums;
 }
+
+/* Impressão dos documentos emitidos (A4) */
+@page {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  body {
+    background: #fff;
+  }
+  .nao-imprimir {
+    display: none !important;
+  }
+  .folha {
+    width: auto !important;
+    min-height: auto !important;
+  }
+}

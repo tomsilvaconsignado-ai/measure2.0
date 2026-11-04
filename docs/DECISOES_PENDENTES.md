@@ -4,9 +4,9 @@ O documento-base (item 25) lista regras que dependem do órgão. Para nenhuma de
 
 | # | Decisão | Proposta | Necessária na |
 |---|---|---|---|
-| 1 | O que conta como **"consumo"** no relatório resumido: nota emitida, liquidado ou pago? | Deixar configurável por órgão. O padrão seria **nota fiscal atestada e não cancelada**, e o relatório sempre informaria a métrica usada. | Fase 4/5 |
-| 2 | **Pagamento parcial** é permitido? | Permitir, com status `PARCIAL` até a quitação integral. | Fase 4 |
-| 3 | **Aditivo** aprovado vira **novo contrato**? Quem aprova? | Fluxo com os estados rascunho → em análise → aprovado/rejeitado (aprovação pelo Master ou por papel configurado). Uma vez aprovado, oferece "gerar novo contrato a partir deste" e o anterior fica como histórico vinculado. | Fase 3 |
+| 1 | O que conta como **"consumo"** no relatório resumido: nota emitida, liquidado ou pago? | Implantado nas Fases 3 e 4: **consumido = notas fiscais registradas e não canceladas**, separado de empenhado e de pago (que nunca se somam). No relatório da Fase 5 a métrica poderá ser escolhida. | ✔ provisório (confirmar) |
+| 2 | **Pagamento parcial** é permitido? | Implantado: sim. A nota fica `PARCIAL` até a soma dos pagamentos igualar o valor e só então vira `PAGO`. O pagamento só é liberado depois do atesto. | ✔ Fase 4 (confirmar) |
+| 3 | **Aditivo** aprovado vira **novo contrato**? Quem aprova? | Implantado: o aditivo nasce em rascunho e quem tem "aprovar contratos" (Master) aprova ou rejeita. Aprovado, ele ajusta vigência e valor atuais sem sobrescrever o original. A **renovação** é uma ação à parte, que cria um contrato novo ligado ao anterior. | ✔ Fase 3 (confirmar) |
 | 4 | **Modelos oficiais** de checklist, atesto, consolidado mensal e extratos | Aguardando os PDFs do órgão. O layout será reproduzido com fidelidade. | Fases 4 e 6 |
 | 5 | **Texto do atesto** e número/conteúdo do **decreto** | Texto configurável por órgão em Configurações (`tenant_configuracoes.textos`). | Fase 4 |
 | 6 | **Limite de anexos** | Já é configurável por órgão (padrão de 10 MB, máximo de 50 MB). | ✔ Fase 1 |

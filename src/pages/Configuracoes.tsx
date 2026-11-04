@@ -24,6 +24,8 @@ export function Configuracoes() {
   const [alertas, setAlertas] = useState('');
   const [anexoMb, setAnexoMb] = useState('10');
   const [bloquear, setBloquear] = useState(false);
+  const [textoAtesto, setTextoAtesto] = useState('');
+  const [decreto, setDecreto] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!cfg.data) return;
@@ -32,6 +34,8 @@ export function Configuracoes() {
     setAlertas(cfg.data.alerta_vencimento_dias.join(', '));
     setAnexoMb(String(cfg.data.anexo_tamanho_max_mb));
     setBloquear(cfg.data.bloquear_nota_contrato_vencido);
+    setTextoAtesto(cfg.data.textos?.atesto ?? '');
+    setDecreto(cfg.data.textos?.decreto ?? '');
   }, [cfg.data]);
 
   const enviarLogo = useMutation({
@@ -60,6 +64,7 @@ export function Configuracoes() {
         alerta_vencimento_dias: [...new Set(dias)].sort((a, b) => b - a),
         anexo_tamanho_max_mb: mb,
         bloquear_nota_contrato_vencido: bloquear,
+        textos: { ...(cfg.data?.textos ?? {}), atesto: textoAtesto.trim(), decreto: decreto.trim() },
       });
     },
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['configuracoes', orgao!.id] }); toast.success('Configurações salvas.'); },
@@ -114,6 +119,11 @@ export function Configuracoes() {
             </div>
             <Interruptor rotulo="Bloquear lançamento de nota fiscal em contrato vencido" marcado={bloquear} aoMudar={setBloquear} desabilitado={!podeEditar}
               descricao="Desligado: o sistema só alerta. Ligado: impede o lançamento (exceções devem ser tratadas pelo administrador)." />
+            <AreaTexto rotulo="Modelo do texto de atesto" value={textoAtesto} onChange={(e) => setTextoAtesto(e.target.value)} disabled={!podeEditar} rows={5}
+              placeholder="Vazio = modelo padrão do MEASURE"
+              ajuda="Variáveis: {objeto} {contrato} {fornecedor} {nota} {valor} {meses} {periodo} {processo} {decreto}" />
+            <AreaTexto rotulo="Decreto / observação legal do atesto" value={decreto} onChange={(e) => setDecreto(e.target.value)} disabled={!podeEditar} rows={2}
+              ajuda="Entra no lugar de {decreto} (ex.: número e artigo do decreto municipal aplicável)." />
             {erros.geral && <CaixaErro mensagem={erros.geral} />}
             {podeEditar && <div><Botao type="submit" carregando={salvar.isPending}>Salvar configurações</Botao></div>}
           </form>

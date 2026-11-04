@@ -96,3 +96,10 @@ export function formatarData(data: string | null | undefined): string {
 export function iniciais(nome: string): string {
   return nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('') || '?';
 }
+
+/** numeric do banco (número ou texto) → centavos inteiros */
+export const centavos = (v: number | string | null | undefined) => Math.round(Number(v ?? 0) * 100);
+/** centavos → texto decimal para o banco ("1234.56"), sem passar por ponto flutuante acumulado */
+export const decimalDeCentavos = (c: number) => `${c < 0 ? '-' : ''}${Math.floor(Math.abs(c) / 100)}.${String(Math.abs(c) % 100).padStart(2, '0')}`;
+/** numeric do banco direto para "R$ 1.234,56" */
+export const brl = (v: number | string | null | undefined) => formatarCentavos(centavos(v));

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
+import { BadgeCheck, Building2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
@@ -23,8 +24,8 @@ function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: Reac
 const FASES: Array<[string, string, boolean]> = [
   ['1', 'Fundação: órgãos, estrutura, usuários, permissões, auditoria e identidade', true],
   ['2', 'Cadastros: fornecedores, servidores, unidades atendidas, classificação orçamentária', true],
-  ['3', 'Contratos: responsáveis, portarias, dotação, aditivos e renovações', false],
-  ['4', 'Execução: empenhos, reforços, notas fiscais, atesto, pagamento e rateio', false],
+  ['3', 'Contratos: responsáveis, portarias, dotação, aditivos e renovações', true],
+  ['4', 'Execução: empenhos, reforços, notas fiscais, atesto, pagamento e rateio', true],
   ['5', 'Consulta e relatórios em PDF e Excel', false],
   ['6', 'Servidores: ativos/exonerados e consolidado mensal', false],
   ['7', 'Painel gerencial, notificações, ordens de serviço e importação', false],
@@ -36,6 +37,11 @@ export function Inicio() {
   const perfil = contexto!.perfil!;
   const resumo = useQuery({ queryKey: ['resumo', orgao?.id], queryFn: () => resumoOrgao(orgao!.id), enabled: !!orgao && pode('estrutura', 'ler') });
   const primeiroNome = (perfil.nome || perfil.email).split(/\s+/)[0];
+  const aguardando = useQuery({
+    queryKey: ['notas', orgao?.id, 'meu-atesto'], enabled: !!orgao,
+    queryFn: async () => (await supabase.from('v_notas').select('id', { count: 'exact', head: true }).eq('tenant_id', orgao!.id)
+      .eq('sou_designado', true).eq('status_atesto', 'PENDENTE').is('cancelada_em', null)).count ?? 0,
+  });
 
   return (
     <>
@@ -55,6 +61,13 @@ export function Inicio() {
         </Cartao>
       )}
 
+      {!!aguardando.data && (
+        <Link to="/notas" className="mb-6 flex items-center gap-3 rounded-xl border border-marca-200 bg-marca-50 p-4 text-sm text-marca-900 hover:bg-marca-100">
+          <BadgeCheck className="size-5 shrink-0" />
+          <span className="flex-1"><strong>{aguardando.data} nota{aguardando.data > 1 ? 's' : ''} fiscal{aguardando.data > 1 ? 'is' : ''}</strong> aguardando o seu atesto como gestor/fiscal designado.</span>
+          <span className="font-medium">Ver notas →</span>
+        </Link>
+      )}
       {orgao && resumo.data && (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Indicador rotulo="Unidades ativas na estrutura" valor={resumo.data.unidades} icone={<FolderTree className="size-5" />} para="/estrutura" />

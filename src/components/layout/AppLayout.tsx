@@ -3,13 +3,13 @@ import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { mensagemDeErro } from '@/lib/erros';
 import { encerrarSuporte, urlArquivo } from '@/services/api';
-import { Avatar, Botao, cx } from '../ui/basicos';
+import { Avatar, Botao, Carregando, cx } from '../ui/basicos';
 import { Marca } from './Marca';
 import type { Recurso } from '@/lib/tipos';
 
@@ -32,11 +32,14 @@ const CADASTROS: Item[] = [
   { para: '/classificacao', rotulo: 'Classificação orçamentária', icone: <Network className="size-4" />, recurso: 'classificacoes' },
   { para: '/tipos-servico', rotulo: 'Tipos de serviço', icone: <ListChecks className="size-4" />, recurso: 'tipos_servico' },
 ];
+// Sem filtro de recurso: gestores/fiscais/suplentes veem só os contratos da designação (o banco filtra)
+const EXECUCAO: Item[] = [
+  { para: '/contratos', rotulo: 'Contratos', icone: <FileText className="size-4" /> },
+  { para: '/empenhos', rotulo: 'Empenhos', icone: <Wallet className="size-4" /> },
+  { para: '/notas', rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" /> },
+];
 // Módulos das próximas fases do plano de desenvolvimento
 const PROXIMOS: Array<{ rotulo: string; icone: ReactNode; fase: number }> = [
-  { rotulo: 'Contratos', icone: <FileText className="size-4" />, fase: 3 },
-  { rotulo: 'Empenhos', icone: <Wallet className="size-4" />, fase: 4 },
-  { rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" />, fase: 4 },
   { rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" />, fase: 5 },
   { rotulo: 'Ordens de serviço', icone: <ClipboardList className="size-4" />, fase: 7 },
   { rotulo: 'Painel gerencial', icone: <BarChart3 className="size-4" />, fase: 7 },
@@ -97,6 +100,9 @@ export function AppLayout() {
       </div>
       <div className="-mx-1 flex-1 overflow-y-auto px-1">
         <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} />
+        {orgao && (
+          <Grupo titulo="Contratos e execução">{EXECUCAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+        )}
         {orgao && cadastros.length > 0 && (
           <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
@@ -190,7 +196,7 @@ export function AppLayout() {
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-        <Outlet />
+        <Suspense fallback={<Carregando />}><Outlet /></Suspense>
       </main>
     </div>
   );

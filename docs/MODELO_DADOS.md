@@ -46,3 +46,29 @@ Convenções:
 ## Próximas fases (planejado)
 
 Fornecedores, servidores, unidades atendidas e grupos de rateio, classificação orçamentária, contratos com designações, dotação N:N, aditivos e documentos, empenhos e reforços, notas fiscais com referências, rateio, atesto e pagamentos, registros mensais de frequência e documentos emitidos com snapshot. Todas com `tenant_id`, RLS por `pode()`, auditoria e exclusão lógica.
+
+## Fases 3 e 4 (implantadas)
+
+| Tabela | Conteúdo |
+|---|---|
+| `modalidades_contratacao` | catálogo global (Lei 14.133) com a explicação de cada tipo |
+| `contratos` | número (único no órgão), modalidade, fornecedor, unidade responsável, objeto, vigência, valor global, origem (renovação) |
+| `contrato_designacoes` | gestor, fiscal e suplente (servidor, início, fim, portaria); a designação vigente dá acesso ao contrato |
+| `contrato_dotacoes` | N:N entre o contrato e as dotações da classificação orçamentária |
+| `contrato_aditivos` | prazo/valor/supressão; RASCUNHO → APROVADO/REJEITADO; o valor original não muda |
+| `empenhos` | número/ano, tipo, valor, **dotação efetivamente usada** (precisa estar no contrato) |
+| `empenho_reforcos`, `empenho_unidades` | reforços (com cancelamento) e unidades atendidas |
+| `notas_fiscais` | empenho, número/série, emissão, valor, período, status de atesto e de pagamento, exceção de saldo, cancelamento |
+| `nota_referencias`, `nota_unidades` | meses de referência e unidades atendidas (com rateio opcional que fecha com o valor) |
+| `nota_atestos`, `nota_pagamentos` | atesto por designação (texto e nome de quem atestou) e pagamentos parciais |
+| `documentos_emitidos` | extratos e atestos com o retrato dos dados na emissão (imutável) |
+
+Visões com os cálculos (`v_contratos`, `v_empenhos`, `v_notas`, `v_contrato_dotacoes`, `v_nota_unidades`):
+- filtram explicitamente cada linha: aparece para quem tem escopo pela matriz **ou** está designado no contrato;
+- fazem as somas sem depender do que mais a pessoa enxerga.
+
+Regras financeiras:
+- `valor atual = valor global + aditivos aprovados`;
+- `saldo do empenho = valor + reforços − notas não canceladas`;
+- `saldo do contrato = valor atual − notas não canceladas`;
+- empenhado, consumido e pago são exibidos lado a lado e nunca somados entre si.

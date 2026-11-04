@@ -154,6 +154,10 @@ export async function definirStatusUnidadeAtendida(id: string, ativo: boolean, m
   falhou(await supabase.from('unidades_atendidas').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
 }
 
+export async function obterUnidadeAtendida(id: string) {
+  return falhou(await supabase.from('unidades_atendidas').select('*').eq('id', id).single()) as UnidadeAtendida;
+}
+
 export async function membrosDoGrupo(grupoId: string) {
   const r = falhou(await supabase.from('unidades_grupo_membros').select('membro:unidades_atendidas!unidades_grupo_membros_membro_id_fkey(*)')
     .eq('grupo_id', grupoId)) as unknown as Array<{ membro: UnidadeAtendida }>;

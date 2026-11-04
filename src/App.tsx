@@ -1,24 +1,34 @@
 import { Loader2, ShieldOff } from 'lucide-react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Marca } from '@/components/layout/Marca';
-import { Botao } from '@/components/ui/basicos';
+import { Botao, Carregando } from '@/components/ui/basicos';
 import { precisaDefinirSenha } from '@/lib/supabase';
 import { DefinirSenha, Entrar, EsqueciSenha } from '@/pages/Acesso';
-import { Auditoria } from '@/pages/Auditoria';
-import { Configuracoes } from '@/pages/Configuracoes';
-import { Estrutura } from '@/pages/Estrutura';
 import { Inicio } from '@/pages/Inicio';
-import { MeuPerfil } from '@/pages/MeuPerfil';
-import { Orgaos } from '@/pages/plataforma/Orgaos';
-import { Permissoes } from '@/pages/plataforma/Permissoes';
-import { Usuarios } from '@/pages/Usuarios';
-import { Classificacao } from '@/pages/cadastros/Classificacao';
-import { Fornecedores } from '@/pages/cadastros/Fornecedores';
-import { Servidores } from '@/pages/cadastros/Servidores';
-import { TiposServico } from '@/pages/cadastros/TiposServico';
-import { UnidadesAtendidas } from '@/pages/cadastros/UnidadesAtendidas';
+
+// Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve)
+const pagina = <T extends string>(carregar: () => Promise<Record<T, ComponentType>>, nome: T) =>
+  lazy(() => carregar().then((m) => ({ default: m[nome] })));
+const Auditoria = pagina(() => import('@/pages/Auditoria'), 'Auditoria');
+const Configuracoes = pagina(() => import('@/pages/Configuracoes'), 'Configuracoes');
+const Estrutura = pagina(() => import('@/pages/Estrutura'), 'Estrutura');
+const MeuPerfil = pagina(() => import('@/pages/MeuPerfil'), 'MeuPerfil');
+const Orgaos = pagina(() => import('@/pages/plataforma/Orgaos'), 'Orgaos');
+const Permissoes = pagina(() => import('@/pages/plataforma/Permissoes'), 'Permissoes');
+const Usuarios = pagina(() => import('@/pages/Usuarios'), 'Usuarios');
+const Classificacao = pagina(() => import('@/pages/cadastros/Classificacao'), 'Classificacao');
+const Fornecedores = pagina(() => import('@/pages/cadastros/Fornecedores'), 'Fornecedores');
+const Servidores = pagina(() => import('@/pages/cadastros/Servidores'), 'Servidores');
+const TiposServico = pagina(() => import('@/pages/cadastros/TiposServico'), 'TiposServico');
+const UnidadesAtendidas = pagina(() => import('@/pages/cadastros/UnidadesAtendidas'), 'UnidadesAtendidas');
+const ContratoDetalhe = pagina(() => import('@/pages/contratos/ContratoDetalhe'), 'ContratoDetalhe');
+const Contratos = pagina(() => import('@/pages/contratos/Contratos'), 'Contratos');
+const Empenhos = pagina(() => import('@/pages/contratos/Empenhos'), 'Empenhos');
+const Imprimir = pagina(() => import('@/pages/contratos/Imprimir'), 'Imprimir');
+const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
 
 function TelaCheia({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6 text-center">{children}</div>;
@@ -59,7 +69,9 @@ export function App() {
   }
 
   return (
+    <Suspense fallback={<Carregando />}>
     <Routes>
+      <Route path="imprimir/:id" element={<Imprimir />} />
       <Route element={<AppLayout />}>
         <Route index element={<Inicio />} />
         <Route path="estrutura" element={<Estrutura />} />
@@ -72,11 +84,16 @@ export function App() {
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />
+        <Route path="contratos" element={<Contratos />} />
+        <Route path="contratos/:id" element={<ContratoDetalhe />} />
+        <Route path="empenhos" element={<Empenhos />} />
+        <Route path="notas" element={<Notas />} />
         <Route path="plataforma/orgaos" element={<Orgaos />} />
         <Route path="plataforma/permissoes" element={<Permissoes />} />
         <Route path="entrar" element={<Navigate to="/" replace />} />
         <Route path="*" element={<div className="py-16 text-center text-sm text-slate-600">Página não encontrada.</div>} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }

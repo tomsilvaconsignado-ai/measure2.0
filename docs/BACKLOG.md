@@ -38,18 +38,33 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [x] Estrutura da SMS Aracaju carregada: 33 unidades.
 - [ ] Antes de inativar um fornecedor, avisar sobre contratos, empenhos e notas: entra junto com a Fase 3.
 
-## Fase 3: Contratos
-- Cadastro com fornecedor do cadastro central, vigentes e vencidos calculados por data, alertas de vencimento
-- Gestor, fiscal e suplente vindos de Servidores (designações dão acesso só àquele contrato)
-- Portarias com vários PDFs por área
-- Dotação ligada a várias classificações (tabela associativa)
-- Pregão, aditivos e renovações (ver decisão 3)
+## Fase 3: Contratos ✔
+- [x] Cadastro com fornecedor do cadastro central e modalidade (com explicação de cada tipo)
+- [x] Situação calculada pelas datas e aditivos: vigente, a vencer (pelos dias de alerta do órgão), vencido e não iniciado
+- [x] Abas Vigentes e Vencidos, em ordem A–Z pelo fornecedor e depois pelo número
+- [x] Gestor, fiscal e suplente vindos de Servidores, inclusive de outra coordenação:
+  - a designação dá acesso só àquele contrato;
+  - encerrar a designação mantém o histórico.
+- [x] Portarias de gestor, fiscal e suplente, com vários PDFs em cada área
+- [x] Dotação com várias classificações (N:N); a classificação usada por empenho não pode ser removida
+- [x] Aditivos de prazo, valor, prazo e valor, supressão e outros:
+  - nascem em rascunho e passam por aprovação ou rejeição;
+  - o valor original do contrato não é sobrescrito.
+- [x] Renovação como contrato novo, ligado ao anterior; o anterior fica como histórico.
+- [x] Resumo financeiro: valor original, aditivos, valor atual, empenhado, consumido (notas), pago e saldo, com barras de uso.
 
-## Fase 4: Execução financeira
-- Empenhos ligados à classificação efetivamente usada, reforços, saldo e extrato
-- Notas fiscais em 4 abas, meses de referência, rateio sem duplicar valor
-- Atesto por designação, pagamento (decisão 2), cancelamento com histórico
-- Checklist e extratos em PDF com retrato fiel dos dados (snapshot)
+## Fase 4: Execução financeira ✔
+- [x] Empenhos ligados à dotação efetivamente usada, que precisa estar vinculada ao contrato
+  - Também: reforços (com cancelamento auditado), unidades atendidas e barra de saldo.
+- [x] Nota fiscal em 4 abas: contrato, dados, referência e texto de atesto
+  - Aviso de contrato vencido; o bloqueio é configurável.
+  - Saldo do empenho conferido no banco; a exceção exige justificativa e permissão de aprovar.
+  - Meses de referência e período.
+  - Rateio entre unidades, sem duplicar o valor. Grupo com rateio obrigatório entra com as unidades componentes.
+- [x] Atesto só pelo gestor, fiscal ou suplente designado, com o texto gerado pelo modelo do órgão (copiável). Nome e matrícula de quem atestou ficam guardados.
+- [x] Pagamento depois do atesto: parcial (PARCIAL) até a quitação (PAGO); cancelamentos com motivo.
+- [x] Extratos do contrato e do empenho com retrato imutável dos dados, para impressão em A4 ou PDF.
+- [ ] Checklist da nota fiscal no modelo oficial: aguardando o PDF de referência do órgão.
 
 ## Fase 5: Consulta e relatórios
 - Relatório completo por classificação: vários anos, contratos e fornecedores; filtros combinados (E entre campos, OU dentro do campo)

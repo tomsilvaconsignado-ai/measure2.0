@@ -196,3 +196,67 @@ export interface ClassificacaoOrcamentaria {
 }
 
 export interface TipoServico { id: string; tenant_id: string; nome: string; descricao: string | null; ordem: number; ativo: boolean }
+
+// ---------------------------------------------------------------- Fases 3 e 4: contratos e execução
+
+/** numeric do Postgres chega como número ou texto: sempre convertido para centavos inteiros */
+export type Decimal = number | string;
+
+export type SituacaoContrato = 'NAO_INICIADO' | 'VIGENTE' | 'A_VENCER' | 'VENCIDO';
+
+export interface Modalidade { codigo: string; nome: string; descricao: string; ordem: number }
+
+export interface Contrato {
+  id: string; tenant_id: string; unidade_id: string; numero: string; modalidade: string; fornecedor_id: string;
+  processo_administrativo: string | null; numero_licitacao: string | null; objeto: string; data_inicio: string; data_fim: string;
+  valor_global: Decimal; observacoes: string | null; contrato_origem_id: string | null; numero_renovacao: number; ativo: boolean;
+}
+
+export interface ContratoResumo extends Contrato {
+  fornecedor_nome: string; fornecedor_fantasia: string | null; fornecedor_documento: string; fornecedor_tipo: 'PJ' | 'PF';
+  unidade_nome: string; unidade_sigla: string | null; aditivos_valor: Decimal; valor_atual: Decimal; data_fim_atual: string;
+  empenhado: Decimal; notas_valor: Decimal; pago: Decimal; saldo: Decimal; situacao: SituacaoContrato; dias_para_vencer: number;
+  aditivos_aprovados: number;
+}
+
+export interface Designacao {
+  id: string; contrato_id: string; servidor_id: string; papel: 'GESTOR' | 'FISCAL' | 'SUPLENTE'; inicio: string; fim: string | null;
+  portaria: string | null; motivo_fim: string | null;
+  servidor_nome: string; servidor_matricula: string; servidor_cargo: string | null; unidade_sigla: string | null; unidade_nome: string; tem_acesso: boolean;
+}
+
+export interface Aditivo {
+  id: string; contrato_id: string; numero: string; tipo: 'PRAZO' | 'VALOR' | 'PRAZO_E_VALOR' | 'SUPRESSAO' | 'OUTRO';
+  data_assinatura: string | null; nova_data_fim: string | null; valor: Decimal; descricao: string;
+  status: 'RASCUNHO' | 'APROVADO' | 'REJEITADO'; decidido_em: string | null; motivo_decisao: string | null; criado_em: string;
+}
+
+export interface Empenho {
+  id: string; tenant_id: string; contrato_id: string; unidade_id: string; fornecedor_id: string; numero: string; ano: number;
+  tipo: 'ORDINARIO' | 'ESTIMATIVO' | 'GLOBAL'; data_empenho: string; vigencia_fim: string | null; valor: Decimal;
+  classificacao_id: string; processo: string | null; sd: string | null; licitacao: string | null; observacoes: string | null; ativo: boolean;
+}
+
+export interface EmpenhoResumo extends Empenho {
+  contrato_numero: string; contrato_objeto: string; fornecedor_nome: string; classificacao_codigo: string;
+  reforcos: Decimal; valor_total: Decimal; utilizado: Decimal; saldo: Decimal;
+}
+
+export interface Reforco { id: string; empenho_id: string; numero: string | null; data: string; valor: Decimal; motivo: string | null; cancelado_em: string | null; motivo_cancelamento: string | null }
+
+export type StatusPagamento = 'PENDENTE' | 'PARCIAL' | 'PAGO' | 'CANCELADA';
+
+export interface NotaResumo {
+  id: string; tenant_id: string; contrato_id: string; empenho_id: string; unidade_id: string; fornecedor_id: string;
+  numero: string; serie: string | null; data_emissao: string; data_inclusao: string; processo_administrativo: string | null;
+  valor: Decimal; tipo_servico_id: string | null; periodo_inicio: string | null; periodo_fim: string | null; observacoes: string | null;
+  status_atesto: 'PENDENTE' | 'ATESTADA'; status_pagamento: StatusPagamento; excecao_saldo: string | null;
+  cancelada_em: string | null; motivo_cancelamento: string | null;
+  contrato_numero: string; contrato_objeto: string; fornecedor_nome: string; fornecedor_documento: string;
+  empenho_numero: string; empenho_ano: number; tipo_servico_nome: string | null; pago: Decimal; meses_referencia: string | null; sou_designado: boolean;
+}
+
+export interface Pagamento { id: string; nota_id: string; data_pagamento: string; valor: Decimal; documento: string | null; observacao: string | null; registrado_em: string; cancelado_em: string | null; motivo_cancelamento: string | null }
+export interface Atesto { id: string; nota_id: string; servidor_id: string; papel: string; texto: string; atestado_em: string; servidor_nome: string | null; servidor_matricula: string | null }
+
+export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }
