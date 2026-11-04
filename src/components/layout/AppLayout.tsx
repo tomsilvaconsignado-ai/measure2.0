@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
-  LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
+  ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -25,12 +25,15 @@ const PLATAFORMA: Item[] = [
   { para: '/plataforma/orgaos', rotulo: 'Órgãos', icone: <Landmark className="size-4" />, plataforma: true },
   { para: '/plataforma/permissoes', rotulo: 'Matriz de permissões', icone: <KeyRound className="size-4" />, plataforma: true },
 ];
+const CADASTROS: Item[] = [
+  { para: '/fornecedores', rotulo: 'Fornecedores', icone: <Truck className="size-4" />, recurso: 'fornecedores' },
+  { para: '/servidores', rotulo: 'Servidores', icone: <UserCircle className="size-4" />, recurso: 'servidores' },
+  { para: '/unidades-atendidas', rotulo: 'Unidades atendidas', icone: <Building2 className="size-4" />, recurso: 'unidades' },
+  { para: '/classificacao', rotulo: 'Classificação orçamentária', icone: <Network className="size-4" />, recurso: 'classificacoes' },
+  { para: '/tipos-servico', rotulo: 'Tipos de serviço', icone: <ListChecks className="size-4" />, recurso: 'tipos_servico' },
+];
 // Módulos das próximas fases do plano de desenvolvimento
 const PROXIMOS: Array<{ rotulo: string; icone: ReactNode; fase: number }> = [
-  { rotulo: 'Fornecedores', icone: <Truck className="size-4" />, fase: 2 },
-  { rotulo: 'Servidores', icone: <UserCircle className="size-4" />, fase: 2 },
-  { rotulo: 'Unidades atendidas', icone: <Building2 className="size-4" />, fase: 2 },
-  { rotulo: 'Classificação orçamentária', icone: <Network className="size-4" />, fase: 2 },
   { rotulo: 'Contratos', icone: <FileText className="size-4" />, fase: 3 },
   { rotulo: 'Empenhos', icone: <Wallet className="size-4" />, fase: 4 },
   { rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" />, fase: 4 },
@@ -84,6 +87,7 @@ export function AppLayout() {
 
   const fecharMenu = () => setMenuAberto(false);
   const administracao = ADMINISTRACAO.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
+  const cadastros = CADASTROS.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
 
   const lateral = (
     <nav className="flex h-full flex-col bg-marca-900 px-3 pb-4 text-white" aria-label="Menu principal">
@@ -93,6 +97,9 @@ export function AppLayout() {
       </div>
       <div className="-mx-1 flex-1 overflow-y-auto px-1">
         <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} />
+        {orgao && cadastros.length > 0 && (
+          <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+        )}
         {orgao && administracao.length > 0 && (
           <Grupo titulo="Administração">{administracao.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}

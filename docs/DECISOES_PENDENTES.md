@@ -11,10 +11,11 @@ O documento-base (item 25) lista regras que dependem do órgão. Para nenhuma de
 | 5 | **Texto do atesto** e número/conteúdo do **decreto** | Texto configurável por órgão em Configurações (`tenant_configuracoes.textos`). | Fase 4 |
 | 6 | **Limite de anexos** | Já é configurável por órgão (padrão de 10 MB, máximo de 50 MB). | ✔ Fase 1 |
 | 7 | **Domínios de e-mail** por órgão | Já é configurável pela plataforma (ex.: `aracaju.se.gov.br`). | ✔ Fase 1 |
-| 8 | **Tipo sanguíneo** no cadastro de servidor | Dado sensível (LGPD). Proposta: campo opcional, mascarado na auditoria, visível só para quem tiver a permissão "dados sensíveis". Confirmar se é necessário. | Fase 2 |
-| 9 | Campos que o **servidor** edita no próprio cadastro | Proposta: telefone, e-mail pessoal, endereço e foto. Os dados funcionais ficam protegidos e o servidor pode pedir correção. | Fase 2/6 |
-| 10 | **Classificação orçamentária** por órgão ou global? | Por órgão, com possibilidade de importar um modelo da plataforma. Não misturar os dois. | Fase 2 |
-| 11 | Provedores de **CNPJ/CEP** | BrasilAPI (CNPJ e CEP) e ViaCEP como reserva, com preenchimento manual se falharem. | Fase 2 |
+| 8 | **Tipo sanguíneo** no cadastro de servidor | Implantado como opcional, na tabela de dados pessoais (permissão própria) e mascarado na auditoria. Se o órgão não precisar, basta não preencher. | ✔ Fase 2 (confirmar) |
+| 9 | Campos que o **servidor** edita no próprio cadastro | Implantado: telefone, e-mail pessoal e endereço. Os demais campos são da administração. | ✔ Fase 2 (confirmar) |
+| 10 | **Classificação orçamentária** por órgão ou global? | Implantado: por órgão. A importação de modelo da plataforma fica para a Fase 7. | ✔ Fase 2 |
+| 11 | Provedores de **CNPJ/CEP** | Implantado: BrasilAPI, com ViaCEP de reserva para CEP. Se falharem, o preenchimento é manual. | ✔ Fase 2 |
+| 16 | Nomes completos das diretorias **DITEC, DRMAAC e DVAS** da SMS Aracaju | Cadastradas pela sigla ("Diretoria DITEC"…). Renomear em Estrutura organizacional. | Quando informar |
 | 12 | **Retenção** de dados e documentos | Nada é apagado fisicamente pelo app. A política formal de retenção e descarte fica a cargo do órgão. | Fase 8 |
 | 13 | **Patrimônio** e **Comunidade** | Escopo não detalhado. Não serão implementados sem levantamento. | Fase 7 |
 | 14 | **Hospedagem na Vercel** | `vercel.json` pronto, com cabeçalhos de segurança e CSP. Falta conectar a conta da Vercel ao repositório. | Quando decidir |

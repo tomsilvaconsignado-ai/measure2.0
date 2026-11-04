@@ -3,11 +3,12 @@
 //
 //   npm run test:db
 import { PGlite } from '@electric-sql/pglite';
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import fs from 'fs';
 
 const dir = new URL('../migrations/', import.meta.url);
 const migrations = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
-export const db = new PGlite();
+export const db = new PGlite({ extensions: { pg_trgm } });
 
 const stubs = `
 CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;

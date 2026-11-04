@@ -22,7 +22,7 @@ function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: Reac
 
 const FASES: Array<[string, string, boolean]> = [
   ['1', 'Fundação: órgãos, estrutura, usuários, permissões, auditoria e identidade', true],
-  ['2', 'Cadastros: fornecedores, servidores, unidades atendidas, classificação orçamentária', false],
+  ['2', 'Cadastros: fornecedores, servidores, unidades atendidas, classificação orçamentária', true],
   ['3', 'Contratos: responsáveis, portarias, dotação, aditivos e renovações', false],
   ['4', 'Execução: empenhos, reforços, notas fiscais, atesto, pagamento e rateio', false],
   ['5', 'Consulta e relatórios em PDF e Excel', false],

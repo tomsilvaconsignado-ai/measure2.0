@@ -17,12 +17,26 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [x] Componentes: busca digitável no servidor, máscaras BRL/CNPJ/CPF/CEP/telefone, erros por campo, confirmação com motivo
 - [x] Testes: 125 verificações de banco, 11 unitários e 33 de ponta a ponta contra o Supabase real
 
-## Fase 2: Cadastros
-- Fornecedores, com consulta de CNPJ/CEP, logomarca, documentos, A–Z e inativação com aviso de vínculos
-- Servidores: ativos e exonerados no mesmo módulo, aniversariantes, dados sensíveis restritos
-- Unidades atendidas e grupos de rateio
-- Classificação orçamentária com todos os campos e dependências (elemento → subelemento)
-- Tipos de serviço administráveis
+## Fase 2: Cadastros ✔
+- [x] Fornecedores:
+  - PJ/PF com CNPJ e CPF validados no banco;
+  - CNPJ completo busca os dados na Receita (BrasilAPI) e o CEP preenche o endereço;
+  - logomarca, contas bancárias com Pix, documentos;
+  - ordem A–Z e inativação com motivo.
+- [x] Servidores:
+  - ativos e exonerados no mesmo cadastro (a situação vem da data de exoneração), aniversariantes do mês;
+  - foto, documentos funcionais e busca por nome, matrícula, cargo, unidade ou CPF.
+- [x] Dados pessoais dos servidores (LGPD):
+  - ficam em tabela separada, com permissão própria (`servidores_sensiveis`) e mascarados na auditoria;
+  - o próprio servidor vê os seus dados e atualiza contato e endereço.
+- [x] Unidades atendidas, com grupos de rateio (obrigatório ou opcional) e unidades componentes.
+- [x] Classificação orçamentária:
+  - 13 tipos de classificador, com dependências (subelemento → elemento, detalhamento → fonte, ação → programa);
+  - dotações combinando os classificadores, com código completo montado pelo banco e sem duplicar combinações.
+- [x] Tipos de serviço administráveis; cada órgão começa com os 10 padrão.
+- [x] Consulta de CNPJ também no cadastro de órgão.
+- [x] Estrutura da SMS Aracaju carregada: 33 unidades.
+- [ ] Antes de inativar um fornecedor, avisar sobre contratos, empenhos e notas: entra junto com a Fase 3.
 
 ## Fase 3: Contratos
 - Cadastro com fornecedor do cadastro central, vigentes e vencidos calculados por data, alertas de vencimento

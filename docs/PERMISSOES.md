@@ -13,6 +13,7 @@ Legenda: L = ler · C = criar · E = editar · X = excluir/inativar · A = aprov
 | Configurações e identidade | L C E X A P | — | — | — | — | — | — |
 | Auditoria | L C E X A P | — | — | — | — | — | — |
 | Fornecedores, servidores, unidades atendidas | L C E X A P | L P | L P | L P | L P | L C E X P | — |
+| Servidores: dados pessoais (CPF, nascimento, mãe, tipo sanguíneo, endereço) | L C E P | — | — | — | — | L C E | só os próprios |
 | Classificação orçamentária | L C E X A P | L P | L P | L P | L P | L P | — |
 | Tipos de serviço | L C E X A P | L P | L P | L P | L P | L C E | — |
 | Contratos, empenhos, notas fiscais, OS | L C E X A P | L P | L P | L P | L P | L C E X P | — |

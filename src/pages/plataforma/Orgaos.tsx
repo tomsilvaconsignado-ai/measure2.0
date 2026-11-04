@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, SemPermissao, Selecao, Selo, Vazio } from '@/components/ui/basicos';
 import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
-import { traduzirErro } from '@/lib/erros';
+import { mensagemDeErro, traduzirErro } from '@/lib/erros';
+import { consultarCnpj } from '@/services/consultasPublicas';
 import { cnpjValido, formatarCep, formatarCnpj, formatarDataHora, formatarTelefone, somenteDigitos } from '@/lib/formatacao';
 import type { Tenant } from '@/lib/tipos';
 import { definirStatusOrgao, iniciarSuporte, listarOrgaos, salvarOrgao, type DadosOrgao } from '@/services/api';
@@ -31,6 +32,31 @@ export function FormOrgao({ orgao, aberto, aoFechar }: { orgao: Tenant | null; a
     } : vazio);
   }, [aberto, orgao]);
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const [consultando, setConsultando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  useEffect(() => { if (aberto) setAviso(null); }, [aberto]);
+
+  // Preenche com os dados da Receita; na edição só completa o que estiver vazio
+  const preencherPeloCnpj = async (cnpj: string) => {
+    setConsultando(true); setAviso(null);
+    try {
+      const d = await consultarCnpj(cnpj);
+      const usar = (atual: string, novo: string | undefined) => (orgao && atual.trim() ? atual : novo || atual);
+      setF((x) => ({
+        ...x,
+        nome_oficial: usar(x.nome_oficial, d.razao_social),
+        nome_curto: usar(x.nome_curto, (d.nome_fantasia || d.razao_social).slice(0, 60)),
+        endereco: usar(x.endereco, [d.logradouro, d.numero, d.complemento, d.bairro].filter(Boolean).join(', ')),
+        cep: usar(x.cep, d.cep ? formatarCep(d.cep) : ''),
+        cidade: usar(x.cidade, d.cidade), uf: usar(x.uf, d.uf),
+        telefone: usar(x.telefone, d.telefone ? formatarTelefone(d.telefone) : ''),
+        email_contato: usar(x.email_contato, d.email),
+      }));
+      setAviso(`Dados preenchidos pela Receita Federal${d.situacao ? ` (situação: ${d.situacao})` : ''}. Revise antes de salvar.`);
+    } catch (e) {
+      setAviso(mensagemDeErro(e));
+    } finally { setConsultando(false); }
+  };
 
   const salvar = useMutation({
     mutationFn: () => {
@@ -74,8 +100,13 @@ export function FormOrgao({ orgao, aberto, aoFechar }: { orgao: Tenant | null; a
           placeholder="Prefeitura Municipal de Aracaju" />
         <Campo rotulo="Nome curto" obrigatorio value={f.nome_curto} onChange={set('nome_curto')} erro={erros.nome_curto} maxLength={60}
           ajuda="Aparece no menu e nas listas." />
-        <Campo rotulo="CNPJ" value={f.cnpj} onChange={(e) => setF((x) => ({ ...x, cnpj: formatarCnpj(e.target.value) }))} erro={erros.cnpj}
-          inputMode="numeric" disabled={!ehPlataforma} ajuda={!ehPlataforma ? 'Alterado só pela plataforma.' : undefined} />
+        <Campo rotulo="CNPJ" value={f.cnpj} erro={erros.cnpj} inputMode="numeric" disabled={!ehPlataforma}
+          ajuda={!ehPlataforma ? 'Alterado só pela plataforma.' : consultando ? 'Consultando a Receita Federal…' : aviso ?? 'Ao completar o CNPJ, os dados são buscados na Receita.'}
+          onChange={(e) => {
+            const cnpj = formatarCnpj(e.target.value);
+            setF((x) => ({ ...x, cnpj }));
+            if (somenteDigitos(cnpj).length === 14 && cnpjValido(cnpj)) void preencherPeloCnpj(cnpj);
+          }} />
         <Campo className="sm:col-span-2" rotulo="Endereço" value={f.endereco} onChange={set('endereco')} maxLength={300} />
         <Campo rotulo="CEP" value={f.cep} onChange={(e) => setF((x) => ({ ...x, cep: formatarCep(e.target.value) }))} erro={erros.cep} inputMode="numeric" />
         <div className="grid grid-cols-[1fr_6rem] gap-3">

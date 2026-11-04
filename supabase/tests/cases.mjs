@@ -242,4 +242,6 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
   check(!(await pode(u.adminB, B, smsB.id, 'fornecedores', 'ler')), 'usuários de órgão inativo perdem o acesso');
   await expectFail('não se concede vínculo em órgão inativo', u.plat,
     `SELECT conceder_vinculo('novo@teste.gov.br', $1, $2, 'SERVIDOR')`, [B, smsB.id], /inativo/);
+
+  await (await import('./cases-cadastros.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
 }
