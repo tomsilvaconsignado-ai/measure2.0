@@ -88,3 +88,22 @@ Funções (RPC), todas restritas ao escopo de quem chama:
 - `registrar_exportacao`: registra na auditoria (ação EXPORTACAO) cada PDF ou Excel gerado.
 
 A visão interna `classificacao_detalhada` não é exposta na API.
+
+## Fases 6 e 8 (implantadas)
+
+| Tabela | Conteúdo |
+|---|---|
+| `frequencias_mensais` | atrasos, faltas, justificativa e observação manual por servidor e mês (único por servidor/ano/mês); guarda a lotação do lançamento; escrita só pela função `salvar_frequencias` |
+| `documentos_emitidos` | novos tipos `CONSOLIDADO_MENSAL` (com `referencia` = ano×100+mês) e `CHECKLIST_NOTA`, sempre com o retrato dos dados |
+| `erros_aplicativo` | erros do navegador (mensagem, pilha, página, versão), lidos só pela plataforma; gravação limitada a 30 por pessoa a cada 10 min |
+
+Funções:
+- `consolidado_mensal`: servidores ativos em algum dia do mês, na unidade e abaixo dela;
+- `salvar_frequencias`, `emitir_consolidado` e `emitir_checklist_nota`;
+- `exportar_backup_orgao`: JSON do órgão, só Master, registrado na auditoria;
+- `registrar_erro_aplicativo`;
+- `observacao_frequencia`: a regra das observações, espelhada em `src/lib/frequencia.ts`.
+
+Desempenho:
+- `unidades_acessiveis(recurso, ação)`, `orgaos_permitidos` e `contratos_designados` calculam uma vez por consulta o que a pessoa alcança;
+- as visões, os relatórios, o painel, as notificações, a busca de servidores, o consolidado e a auditoria filtram por esses conjuntos (junção hash), em vez de chamar `pode()` por linha.

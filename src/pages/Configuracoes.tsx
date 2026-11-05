@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImageUp, Landmark, Pencil } from 'lucide-react';
+import { DatabaseBackup, ImageUp, Landmark, Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -7,7 +7,12 @@ import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarCep, formatarCnpj, formatarTelefone } from '@/lib/formatacao';
 import { enviarLogoOrgao, obterConfiguracoes, obterOrgao, salvarConfiguracoes, urlArquivo } from '@/services/api';
+import { exportarBackup } from '@/services/consolidado';
 import { FormOrgao } from './plataforma/Orgaos';
+
+const texto = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
+const lista = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : '');
+const linhas = (v: string) => v.split('\n').map((l) => l.trim()).filter(Boolean);
 
 export function Configuracoes() {
   const { orgao, pode, recarregar, escolherOrgao } = useSessao();
@@ -26,6 +31,10 @@ export function Configuracoes() {
   const [bloquear, setBloquear] = useState(false);
   const [textoAtesto, setTextoAtesto] = useState('');
   const [decreto, setDecreto] = useState('');
+  const [consolidadoTitulo, setConsolidadoTitulo] = useState('');
+  const [assinaturas, setAssinaturas] = useState('');
+  const [checklistTitulo, setChecklistTitulo] = useState('');
+  const [checklistItens, setChecklistItens] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!cfg.data) return;
@@ -34,8 +43,12 @@ export function Configuracoes() {
     setAlertas(cfg.data.alerta_vencimento_dias.join(', '));
     setAnexoMb(String(cfg.data.anexo_tamanho_max_mb));
     setBloquear(cfg.data.bloquear_nota_contrato_vencido);
-    setTextoAtesto(cfg.data.textos?.atesto ?? '');
-    setDecreto(cfg.data.textos?.decreto ?? '');
+    setTextoAtesto(texto(cfg.data.textos?.atesto));
+    setDecreto(texto(cfg.data.textos?.decreto));
+    setConsolidadoTitulo(texto(cfg.data.textos?.consolidado_titulo));
+    setAssinaturas(lista(cfg.data.textos?.consolidado_assinaturas));
+    setChecklistTitulo(texto(cfg.data.textos?.checklist_titulo));
+    setChecklistItens(lista(cfg.data.textos?.checklist_itens));
   }, [cfg.data]);
 
   const enviarLogo = useMutation({
@@ -64,11 +77,28 @@ export function Configuracoes() {
         alerta_vencimento_dias: [...new Set(dias)].sort((a, b) => b - a),
         anexo_tamanho_max_mb: mb,
         bloquear_nota_contrato_vencido: bloquear,
-        textos: { ...(cfg.data?.textos ?? {}), atesto: textoAtesto.trim(), decreto: decreto.trim() },
+        textos: Object.fromEntries(Object.entries({
+          ...(cfg.data?.textos ?? {}), atesto: textoAtesto.trim(), decreto: decreto.trim(),
+          consolidado_titulo: consolidadoTitulo.trim(), checklist_titulo: checklistTitulo.trim(),
+          // listas vazias voltam ao padrão do sistema
+          consolidado_assinaturas: linhas(assinaturas).length ? linhas(assinaturas) : '', checklist_itens: linhas(checklistItens).length ? linhas(checklistItens) : '',
+        }).filter(([, v]) => v !== '')),
       });
     },
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['configuracoes', orgao!.id] }); toast.success('Configurações salvas.'); },
     onError: (e) => { const t = traduzirErro(e); if (!t.campo) setErros((x) => ({ ...x, geral: t.mensagem })); },
+  });
+
+  const backup = useMutation({
+    mutationFn: () => exportarBackup(orgao!.id),
+    onSuccess: (dadosBackup) => {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(dadosBackup, null, 1)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = `measure-backup-${orgao!.nome_curto.replace(/[^A-Za-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success('Cópia de segurança gerada. Guarde o arquivo em local protegido: ele contém dados pessoais.');
+    },
+    onError: (e) => toast.error(mensagemDeErro(e)),
   });
 
   if (!orgao) return <SemPermissao texto="Escolha um órgão." />;
@@ -124,11 +154,29 @@ export function Configuracoes() {
               ajuda="Variáveis: {objeto} {contrato} {fornecedor} {nota} {valor} {meses} {periodo} {processo} {decreto}" />
             <AreaTexto rotulo="Decreto / observação legal do atesto" value={decreto} onChange={(e) => setDecreto(e.target.value)} disabled={!podeEditar} rows={2}
               ajuda="Entra no lugar de {decreto} (ex.: número e artigo do decreto municipal aplicável)." />
+            <p className="border-t border-slate-200 pt-4 text-sm font-medium text-slate-900">Modelos de documentos</p>
+            <Campo rotulo="Título do consolidado mensal de servidores" value={consolidadoTitulo} onChange={(e) => setConsolidadoTitulo(e.target.value)} disabled={!podeEditar}
+              maxLength={150} placeholder="CONSOLIDADO MENSAL DE FREQUÊNCIA" ajuda="Use o título exato do modelo oficial do órgão. Os filtros (Coordenação, Gerência) não entram no título." />
+            <AreaTexto rotulo="Assinaturas do consolidado" value={assinaturas} onChange={(e) => setAssinaturas(e.target.value)} disabled={!podeEditar} rows={2}
+              placeholder={'Chefe Imediato\nCoordenador(a)'} ajuda="Uma assinatura por linha." />
+            <Campo rotulo="Título do checklist da nota fiscal" value={checklistTitulo} onChange={(e) => setChecklistTitulo(e.target.value)} disabled={!podeEditar}
+              maxLength={150} placeholder="CHECKLIST DE NOTA FISCAL" />
+            <AreaTexto rotulo="Itens de conferência documental do checklist" value={checklistItens} onChange={(e) => setChecklistItens(e.target.value)} disabled={!podeEditar} rows={4}
+              placeholder={'Nota fiscal emitida com os dados do órgão contratante\nCertidões de regularidade fiscal e trabalhista válidas\n...'}
+              ajuda="Um item por linha, para marcação Sim/Não. As conferências automáticas (vigência, saldo, atesto, pagamento) entram sempre." />
             {erros.geral && <CaixaErro mensagem={erros.geral} />}
             {podeEditar && <div><Botao type="submit" carregando={salvar.isPending}>Salvar configurações</Botao></div>}
           </form>
         </Cartao>
       </div>
+      {pode('configuracoes', 'exportar') && (
+        <Cartao className="mt-6" titulo="Cópia de segurança">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-2xl text-sm text-slate-600">Baixa todos os dados do órgão em um arquivo JSON (cadastros, contratos, execução, frequências e documentos emitidos). Não inclui senhas nem chaves de acesso. Complementa o backup automático diário do banco de dados. A geração fica registrada na auditoria.</p>
+            <Botao variante="secundario" icone={<DatabaseBackup className="size-4" />} carregando={backup.isPending} onClick={() => backup.mutate()}>Baixar cópia (JSON)</Botao>
+          </div>
+        </Cartao>
+      )}
       <FormOrgao aberto={editandoOrgao} orgao={t} aoFechar={() => { setEditandoOrgao(false); void qc.invalidateQueries({ queryKey: ['orgao', orgao.id] }); }} />
     </>
   );

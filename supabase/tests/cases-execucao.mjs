@@ -4,7 +4,7 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
   const adminC = (await one(`SELECT id FROM perfis WHERE email = 'adminc@teste.gov.br'`)).id;
   const C = (await one(`SELECT id FROM tenants WHERE nome_curto = 'Gama'`)).id;
   const dot1 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '%2090%'`, [A])).id;
-  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '%2088%'`, [A])).id;
+  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '2088 | 30.24%'`, [A])).id;
   const caps = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'CAPS'`, [A])).id;
   const ubs1 = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'UBS Centro'`, [A])).id;
   const ubs2 = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'USF Bairro Industrial'`, [A])).id;

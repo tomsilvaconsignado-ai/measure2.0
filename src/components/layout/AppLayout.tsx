@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
+  CalendarCheck, Bug, HelpCircle,
 } from 'lucide-react';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { encerrarSuporte, urlArquivo } from '@/services/api';
 import { Avatar, Botao, Carregando, cx } from '../ui/basicos';
 import { Marca } from './Marca';
 import { Notificacoes } from './Notificacoes';
+import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
 import type { Recurso } from '@/lib/tipos';
 
 interface Item { para: string; rotulo: string; icone: ReactNode; recurso?: Recurso; plataforma?: boolean }
@@ -25,10 +27,12 @@ const ADMINISTRACAO: Item[] = [
 const PLATAFORMA: Item[] = [
   { para: '/plataforma/orgaos', rotulo: 'Órgãos', icone: <Landmark className="size-4" />, plataforma: true },
   { para: '/plataforma/permissoes', rotulo: 'Matriz de permissões', icone: <KeyRound className="size-4" />, plataforma: true },
+  { para: '/plataforma/erros', rotulo: 'Erros do sistema', icone: <Bug className="size-4" />, plataforma: true },
 ];
 const CADASTROS: Item[] = [
   { para: '/fornecedores', rotulo: 'Fornecedores', icone: <Truck className="size-4" />, recurso: 'fornecedores' },
   { para: '/servidores', rotulo: 'Servidores', icone: <UserCircle className="size-4" />, recurso: 'servidores' },
+  { para: '/servidores/consolidado', rotulo: 'Consolidado mensal', icone: <CalendarCheck className="size-4" />, recurso: 'servidores' },
   { para: '/unidades-atendidas', rotulo: 'Unidades atendidas', icone: <Building2 className="size-4" />, recurso: 'unidades' },
   { para: '/classificacao', rotulo: 'Classificação orçamentária', icone: <Network className="size-4" />, recurso: 'classificacoes' },
   { para: '/tipos-servico', rotulo: 'Tipos de serviço', icone: <ListChecks className="size-4" />, recurso: 'tipos_servico' },
@@ -44,14 +48,10 @@ const GESTAO: Item[] = [
   { para: '/painel', rotulo: 'Painel gerencial', icone: <BarChart3 className="size-4" /> },
   { para: '/relatorios', rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" /> },
 ];
-// Módulos que dependem de modelo ou levantamento do órgão
-const PROXIMOS: Array<{ rotulo: string; icone: ReactNode; fase: number }> = [
-  { rotulo: 'Consolidado mensal de servidores', icone: <ClipboardList className="size-4" />, fase: 6 },
-];
 
 function Link({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
   return (
-    <NavLink to={item.para} onClick={aoNavegar}
+    <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores'}
       className={({ isActive }) => cx('flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
       {item.icone}<span className="truncate">{item.rotulo}</span>
@@ -82,6 +82,7 @@ export function AppLayout() {
   const local = useLocation();
   const navegar = useNavigate();
   useEffect(() => { setMenuAberto(false); setOrgaosAbertos(false); }, [local.pathname]);
+  useEffect(() => definirOrgaoMonitorado(orgao?.id ?? null), [orgao?.id]);
 
   const perfil = contexto!.perfil!;
   const foto = useQuery({ queryKey: ['url', 'avatares', perfil.avatar_path], queryFn: () => urlArquivo('avatares', perfil.avatar_path), enabled: !!perfil.avatar_path });
@@ -119,13 +120,8 @@ export function AppLayout() {
         {ehPlataforma && (
           <Grupo titulo="Plataforma">{PLATAFORMA.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
-        <Grupo titulo="Aguardando modelo do órgão">
-          {PROXIMOS.map((m) => (
-            <span key={m.rotulo} className="flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-marca-300/70" title={`Previsto na fase ${m.fase}`}>
-              {m.icone}<span className="flex-1 truncate">{m.rotulo}</span>
-              <span className="rounded bg-white/8 px-1.5 text-[10px]">Fase {m.fase}</span>
-            </span>
-          ))}
+        <Grupo titulo="Suporte">
+          <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} />
         </Grupo>
       </div>
     </nav>
@@ -204,7 +200,7 @@ export function AppLayout() {
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-        <Suspense fallback={<Carregando />}><Outlet /></Suspense>
+        <LimiteDeErro key={local.pathname}><Suspense fallback={<Carregando />}><Outlet /></Suspense></LimiteDeErro>
       </main>
     </div>
   );

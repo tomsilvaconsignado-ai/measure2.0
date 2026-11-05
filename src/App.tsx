@@ -33,6 +33,9 @@ const Relatorios = pagina(() => import('@/pages/relatorios/Relatorios'), 'Relato
 const RelatorioImprimir = pagina(() => import('@/pages/relatorios/RelatorioImprimir'), 'RelatorioImprimir');
 const Painel = pagina(() => import('@/pages/Painel'), 'Painel');
 const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServico');
+const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Consolidado');
+const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
+const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 
 function TelaCheia({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6 text-center">{children}</div>;
@@ -86,6 +89,8 @@ export function App() {
         <Route path="meu-perfil" element={<MeuPerfil />} />
         <Route path="fornecedores" element={<Fornecedores />} />
         <Route path="servidores" element={<Servidores />} />
+        <Route path="servidores/consolidado" element={<Consolidado />} />
+        <Route path="ajuda" element={<Ajuda />} />
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />
@@ -98,6 +103,7 @@ export function App() {
         <Route path="ordens-servico" element={<OrdensServico />} />
         <Route path="plataforma/orgaos" element={<Orgaos />} />
         <Route path="plataforma/permissoes" element={<Permissoes />} />
+        <Route path="plataforma/erros" element={<Erros />} />
         <Route path="entrar" element={<Navigate to="/" replace />} />
         <Route path="*" element={<div className="py-16 text-center text-sm text-slate-600">Página não encontrada.</div>} />
       </Route>

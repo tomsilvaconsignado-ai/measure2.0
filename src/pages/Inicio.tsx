@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { Botao, CabecalhoPagina, Cartao, Selo } from '@/components/ui/basicos';
 import { formatarDataHora } from '@/lib/formatacao';
+import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
 
 function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: ReactNode; icone: ReactNode; para?: string }) {
@@ -21,14 +22,14 @@ function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: Reac
   return para ? <Link to={para}>{conteudo}</Link> : conteudo;
 }
 
-const FASES: Array<[string, string, boolean]> = [
-  ['1', 'Fundação: órgãos, estrutura, usuários, permissões, auditoria e identidade', true],
-  ['2', 'Cadastros: fornecedores, servidores, unidades atendidas, classificação orçamentária', true],
-  ['3', 'Contratos: responsáveis, portarias, dotação, aditivos e renovações', true],
-  ['4', 'Execução: empenhos, reforços, notas fiscais, atesto, pagamento e rateio', true],
-  ['5', 'Consulta e relatórios em PDF e Excel', true],
-  ['6', 'Consolidado mensal de servidores (aguarda o modelo em PDF do órgão)', false],
-  ['7', 'Painel gerencial, notificações, ordens de serviço e importação', true],
+// Atalhos do dia a dia (cada um só aparece para quem pode usar o módulo)
+const ATALHOS: Array<{ para: string; rotulo: string; descricao: string; recurso?: Recurso }> = [
+  { para: '/notas', rotulo: 'Notas fiscais', descricao: 'Lançar, atestar, pagar e emitir checklist' },
+  { para: '/contratos', rotulo: 'Contratos', descricao: 'Vigência, saldo, responsáveis e extratos' },
+  { para: '/servidores/consolidado', rotulo: 'Consolidado mensal', descricao: 'Atrasos, faltas e documento do mês', recurso: 'servidores' },
+  { para: '/relatorios', rotulo: 'Relatórios', descricao: 'Consumo e notas por classificação, em PDF e Excel' },
+  { para: '/painel', rotulo: 'Painel gerencial', descricao: 'Indicadores do ano' },
+  { para: '/ajuda', rotulo: 'Ajuda e manual', descricao: 'Passo a passo de cada módulo' },
 ];
 
 export function Inicio() {
@@ -96,15 +97,17 @@ export function Inicio() {
           <p className="mt-4 text-xs text-slate-500">Último acesso registrado: {formatarDataHora(perfil.ultimo_acesso)}</p>
         </Cartao>
 
-        <Cartao titulo="Implantação do MEASURE 2.0">
-          <ol className="flex flex-col gap-2.5">
-            {FASES.map(([n, texto, pronta]) => (
-              <li key={n} className="flex items-start gap-3 text-sm">
-                <span className={`numero flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${pronta ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{n}</span>
-                <span className={pronta ? 'text-slate-900' : 'text-slate-500'}>{texto}{pronta && <> <Selo tom="sucesso">Disponível</Selo></>}</span>
+        <Cartao titulo="Acesso rápido">
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {ATALHOS.filter((a) => (!a.recurso || pode(a.recurso, 'ler')) && (orgao || a.para === '/ajuda')).map((a) => (
+              <li key={a.para}>
+                <Link to={a.para} className="block rounded-xl border border-slate-200 p-3 hover:border-marca-300 hover:bg-marca-50">
+                  <span className="block text-sm font-medium text-slate-900">{a.rotulo}</span>
+                  <span className="block text-xs text-slate-600">{a.descricao}</span>
+                </Link>
               </li>
             ))}
-          </ol>
+          </ul>
         </Cartao>
       </div>
     </>

@@ -5,7 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { App } from './App';
 import { SessaoProvider } from './auth/Sessao';
+import { instalarMonitoramento, LimiteDeErro } from './lib/monitoramento';
 import './index.css';
+
+instalarMonitoramento();
 
 const consultas = new QueryClient({
   defaultOptions: {
@@ -18,7 +21,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={consultas}>
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <SessaoProvider>
-          <App />
+          <LimiteDeErro><App /></LimiteDeErro>
           <Toaster richColors position="top-right" closeButton />
         </SessaoProvider>
       </BrowserRouter>

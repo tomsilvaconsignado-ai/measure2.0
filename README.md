@@ -4,7 +4,7 @@ Plataforma de gestão administrativa, contratual, orçamentária e de execução
 
 - **Produção:** https://tomsilvaconsignado-ai.github.io/measure2.0/
 - **Supabase:** projeto `cazsjehsqqyfawofefpe`
-- **Situação:** Fase 1 (fundação) concluída. Veja [docs/BACKLOG.md](docs/BACKLOG.md).
+- **Situação:** Fases 1 a 8 entregues. Pendentes: modelos oficiais em PDF, migração do sistema antigo e treinamento. Veja [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Documentação
 
@@ -15,6 +15,8 @@ Plataforma de gestão administrativa, contratual, orçamentária e de execução
 | [docs/MODELO_DADOS.md](docs/MODELO_DADOS.md) | tabelas e relacionamentos |
 | [docs/DECISOES_PENDENTES.md](docs/DECISOES_PENDENTES.md) | regras que dependem do órgão, com propostas |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | entregas por fase |
+| [docs/OPERACAO.md](docs/OPERACAO.md) | publicação, backup e restauração, monitoramento, incidentes |
+| [docs/SEGURANCA_LGPD.md](docs/SEGURANCA_LGPD.md) | testes de segurança e de carga, inventário LGPD, retenção |
 
 ## Rodar localmente
 

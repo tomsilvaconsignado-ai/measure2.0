@@ -97,6 +97,79 @@ function ExtratoEmpenho({ d }: { d: D }) {
   </>;
 }
 
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+// Consolidado mensal (A4 paisagem): título fixo do modelo; o filtro aparece só nos critérios.
+// O cabeçalho da tabela repete em cada página; o rodapé da tabela leva endereço e Secretaria.
+function ConsolidadoMensal({ d }: { d: D }) {
+  const linhas = d.linhas as D[];
+  const cel = 'border border-slate-500 px-1.5 py-1 align-top break-words';
+  return <>
+    <p className="mb-3 text-center text-[12px] font-semibold">Mês de referência: {MESES[(d.mes as number) - 1]} de {d.ano}</p>
+    <p className="mb-2 text-[10.5px]"><b>Unidade:</b> {d.unidade.sigla ? `${d.unidade.sigla} · ` : ''}{d.unidade.nome}{d.secretaria ? ` · ${d.secretaria}` : ''}</p>
+    <table className="w-full table-fixed border-collapse text-[10px] leading-snug">
+      <colgroup><col style={{ width: '9%' }} /><col style={{ width: '25%' }} /><col style={{ width: '8%' }} /><col style={{ width: '17%' }} />
+        <col style={{ width: '6.5%' }} /><col style={{ width: '6.5%' }} /><col style={{ width: '28%' }} /></colgroup>
+      <thead className="table-header-group">
+        <tr className="bg-slate-100">{['Matrícula', 'Nome do servidor', 'Cargo', 'Função', 'Atrasos', 'Faltas', 'Observações'].map((c) =>
+          <th key={c} className={`${cel} font-semibold ${c === 'Atrasos' || c === 'Faltas' ? 'text-center' : 'text-left'}`}>{c}</th>)}</tr>
+      </thead>
+      <tbody>
+        {linhas.length === 0 && <tr><td colSpan={7} className={`${cel} text-center`}>Nenhum servidor ativo no mês.</td></tr>}
+        {linhas.map((l, i) => (
+          <tr key={i} className="break-inside-avoid">
+            <td className={cel}>{l.matricula}</td><td className={cel}>{l.nome}</td><td className={cel}>{l.cargo ?? ''}</td><td className={cel}>{l.funcao ?? ''}</td>
+            <td className={`${cel} text-center`}>{l.atrasos || ''}</td><td className={`${cel} text-center`}>{l.faltas || ''}</td><td className={cel}>{l.observacao}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot className="table-footer-group">
+        <tr><td colSpan={7} className="pt-2 text-center text-[8.5px] text-slate-600">{[d.secretaria, d.orgao?.endereco].filter(Boolean).join(' · ')}</td></tr>
+      </tfoot>
+    </table>
+    <Assinaturas nomes={d.assinaturas as string[]} />
+  </>;
+}
+
+function Assinaturas({ nomes }: { nomes: string[] }) {
+  return (
+    <div className="mt-14 grid break-inside-avoid gap-10 text-center text-[10.5px]" style={{ gridTemplateColumns: `repeat(${Math.max(1, nomes.length)}, minmax(0, 1fr))` }}>
+      {nomes.map((n) => <div key={n}><div className="mx-auto mb-1 w-4/5 border-t border-slate-700" />{n}</div>)}
+    </div>
+  );
+}
+
+// Checklist da nota fiscal: conferências do sistema (no momento da emissão) e itens para marcação manual
+function ChecklistNota({ d }: { d: D }) {
+  const n = d.nota; const f = d.fornecedor;
+  return <>
+    <Secao titulo="Dados da nota fiscal">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
+        <p><b>Nota fiscal:</b> {n.numero}{n.serie ? `-${n.serie}` : ''}</p><p><b>Emissão:</b> {formatarData(n.data_emissao)}</p>
+        <p><b>Valor:</b> {brl(n.valor)}</p><p><b>Referência:</b> {n.meses || '—'}{n.periodo_inicio ? ` (${formatarData(n.periodo_inicio)} a ${formatarData(n.periodo_fim)})` : ''}</p>
+        <p className="col-span-2"><b>Fornecedor:</b> {f.nome} ({f.tipo === 'PF' ? formatarCpf(f.documento) : formatarCnpj(f.documento)})</p>
+        <p><b>Contrato:</b> {d.contrato.numero} · vigência {formatarData(d.contrato.inicio)} a {formatarData(d.contrato.fim)}</p>
+        <p><b>Empenho:</b> {d.empenho.numero}/{d.empenho.ano}</p>
+        <p className="col-span-2"><b>Dotação:</b> {d.empenho.classificacao}</p>
+        <p><b>Processo:</b> {n.processo ?? '—'}</p><p><b>Unidades atendidas:</b> {(d.unidades as string[]).join(', ') || '—'}</p>
+        <p className="col-span-2"><b>Objeto:</b> {d.contrato.objeto}</p>
+      </div>
+    </Secao>
+    <Secao titulo="Conferências do sistema">
+      <Tabela colunas={[['Item'], ['Situação']]} linhas={(d.verificacoes as D[]).map((v) => [v.item,
+        <span className={v.ok ? 'font-semibold text-emerald-800' : 'font-semibold text-red-800'}>{v.ok ? '✔ Conforme' : '✘ Pendente'}{v.detalhe ? <span className="block font-normal text-slate-700">{v.detalhe}</span> : null}</span>])} />
+    </Secao>
+    <Secao titulo="Conferência documental">
+      <Tabela colunas={[['Item'], ['Sim'], ['Não'], ['Observação']]} linhas={(d.itens_manuais as string[]).map((i) => [i, '( )', '( )', ''])} />
+    </Secao>
+    <Secao titulo="Responsáveis">
+      <Tabela colunas={[['Função'], ['Servidor'], ['Matrícula']]} linhas={(d.responsaveis as D[]).map((r) => [PAPEIS[r.papel], r.nome, r.matricula])} />
+      <p className="text-[11px]"><b>Atesto:</b> {d.atesto ? `${d.atesto.nome} (${PAPEIS[d.atesto.papel] ?? d.atesto.papel}) em ${formatarDataHora(d.atesto.em)}` : 'pendente'}</p>
+    </Secao>
+    <Assinaturas nomes={['Responsável pela conferência', 'Gestor/Fiscal do contrato']} />
+  </>;
+}
+
 export function Imprimir() {
   const { id } = useParams();
   const navegar = useNavigate();
@@ -105,15 +178,17 @@ export function Imprimir() {
   if (q.isError) return <div className="p-6"><CaixaErro mensagem={traduzirErro(q.error).mensagem} /></div>;
   const doc = q.data!;
   const d = doc.dados as D;
-  const titulo = doc.tipo === 'EXTRATO_CONTRATO' ? `EXTRATO DO CONTRATO Nº ${d.contrato.numero}` : doc.tipo === 'EXTRATO_EMPENHO' ? `EXTRATO DO EMPENHO Nº ${d.empenho.numero}/${d.empenho.ano}` : doc.titulo.toUpperCase();
+  const paisagem = doc.tipo === 'CONSOLIDADO_MENSAL';
+  const titulo = doc.tipo === 'CONSOLIDADO_MENSAL' || doc.tipo === 'CHECKLIST_NOTA' ? String(d.titulo) : doc.tipo === 'EXTRATO_CONTRATO' ? `EXTRATO DO CONTRATO Nº ${d.contrato.numero}` : doc.tipo === 'EXTRATO_EMPENHO' ? `EXTRATO DO EMPENHO Nº ${d.empenho.numero}/${d.empenho.ano}` : doc.titulo.toUpperCase();
   return (
     <div className="min-h-dvh bg-slate-200 py-6 print:bg-white print:py-0">
-      <div className="nao-imprimir mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-2 px-4">
+      {paisagem && <style>{'@page { size: A4 landscape; margin: 10mm 10mm 12mm; } @media print { .folha { padding: 0 !important; } }'}</style>}
+      <div className={`nao-imprimir mx-auto mb-4 flex ${paisagem ? 'max-w-[297mm]' : 'max-w-[210mm]'} flex-wrap items-center justify-between gap-2 px-4`}>
         <Botao variante="secundario" icone={<ArrowLeft className="size-4" />} onClick={() => navegar(-1)}>Voltar</Botao>
         <p className="text-xs text-slate-600">Documento emitido em {formatarDataHora(doc.emitido_em)}: os dados são os daquele momento.</p>
         <Botao icone={<Printer className="size-4" />} onClick={() => window.print()}>Imprimir / salvar PDF</Botao>
       </div>
-      <article className="folha mx-auto bg-white px-[14mm] py-[12mm] text-slate-900 shadow-lg print:shadow-none" style={{ width: '210mm', minHeight: '297mm' }}>
+      <article className="folha mx-auto bg-white px-[14mm] py-[12mm] text-slate-900 shadow-lg print:shadow-none" style={paisagem ? { width: '297mm', minHeight: '210mm' } : { width: '210mm', minHeight: '297mm' }}>
         <header className="mb-4 flex items-center gap-4 border-b-2 border-slate-800 pb-3">
           <ImagemPrivada caminho={d.orgao?.logo_path} alt="Brasão" className="h-16 w-16 object-contain" alternativa={<span className="h-16 w-16" />} />
           <div className="flex-1 text-center">
@@ -124,9 +199,12 @@ export function Imprimir() {
         <h1 className="mb-4 text-center text-[14px] font-bold tracking-wide">{titulo}</h1>
         {doc.tipo === 'EXTRATO_CONTRATO' && <ExtratoContrato d={d} />}
         {doc.tipo === 'EXTRATO_EMPENHO' && <ExtratoEmpenho d={d} />}
+        {doc.tipo === 'CONSOLIDADO_MENSAL' && <ConsolidadoMensal d={d} />}
+        {doc.tipo === 'CHECKLIST_NOTA' && <ChecklistNota d={d} />}
         {doc.tipo === 'ATESTO' && <p className="whitespace-pre-line text-[12px] leading-relaxed">{d.texto}</p>}
         <footer className="mt-6 border-t border-slate-300 pt-2 text-[9.5px] text-slate-600">
           {d.orgao?.rodape && <p>{d.orgao.rodape}</p>}
+          {!paisagem && d.orgao?.endereco && <p>{d.orgao.endereco}</p>}
           <p>Emitido por {d.emitido_por ?? '—'} em {formatarDataHora(doc.emitido_em)} · MEASURE · Documento nº {doc.id.slice(0, 8).toUpperCase()}</p>
         </footer>
       </article>

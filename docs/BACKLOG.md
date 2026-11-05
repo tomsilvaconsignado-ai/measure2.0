@@ -73,9 +73,19 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [x] Relatório resumido de consumo: métrica notas, pago ou empenhado (decisão 1), detalhado por subelemento ou fonte.
 - [x] PDF com o cabeçalho do órgão (impressão A4) e Excel com uma coluna por campo; toda exportação fica na auditoria.
 
-## Fase 6: Servidores e consolidado mensal (aguardando o modelo do órgão)
-- Atrasos e faltas por mês, observações automáticas de nomeação e exoneração
-- Consolidado em PDF paisagem, fiel ao modelo do órgão, com versão histórica imutável
+## Fase 6: Servidores e consolidado mensal ✔
+- [x] Lançamento mensal de atrasos, faltas e justificativa, sem alterar o cadastro permanente do servidor.
+- [x] Observações automáticas, com texto ajustável à mão:
+  - "Nomeação em DD/MM/AAAA." e "Exoneração em DD/MM/AAAA." no mês;
+  - "Justificativa anexada.";
+  - "Frequência integral.".
+- [x] Filtro por Coordenação (inclui as Gerências e setores subordinados), Gerência ou setor.
+  - Servidores ativos no mês, em ordem alfabética, sem duplicar.
+- [x] Consolidado em A4 paisagem, com prévia e emissão. A versão emitida é histórica e imutável.
+  - Cabeçalho da tabela repetido a cada página, rodapé com endereço e Secretaria, assinaturas configuráveis.
+- [x] Título configurável em Configurações; o nome do filtro não entra no título.
+- [ ] Ajuste fino do layout quando o órgão enviar o PDF oficial (decisão 4).
+- [x] Checklist da nota fiscal (Fase 4): conferências automáticas do sistema e itens documentais configuráveis, emitido como documento histórico.
 
 ## Fase 7: Painel e demais módulos ✔
 - [x] Painel por ano, com números agregados no banco e restritos ao escopo de cada pessoa
@@ -88,4 +98,18 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [ ] Patrimônio e Comunidade: aguardando levantamento (decisão 13).
 
 ## Fase 8: Homologação e produção
-- Testes de segurança e de carga, revisão da LGPD, migração dos dados do sistema antigo, backup e restauração, manual e treinamento
+- [x] Testes de segurança automatizados (`npm run test:db`). Verificam que:
+  - toda tabela tem RLS;
+  - nenhuma função ou tabela fica acessível sem login;
+  - as funções de gatilho não são expostas;
+  - toda função security definer fixa o search_path.
+  - Auxiliares internos tiveram o acesso pela API retirado. Ver [SEGURANCA_LGPD.md](SEGURANCA_LGPD.md).
+- [x] Teste de carga com 30 mil notas, 2 mil empenhos, 400 contratos e 3 mil servidores. Todas as consultas ficam abaixo de 1,3 s pela API.
+  - A checagem de permissão linha a linha foi trocada por conjuntos calculados uma vez por consulta.
+- [x] Testes de ponta a ponta das Fases 1 a 8 (navegador real contra o Supabase de produção, em órgão de homologação).
+- [x] Revisão LGPD: inventário de dados pessoais, acessos, retenção e incidentes. Ver [SEGURANCA_LGPD.md](SEGURANCA_LGPD.md).
+- [x] Backup e restauração: cópia de segurança JSON por órgão (Master) e procedimento de restauração. Ver [OPERACAO.md](OPERACAO.md).
+- [x] Monitoramento de erros no navegador, com tela "Erros do sistema" para a plataforma e tela amigável em caso de falha.
+- [x] Manual do usuário dentro do sistema (menu "Ajuda e manual"), com busca.
+- [ ] Migração dos dados do sistema antigo: depende da exportação do sistema atual. As importações por planilha já aceitam fornecedores, servidores e unidades.
+- [ ] Treinamento com os usuários do órgão.

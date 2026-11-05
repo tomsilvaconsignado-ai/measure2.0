@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, BadgeCheck, Ban, ClipboardCopy, Layers, Plus, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, Layers, Plus, Wallet, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Anexos } from '@/components/Anexos';
@@ -16,15 +16,46 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, cancelarPagamento, listarNotas, modeloAtesto, obterContrato, obterNota, registrarPagamento, saldoEmpenho, salvarNota,
+  atestarNota, cancelarNota, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, registrarPagamento, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
+import { emitirChecklist } from '@/services/consolidado';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null }
+
+// Checklist (emitido na hora, com as conferências do sistema) e documentos já emitidos da nota
+function DocumentosEmitidosNota({ notaId }: { notaId: string }) {
+  const navegar = useNavigate();
+  const q = useQuery({ queryKey: ['emitidos', notaId], queryFn: () => listarEmitidos(notaId) });
+  const qc = useQueryClient();
+  const checklist = useMutation({
+    mutationFn: () => emitirChecklist(notaId),
+    onSuccess: async (id) => { await qc.invalidateQueries({ queryKey: ['emitidos', notaId] }); navegar(`/imprimir/${id}`); },
+    onError: (e) => toast.error(mensagemDeErro(e)),
+  });
+  return (
+    <div className="mb-5 rounded-xl border border-slate-200 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-slate-900">Documentos emitidos</p>
+        <Botao pequeno variante="secundario" icone={<ClipboardCheck className="size-4" />} carregando={checklist.isPending} onClick={() => checklist.mutate()}>Emitir checklist</Botao>
+      </div>
+      {q.isLoading ? <Carregando /> : !q.data?.length ? <p className="text-xs text-slate-500">Nenhum documento emitido. O checklist registra as conferências do sistema na data da emissão.</p> : (
+        <ul className="divide-y divide-slate-100">
+          {q.data.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+              <span className="min-w-0 truncate">{d.titulo}<span className="block text-xs text-slate-500">{formatarDataHora(d.emitido_em)}</span></span>
+              <Botao pequeno variante="fantasma" onClick={() => navegar(`/imprimir/${d.id}`)}>Abrir</Botao>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function NovaNota({ aberto, aoFechar, contratoInicial, aoSalvar }: { aberto: boolean; aoFechar: () => void; contratoInicial?: string | null; aoSalvar: (id: string) => void }) {
   const { orgao, pode } = useSessao();
@@ -255,7 +286,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
     valorCentavos: centavos(n.valor), meses: q.data!.referencias, periodoInicio: n.periodo_inicio, periodoFim: n.periodo_fim, processo: n.processo_administrativo,
   }) : ''), [n, ct.data, modelo.data, q.data]);
   useEffect(() => { if (sugerido) setTexto(sugerido); }, [sugerido]);
-  const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
+  const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['emitidos', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
   const atestar = useMutation({ mutationFn: () => atestarNota(id!, texto), onSuccess: async () => { await invalidar(); toast.success('Nota atestada.'); }, onError: (e) => toast.error(mensagemDeErro(e)) });
   const pagar = useMutation({
     mutationFn: () => registrarPagamento(id!, pag!.data, decimalDeCentavos(pag!.valor!), pag!.documento.trim() || null, pag!.observacao.trim() || null),
@@ -321,6 +352,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
               </li>))}
           </ul>}
         </div>}
+        {aba === 'documentos' && <DocumentosEmitidosNota notaId={n.id} />}
         {aba === 'documentos' && <Anexos recurso="notas_fiscais" registroId={n.id} unidadeId={n.unidade_id} titulo="Nota fiscal e comprovantes" />}
       </>}
       <Modal aberto={!!pag} aoFechar={() => setPag(null)} titulo="Registrar pagamento" largura="sm"

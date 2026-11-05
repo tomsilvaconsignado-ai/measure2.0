@@ -89,7 +89,7 @@ export interface TenantConfiguracoes {
   alerta_vencimento_dias: number[];
   anexo_tamanho_max_mb: number;
   bloquear_nota_contrato_vencido: boolean;
-  textos: Record<string, string>;
+  textos: Record<string, string | string[]>;
 }
 
 export interface UsuarioListado {
@@ -259,4 +259,4 @@ export interface NotaResumo {
 export interface Pagamento { id: string; nota_id: string; data_pagamento: string; valor: Decimal; documento: string | null; observacao: string | null; registrado_em: string; cancelado_em: string | null; motivo_cancelamento: string | null }
 export interface Atesto { id: string; nota_id: string; servidor_id: string; papel: string; texto: string; atestado_em: string; servidor_nome: string | null; servidor_matricula: string | null }
 
-export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }
+export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }
