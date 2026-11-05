@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Anexos } from '@/components/Anexos';
+import { BotoesPlanilha } from '@/components/Planilhas';
 import { CamposEndereco, enderecoDe, enderecoParaGravar, enderecoVazio, SeletorUnidadeOrg, type Endereco } from '@/components/CamposEndereco';
 import { ImagemPrivada, useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
@@ -274,7 +275,7 @@ export function Servidores() {
   return (
     <>
       <CabecalhoPagina titulo="Servidores" descricao="Cadastro funcional. Ativos e exonerados ficam no mesmo cadastro, sem duplicar a pessoa."
-        acoes={pode('servidores', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Novo servidor</Botao>} />
+        acoes={<><BotoesPlanilha tipo="servidores" />{pode('servidores', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Novo servidor</Botao>}</>} />
       <Cartao>
         <Abas abas={[{ id: 'ATIVOS', rotulo: 'Servidores ativos' }, { id: 'EXONERADOS', rotulo: 'Servidores exonerados' }, { id: 'ANIVERSARIANTES', rotulo: 'Aniversariantes' }]}
           ativa={aba} aoMudar={setAba} />

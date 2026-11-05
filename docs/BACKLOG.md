@@ -66,18 +66,26 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [x] Extratos do contrato e do empenho com retrato imutável dos dados, para impressão em A4 ou PDF.
 - [ ] Checklist da nota fiscal no modelo oficial: aguardando o PDF de referência do órgão.
 
-## Fase 5: Consulta e relatórios
-- Relatório completo por classificação: vários anos, contratos e fornecedores; filtros combinados (E entre campos, OU dentro do campo)
-- Relatório resumido de consumo (decisão 1)
-- PDF com cabeçalho do órgão e Excel com uma coluna por campo, totais por ano e total geral
+## Fase 5: Consulta e relatórios ✔
+- [x] Relatório completo de notas por classificação: vários anos, contratos, fornecedores, unidades, dotações e status
+  - Filtros combinados: E entre campos, OU dentro do mesmo campo.
+  - Ano pelo empenho (padrão) ou pela emissão. Paginação no banco, com totais por ano e total geral.
+- [x] Relatório resumido de consumo: métrica notas, pago ou empenhado (decisão 1), detalhado por subelemento ou fonte.
+- [x] PDF com o cabeçalho do órgão (impressão A4) e Excel com uma coluna por campo; toda exportação fica na auditoria.
 
-## Fase 6: Servidores e consolidado mensal
+## Fase 6: Servidores e consolidado mensal (aguardando o modelo do órgão)
 - Atrasos e faltas por mês, observações automáticas de nomeação e exoneração
 - Consolidado em PDF paisagem, fiel ao modelo do órgão, com versão histórica imutável
 
-## Fase 7: Painel e demais módulos
-- Painel por papel com contagens agregadas no banco
-- Notificações, ordens de serviço (NNNN/ANO), importação e exportação com prévia e detecção de duplicados
+## Fase 7: Painel e demais módulos ✔
+- [x] Painel por ano, com números agregados no banco e restritos ao escopo de cada pessoa
+  - Contratos a vencer, empenhado × consumido × pago, notas pendentes de atesto e de pagamento, consumo por mês e por fornecedor.
+- [x] Notificações no sino: atesto pendente, contrato vencendo, pagamento pendente e saldo de empenho abaixo de 10%.
+- [x] Ordens de serviço com número NNNN/ANO gerado no banco, unidades atendidas e cancelamento com motivo.
+- [x] Importação de fornecedores, servidores e unidades atendidas por planilha (xlsx/csv)
+  - Prévia com erros e duplicados, gravação tudo-ou-nada.
+- [x] Exportação em Excel desses cadastros, com modelo de planilha para download.
+- [ ] Patrimônio e Comunidade: aguardando levantamento (decisão 13).
 
 ## Fase 8: Homologação e produção
 - Testes de segurança e de carga, revisão da LGPD, migração dos dados do sistema antigo, backup e restauração, manual e treinamento

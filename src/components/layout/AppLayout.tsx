@@ -11,6 +11,7 @@ import { mensagemDeErro } from '@/lib/erros';
 import { encerrarSuporte, urlArquivo } from '@/services/api';
 import { Avatar, Botao, Carregando, cx } from '../ui/basicos';
 import { Marca } from './Marca';
+import { Notificacoes } from './Notificacoes';
 import type { Recurso } from '@/lib/tipos';
 
 interface Item { para: string; rotulo: string; icone: ReactNode; recurso?: Recurso; plataforma?: boolean }
@@ -37,12 +38,15 @@ const EXECUCAO: Item[] = [
   { para: '/contratos', rotulo: 'Contratos', icone: <FileText className="size-4" /> },
   { para: '/empenhos', rotulo: 'Empenhos', icone: <Wallet className="size-4" /> },
   { para: '/notas', rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" /> },
+  { para: '/ordens-servico', rotulo: 'Ordens de serviço', icone: <ClipboardList className="size-4" />, recurso: 'ordens_servico' },
 ];
-// Módulos das próximas fases do plano de desenvolvimento
+const GESTAO: Item[] = [
+  { para: '/painel', rotulo: 'Painel gerencial', icone: <BarChart3 className="size-4" /> },
+  { para: '/relatorios', rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" /> },
+];
+// Módulos que dependem de modelo ou levantamento do órgão
 const PROXIMOS: Array<{ rotulo: string; icone: ReactNode; fase: number }> = [
-  { rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" />, fase: 5 },
-  { rotulo: 'Ordens de serviço', icone: <ClipboardList className="size-4" />, fase: 7 },
-  { rotulo: 'Painel gerencial', icone: <BarChart3 className="size-4" />, fase: 7 },
+  { rotulo: 'Consolidado mensal de servidores', icone: <ClipboardList className="size-4" />, fase: 6 },
 ];
 
 function Link({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
@@ -101,7 +105,10 @@ export function AppLayout() {
       <div className="-mx-1 flex-1 overflow-y-auto px-1">
         <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} />
         {orgao && (
-          <Grupo titulo="Contratos e execução">{EXECUCAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Gestão">{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+        )}
+        {orgao && (
+          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
         {orgao && cadastros.length > 0 && (
           <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
@@ -112,7 +119,7 @@ export function AppLayout() {
         {ehPlataforma && (
           <Grupo titulo="Plataforma">{PLATAFORMA.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
-        <Grupo titulo="Módulos em desenvolvimento">
+        <Grupo titulo="Aguardando modelo do órgão">
           {PROXIMOS.map((m) => (
             <span key={m.rotulo} className="flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-marca-300/70" title={`Previsto na fase ${m.fase}`}>
               {m.icone}<span className="flex-1 truncate">{m.rotulo}</span>
@@ -168,6 +175,7 @@ export function AppLayout() {
             )}
           </div>
 
+          <Notificacoes />
           <NavLink to="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50" title="Meu perfil">
             <Avatar nome={perfil.nome || perfil.email} url={foto.data} />
             <span className="hidden max-w-40 truncate text-sm text-slate-700 md:block">{perfil.nome || perfil.email}</span>

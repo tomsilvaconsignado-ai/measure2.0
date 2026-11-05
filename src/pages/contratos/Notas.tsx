@@ -299,7 +299,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             <div className="flex flex-wrap gap-2">
               <Botao variante="secundario" icone={<ClipboardCopy className="size-4" />} onClick={() => { void navigator.clipboard.writeText(texto); toast.success('Texto copiado.'); }}>Copiar texto</Botao>
               {n.sou_designado
-                ? <Botao icone={<BadgeCheck className="size-4" />} carregando={atestar.isPending} onClick={() => atestar.mutate()}>Atestar nota</Botao>
+                ? <Botao icone={<BadgeCheck className="size-4" />} carregando={atestar.isPending} disabled={!texto.trim()} title={texto.trim() ? undefined : 'Aguarde o texto de atesto ser gerado'} onClick={() => atestar.mutate()}>Atestar nota</Botao>
                 : <p className="self-center text-xs text-slate-500">Só o gestor, o fiscal ou o suplente designado no contrato pode atestar.</p>}
             </div>
           </>}

@@ -29,6 +29,10 @@ const Contratos = pagina(() => import('@/pages/contratos/Contratos'), 'Contratos
 const Empenhos = pagina(() => import('@/pages/contratos/Empenhos'), 'Empenhos');
 const Imprimir = pagina(() => import('@/pages/contratos/Imprimir'), 'Imprimir');
 const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
+const Relatorios = pagina(() => import('@/pages/relatorios/Relatorios'), 'Relatorios');
+const RelatorioImprimir = pagina(() => import('@/pages/relatorios/RelatorioImprimir'), 'RelatorioImprimir');
+const Painel = pagina(() => import('@/pages/Painel'), 'Painel');
+const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServico');
 
 function TelaCheia({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6 text-center">{children}</div>;
@@ -72,6 +76,7 @@ export function App() {
     <Suspense fallback={<Carregando />}>
     <Routes>
       <Route path="imprimir/:id" element={<Imprimir />} />
+      <Route path="relatorios/imprimir" element={<RelatorioImprimir />} />
       <Route element={<AppLayout />}>
         <Route index element={<Inicio />} />
         <Route path="estrutura" element={<Estrutura />} />
@@ -88,6 +93,9 @@ export function App() {
         <Route path="contratos/:id" element={<ContratoDetalhe />} />
         <Route path="empenhos" element={<Empenhos />} />
         <Route path="notas" element={<Notas />} />
+        <Route path="relatorios" element={<Relatorios />} />
+        <Route path="painel" element={<Painel />} />
+        <Route path="ordens-servico" element={<OrdensServico />} />
         <Route path="plataforma/orgaos" element={<Orgaos />} />
         <Route path="plataforma/permissoes" element={<Permissoes />} />
         <Route path="entrar" element={<Navigate to="/" replace />} />

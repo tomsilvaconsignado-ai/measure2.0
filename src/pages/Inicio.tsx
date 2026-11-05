@@ -26,9 +26,9 @@ const FASES: Array<[string, string, boolean]> = [
   ['2', 'Cadastros: fornecedores, servidores, unidades atendidas, classificação orçamentária', true],
   ['3', 'Contratos: responsáveis, portarias, dotação, aditivos e renovações', true],
   ['4', 'Execução: empenhos, reforços, notas fiscais, atesto, pagamento e rateio', true],
-  ['5', 'Consulta e relatórios em PDF e Excel', false],
-  ['6', 'Servidores: ativos/exonerados e consolidado mensal', false],
-  ['7', 'Painel gerencial, notificações, ordens de serviço e importação', false],
+  ['5', 'Consulta e relatórios em PDF e Excel', true],
+  ['6', 'Consolidado mensal de servidores (aguarda o modelo em PDF do órgão)', false],
+  ['7', 'Painel gerencial, notificações, ordens de serviço e importação', true],
 ];
 
 export function Inicio() {

@@ -3,6 +3,7 @@ import { Eye, Layers, Pencil, Plus, Power, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
+import { BotoesPlanilha } from '@/components/Planilhas';
 import { CamposEndereco, enderecoDe, enderecoParaGravar, enderecoVazio, SeletorUnidadeOrg, type Endereco } from '@/components/CamposEndereco';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { CampoBusca } from '@/components/ui/Abas';
@@ -187,7 +188,7 @@ export function UnidadesAtendidas() {
   return (
     <>
       <CabecalhoPagina titulo="Unidades atendidas" descricao="Unidades que recebem serviços e materiais (UBS, CAPS, hospitais…) e os grupos usados no rateio das notas."
-        acoes={pode('unidades', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Nova unidade</Botao>} />
+        acoes={<><BotoesPlanilha tipo="unidades_atendidas" />{pode('unidades', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Nova unidade</Botao>}</>} />
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Nome, sigla, tipo ou bairro" rotulo="Buscar unidade" />

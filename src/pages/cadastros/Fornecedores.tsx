@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Anexos } from '@/components/Anexos';
+import { BotoesPlanilha } from '@/components/Planilhas';
 import { CamposEndereco, enderecoDe, enderecoParaGravar, enderecoVazio, type Endereco } from '@/components/CamposEndereco';
 import { ImagemPrivada, useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
@@ -291,7 +292,7 @@ export function Fornecedores() {
   return (
     <>
       <CabecalhoPagina titulo="Fornecedores" descricao="Cadastro central do órgão, usado em contratos, empenhos e notas fiscais. Ordem alfabética pela razão social."
-        acoes={pode('fornecedores', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Novo fornecedor</Botao>} />
+        acoes={<><BotoesPlanilha tipo="fornecedores" />{pode('fornecedores', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Novo fornecedor</Botao>}</>} />
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Razão social, nome fantasia ou CNPJ/CPF" rotulo="Buscar fornecedor" />

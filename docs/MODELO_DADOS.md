@@ -72,3 +72,19 @@ Regras financeiras:
 - `saldo do empenho = valor + reforços − notas não canceladas`;
 - `saldo do contrato = valor atual − notas não canceladas`;
 - empenhado, consumido e pago são exibidos lado a lado e nunca somados entre si.
+
+## Fases 5 e 7 (implantadas)
+
+| Tabela | Conteúdo |
+|---|---|
+| `ordens_servico` | número NNNN/ANO (gerado por gatilho com trava), contrato, fornecedor, descrição, status ABERTA → CONCLUÍDA/CANCELADA (cancelamento exige motivo; encerrada não muda mais) |
+| `os_unidades` | unidades atendidas por ordem de serviço |
+
+Funções (RPC), todas restritas ao escopo de quem chama:
+- `relatorio_notas(p)` e `relatorio_notas_totais(p)`: filtros em jsonb (E entre campos, OU dentro do campo), ano pelo empenho ou pela emissão, totais por ano;
+- `relatorio_consumo(p)`: métrica NOTAS, PAGO ou EMPENHADO, detalhada por SUBELEMENTO ou FONTE;
+- `anos_com_movimento`, `painel(p_tenant, p_ano)` e `minhas_notificacoes(p_tenant)`;
+- `importar_fornecedores`, `importar_servidores` e `importar_unidades_atendidas` com `p_aplicar = false` para prévia; gravam tudo ou nada;
+- `registrar_exportacao`: registra na auditoria (ação EXPORTACAO) cada PDF ou Excel gerado.
+
+A visão interna `classificacao_detalhada` não é exposta na API.
