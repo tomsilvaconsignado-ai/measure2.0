@@ -15,7 +15,7 @@ import { baixarExcel, lerPlanilha } from '@/lib/planilhas';
 import type { Classificador, ClassificadorTipo, ClassificacaoOrcamentaria, Ente, Tenant, TipoClassificador } from '@/lib/tipos';
 import { listarOrgaos } from '@/services/api';
 import {
-  cadastrarDotacao, definirOrgaosDaUo, definirStatusClassificacao, definirStatusClassificador, importarDotacoes, listarClassificadores,
+  cadastrarDotacao, definirOrgaosDaUo, definirStatusClassificacao, editarDotacao, definirStatusClassificador, importarDotacoes, listarClassificadores,
   listarDotacoesEnte, listarEntes, obterClassificadores, orgaosDasUos, salvarClassificador, salvarEnte, tiposClassificador, vincularOrgaoAoEnte,
   type CampoEmpenho, type CamposEmpenho, type ResultadoImportacaoDotacoes,
 } from '@/services/cadastros';
@@ -23,12 +23,15 @@ import {
 const POR_PAGINA = 25;
 const NATUREZAS = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Operação especial' } as const;
 const digitos = (s: string) => s.replace(/\D/g, '');
+const ANO_ATUAL = new Date().getFullYear();
+const exercicioValido = (s: string) => /^\d{4}$/.test(s) && Number(s) >= 2000 && Number(s) <= 2100;
 // mesma normalização dos títulos de coluna feita por lerPlanilha ("Natureza Despesa" → natureza_despesa)
 const chave = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 // Linhas do quadro "CLASSIFICAÇÃO" da nota de empenho
 const LINHAS: Array<{ campo: CampoEmpenho; rotulo: string; tipo: TipoClassificador; exemplo: string; obrigatorio?: boolean; tamanho?: number; coluna: string }> = [
   { campo: 'unidade_orcamentaria', rotulo: 'Unidade Orçamentária', tipo: 'UNIDADE_ORCAMENTARIA', exemplo: '18401', coluna: 'uo' },
+  { campo: 'unidade_gestora', rotulo: 'Unidade Gestora', tipo: 'UNIDADE_GESTORA', exemplo: '184010', coluna: 'ug' },
   { campo: 'funcao', rotulo: 'Função', tipo: 'FUNCAO', exemplo: '10', tamanho: 2, coluna: 'funcao' },
   { campo: 'subfuncao', rotulo: 'SubFunção', tipo: 'SUBFUNCAO', exemplo: '301', tamanho: 3, coluna: 'subfuncao' },
   { campo: 'programa', rotulo: 'Programa', tipo: 'PROGRAMA', exemplo: '0085', tamanho: 4, coluna: 'programa' },
@@ -44,7 +47,7 @@ const LINHAS: Array<{ campo: CampoEmpenho; rotulo: string; tipo: TipoClassificad
 ];
 // coluna da dotação → campo do formulário (para "nova a partir desta")
 const ID_DO_CAMPO: Record<CampoEmpenho, keyof ClassificacaoOrcamentaria> = {
-  unidade_orcamentaria: 'unidade_orcamentaria_id', funcao: 'funcao_id', subfuncao: 'subfuncao_id', programa: 'programa_id', acao: 'acao_id',
+  unidade_orcamentaria: 'unidade_orcamentaria_id', unidade_gestora: 'unidade_gestora_id', funcao: 'funcao_id', subfuncao: 'subfuncao_id', programa: 'programa_id', acao: 'acao_id',
   natureza: 'elemento_id', subelemento: 'subelemento_id', fonte: 'fonte_id', codigo_acompanhamento: 'codigo_acompanhamento_id', id_uso: 'id_uso_id',
   idoc: 'idoc_id', resultado_primario: 'resultado_primario_id', subfonte: 'subfonte_id',
 };
@@ -64,15 +67,16 @@ function useTipos() {
 
 type Valores = Partial<Record<CampoEmpenho, { codigo: string; descricao: string; existente?: boolean }>>;
 
-function FormDotacao({ ente, orgaosDoEnte, inicial, aberto, aoFechar }: {
-  ente: Ente; orgaosDoEnte: Tenant[]; inicial: Valores | null; aberto: boolean; aoFechar: () => void;
+function FormDotacao({ ente, orgaosDoEnte, inicial, exercicioInicial, aberto, aoFechar }: {
+  ente: Ente; orgaosDoEnte: Tenant[]; inicial: Valores | null; exercicioInicial: number | null; aberto: boolean; aoFechar: () => void;
 }) {
   const qc = useQueryClient();
   const [v, setV] = useState<Valores>({});
   const [orgaos, setOrgaos] = useState<string[]>([]);
   const [obs, setObs] = useState('');
+  const [exercicio, setExercicio] = useState(String(ANO_ATUAL));
   const [erro, setErro] = useState<{ campo?: string; mensagem: string } | null>(null);
-  useEffect(() => { if (aberto) { setV(inicial ?? {}); setOrgaos([]); setObs(''); setErro(null); } }, [aberto, inicial]);
+  useEffect(() => { if (aberto) { setV(inicial ?? {}); setOrgaos([]); setObs(''); setErro(null); setExercicio(String(exercicioInicial ?? ANO_ATUAL)); } }, [aberto, inicial, exercicioInicial]);
 
   // Ao sair do código, procura o classificador já cadastrado no ente e traz a descrição
   async function procurar(campo: CampoEmpenho) {
@@ -112,23 +116,30 @@ function FormDotacao({ ente, orgaosDoEnte, inicial, aberto, aoFechar }: {
         const x = v[l.campo];
         if (x?.codigo.trim()) campos[l.campo] = { codigo: x.codigo.trim(), descricao: x.descricao.trim() };
       }
-      return cadastrarDotacao({ enteId: ente.id, campos, orgaos: v.unidade_orcamentaria?.codigo.trim() ? orgaos : [], descricao: obs.trim() || null });
+      return cadastrarDotacao({ enteId: ente.id, campos, orgaos: v.unidade_orcamentaria?.codigo.trim() ? orgaos : [], descricao: obs.trim() || null, exercicio: exercicio ? Number(exercicio) : null });
     },
     onSuccess: async (r) => {
       await qc.invalidateQueries({ queryKey: ['dotacoes-ente'] });
       await qc.invalidateQueries({ queryKey: ['classificadores-ente'] });
-      toast.success(r.criada ? `Dotação cadastrada: ${r.codigo_completo}` : `Esta dotação já existia: ${r.codigo_completo}`);
+      const ano = r.exercicio ? ` (exercício ${r.exercicio})` : '';
+      toast.success(r.criada ? `Dotação cadastrada: ${r.codigo_completo}${ano}` : `Esta dotação já existia${ano}: ${r.codigo_completo}. Nada foi duplicado.`);
       aoFechar();
     },
     onError: (e) => { const t = traduzirErro(e); setErro({ campo: t.campo ?? undefined, mensagem: t.mensagem }); },
   });
-  const faltando = !v.acao?.codigo || natureza.length !== 8 || !v.fonte?.codigo;
+  const faltando = !v.acao?.codigo || natureza.length !== 8 || !v.fonte?.codigo || (!!exercicio && !exercicioValido(exercicio));
 
   return (
     <Modal aberto={aberto} aoFechar={aoFechar} titulo={`Nova dotação · ${ente.nome}`} largura="lg"
       descricao="Preencha como no quadro CLASSIFICAÇÃO da nota de empenho. Códigos já cadastrados são reaproveitados; para código novo, informe a descrição."
       rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao><Botao carregando={salvar.isPending} disabled={faltando} onClick={() => salvar.mutate()}>Cadastrar dotação</Botao></>}>
       <div className="flex flex-col gap-2">
+        <div className="mb-2 grid gap-2 sm:grid-cols-[11rem_9rem_1fr] sm:items-center">
+          <label htmlFor="dot-exercicio" className="text-sm font-medium text-slate-800">Exercício financeiro</label>
+          <input id="dot-exercicio" inputMode="numeric" maxLength={4} className={cx('numero h-9 rounded-lg border px-2 text-sm', exercicio && !exercicioValido(exercicio) ? 'border-red-500' : 'border-slate-300', erro?.campo === 'exercicio' && 'border-red-500 bg-red-50')}
+            value={exercicio} onChange={(e) => setExercicio(digitos(e.target.value))} />
+          <p className="text-xs text-slate-500">Ano da LOA. A mesma combinação pode ser cadastrada de novo para outro exercício. Vazio = vale para qualquer exercício.</p>
+        </div>
         <div className="hidden grid-cols-[11rem_9rem_1fr] gap-2 px-1 text-xs font-medium text-slate-500 sm:grid"><span>Campo</span><span>Código</span><span>Descrição</span></div>
         {LINHAS.map((l) => {
           const x = v[l.campo];
@@ -149,7 +160,7 @@ function FormDotacao({ ente, orgaosDoEnte, inicial, aberto, aoFechar }: {
             </div>
           );
         })}
-        <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-500">Código da dotação: </span><span className="numero font-mono font-semibold text-slate-900">{previa || '—'}</span></p>
+        <p className="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-500">Código da dotação: </span><span className="numero font-mono font-semibold text-slate-900">{previa || '—'}</span>{exercicio && <span className="text-slate-500"> · exercício {exercicio}</span>}</p>
         <p className="text-xs text-slate-500">A natureza (8 dígitos) é desmembrada em categoria, grupo (GND), modalidade e elemento. O subelemento aceita os 8 dígitos (33903914) ou os 2 finais.</p>
         {v.unidade_orcamentaria?.codigo.trim() && (
           <fieldset className="mt-2 rounded-xl border border-slate-200 p-3">
@@ -179,7 +190,7 @@ function FormDotacao({ ente, orgaosDoEnte, inicial, aberto, aoFechar }: {
 
 const COLUNAS_PLANILHA = [
   ...LINHAS.flatMap((l) => [[l.coluna, l.rotulo], [`${l.coluna}_descricao`, `${l.rotulo} descrição`]]),
-  ['orgaos', 'Órgãos'], ['observacao', 'Observação'],
+  ['orgaos', 'Órgãos'], ['observacao', 'Observação'], ['exercicio', 'Exercício'],
 ] as Array<[string, string]>;
 
 async function baixarModelo() {
@@ -190,7 +201,7 @@ async function baixarModelo() {
     fonte: '27490000', fonte_descricao: 'Outras vinculações de transferências', co: '27490000', co_descricao: 'Outras vinculações de transferências',
     iduso: '0', iduso_descricao: 'Recursos não destinados à contrapartida', idoc: '0000', idoc_descricao: 'Sem identificação',
     resultado_primario: '2', resultado_primario_descricao: 'Despesa Primária Discricionária', subfonte: '0', subfonte_descricao: 'Sem subFonte',
-    orgaos: 'SMS Aracaju', observacao: '',
+    orgaos: 'SMS Aracaju', observacao: '', exercicio: String(ANO_ATUAL), ug: '', ug_descricao: '',
   };
   await baixarExcel('modelo-dotacoes.xlsx', [{ nome: 'Dotações', linhas: [exemplo], colunas: COLUNAS_PLANILHA.map(([k, t]) => ({ titulo: t, valor: (l: Record<string, string>) => l[k] ?? '', largura: k.endsWith('descricao') ? 36 : 14 })) }]);
 }
@@ -222,7 +233,9 @@ function Importacao({ ente, orgaosDoEnte, arquivo, aoFechar }: { ente: Ente; org
             const o = orgaosDoEnte.find((x) => x.nome_curto.toLowerCase() === nome.toLowerCase() || x.nome_oficial.toLowerCase() === nome.toLowerCase());
             if (o) orgaos.push(o.id); else locais.push({ linha: i + 2, mensagem: `Órgão "${nome}" não está vinculado a este ente.` });
           }
-          return { linha: i + 2, campos, orgaos, descricao: (b.observacao ?? '').trim() || null };
+          const exercicio = (b.exercicio ?? '').trim();
+          if (exercicio && !exercicioValido(exercicio)) locais.push({ linha: i + 2, mensagem: `Exercício "${exercicio}" inválido (use o ano com 4 dígitos).` });
+          return { linha: i + 2, campos, orgaos, descricao: (b.observacao ?? '').trim() || null, exercicio: exercicio || null };
         });
         setLinhas(convertidas); setErrosLocais(locais);
         setRes(await importarDotacoes(ente.id, convertidas, false));
@@ -260,6 +273,35 @@ function Importacao({ ente, orgaosDoEnte, arquivo, aoFechar }: { ente: Ente; org
   );
 }
 
+// ---------------------------------------------------------------- identificação e exercício de uma dotação
+
+function EditarDotacao({ dotacao, aoFechar }: { dotacao: ClassificacaoOrcamentaria | null; aoFechar: () => void }) {
+  const qc = useQueryClient();
+  const [descricao, setDescricao] = useState('');
+  const [exercicio, setExercicio] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  useEffect(() => { if (dotacao) { setDescricao(dotacao.descricao ?? ''); setExercicio(dotacao.exercicio ? String(dotacao.exercicio) : ''); setErro(null); } }, [dotacao]);
+  const salvar = useMutation({
+    mutationFn: () => editarDotacao(dotacao!.id, { descricao: descricao.trim() || null, exercicio: exercicio ? Number(exercicio) : null }),
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['dotacoes-ente'] }); toast.success('Dotação atualizada.'); aoFechar(); },
+    onError: (e) => setErro(traduzirErro(e).mensagem),
+  });
+  return (
+    <Modal aberto={!!dotacao} aoFechar={aoFechar} titulo="Editar dotação" descricao={dotacao?.codigo_completo} largura="md"
+      rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao><Botao carregando={salvar.isPending} disabled={!!exercicio && !exercicioValido(exercicio)} onClick={() => salvar.mutate()}>Salvar</Botao></>}>
+      <div className="flex flex-col gap-4">
+        <Campo rotulo="Exercício financeiro" inputMode="numeric" maxLength={4} value={exercicio} onChange={(e) => setExercicio(digitos(e.target.value))}
+          erro={exercicio && !exercicioValido(exercicio) ? 'Use o ano com 4 dígitos.' : null}
+          ajuda="Vazio = vale para qualquer exercício. Dotação com empenhos de outro ano não muda de exercício: use “Nova a partir desta”." />
+        <AreaTexto rotulo="Descrição / identificação" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={500} rows={3}
+          ajuda="Ex.: Manutenção predial das UBS. Aparece na escolha da dotação no contrato e no empenho." />
+        <p className="text-xs text-slate-500">As classificações (ação, natureza, fonte…) não mudam: para outra combinação, cadastre uma nova dotação.</p>
+        {erro && <CaixaErro mensagem={erro} />}
+      </div>
+    </Modal>
+  );
+}
+
 // ---------------------------------------------------------------- lista de dotações do ente
 
 function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tenant[] }) {
@@ -267,15 +309,17 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
   const [situacao, setSituacao] = useState<'ATIVOS' | 'INATIVOS' | 'TODOS'>('ATIVOS');
+  const [exercicio, setExercicio] = useState<string>('');
   const [pagina, setPagina] = useState(0);
-  const [form, setForm] = useState<{ inicial: Valores | null } | null>(null);
+  const [form, setForm] = useState<{ inicial: Valores | null; exercicio: number | null } | null>(null);
+  const [editando, setEditando] = useState<ClassificacaoOrcamentaria | null>(null);
   const [alternando, setAlternando] = useState<ClassificacaoOrcamentaria | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
-  useEffect(() => setPagina(0), [termo, situacao, ente.id]);
+  useEffect(() => setPagina(0), [termo, situacao, exercicio, ente.id]);
   const q = useQuery({
-    queryKey: ['dotacoes-ente', ente.id, termo, situacao, pagina],
-    queryFn: () => listarDotacoesEnte({ enteId: ente.id, busca: termo, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
+    queryKey: ['dotacoes-ente', ente.id, termo, situacao, exercicio, pagina],
+    queryFn: () => listarDotacoesEnte({ enteId: ente.id, busca: termo, situacao, exercicio: exercicio === 'SEM' ? 'SEM' : exercicio ? Number(exercicio) : null, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
     placeholderData: (a) => a,
   });
   const ids = useMemo(() => [...new Set((q.data?.itens ?? []).flatMap((d) => Object.values(ID_DO_CAMPO).map((k) => d[k] as string | null)
@@ -294,13 +338,19 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
       const codigo = l.campo === 'natureza' ? `${naturezaDe(lista, d)}00` : l.campo === 'subelemento' ? `${naturezaDe(lista, d)}${c.codigo.padStart(2, '0')}` : c.codigo;
       ini[l.campo] = { codigo, descricao: c.descricao, existente: true };
     }
-    setForm({ inicial: ini });
+    // a cópia sugere o exercício seguinte (LOA nova); dá para ajustar no formulário
+    setForm({ inicial: ini, exercicio: d.exercicio ? d.exercicio + 1 : ANO_ATUAL });
   };
 
   return (
     <>
-      <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_9rem_auto] lg:items-center">
-        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código (18401, 2090, 33903914, 27490000) ou descrição" rotulo="Buscar dotação" />
+      <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_9rem_9rem_auto] lg:items-center">
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código, fonte, ação, elemento, unidade ou descrição" rotulo="Buscar dotação" />
+        <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
+          <option value="">Todos os exercícios</option>
+          {[ANO_ATUAL + 1, ANO_ATUAL, ANO_ATUAL - 1, ANO_ATUAL - 2].map((a) => <option key={a} value={a}>Exercício {a}</option>)}
+          <option value="SEM">Sem exercício</option>
+        </select>
         <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
           <option value="ATIVOS">Ativas</option><option value="INATIVOS">Inativas</option><option value="TODOS">Todas</option>
         </select>
@@ -308,7 +358,7 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
           <Botao variante="secundario" icone={<Download className="size-4" />} onClick={() => void baixarModelo()}>Modelo</Botao>
           <input ref={entrada} type="file" accept=".xlsx,.csv" className="hidden" onChange={(e) => { setArquivo(e.target.files?.[0] ?? null); e.target.value = ''; }} />
           <Botao variante="secundario" icone={<Upload className="size-4" />} onClick={() => entrada.current?.click()}>Importar planilha</Botao>
-          <Botao icone={<Plus className="size-4" />} onClick={() => setForm({ inicial: null })}>Nova dotação</Botao>
+          <Botao icone={<Plus className="size-4" />} onClick={() => setForm({ inicial: null, exercicio: ANO_ATUAL })}>Nova dotação</Botao>
         </div>
       </div>
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> :
@@ -320,10 +370,13 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
               return (
                 <li key={d.id} className={cx('flex items-start gap-3 py-3', !d.ativo && 'opacity-60')}>
                   <div className="min-w-0 flex-1">
-                    <p className="numero break-words font-mono text-sm font-semibold text-slate-900">{d.codigo_completo} {!d.ativo && <Selo tom="perigo">Inativa</Selo>}</p>
+                    <p className="numero flex flex-wrap items-center gap-2 break-words font-mono text-sm font-semibold text-slate-900">{d.codigo_completo}
+                      {d.exercicio ? <Selo tom="info">Exercício {d.exercicio}</Selo> : <Selo>Sem exercício</Selo>}{!d.ativo && <Selo tom="perigo">Inativa</Selo>}</p>
+                    {d.descricao && <p className="text-sm font-medium text-slate-800">{d.descricao}</p>}
                     <p className="text-sm text-slate-700">
                       {cl(d.unidade_orcamentaria_id) && <>{cl(d.unidade_orcamentaria_id)!.descricao} · </>}
-                      {cl(d.acao_id)?.descricao ?? '…'}
+                      {cl(d.acao_id)?.descricao ?? '…'}{cl(d.acao_id)?.natureza_acao && ` (${NATUREZAS[cl(d.acao_id)!.natureza_acao!]})`}
+                      {cl(d.unidade_gestora_id) && <> · UG {cl(d.unidade_gestora_id)!.codigo} – {cl(d.unidade_gestora_id)!.descricao}</>}
                     </p>
                     <p className="text-xs text-slate-600">
                       {cl(d.subelemento_id)?.descricao ?? cl(d.elemento_id)?.descricao ?? '…'} · Fonte: {cl(d.fonte_id)?.descricao ?? '…'}
@@ -332,7 +385,8 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">Usada por: {d.unidade_orcamentaria_id && usam.length ? usam.join(', ') : 'todos os órgãos do ente'}</p>
                   </div>
-                  <Botao pequeno variante="fantasma" icone={<Copy className="size-4" />} aria-label="Nova dotação a partir desta" title="Nova a partir desta" onClick={() => copiar(d)} />
+                  <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} aria-label="Editar identificação e exercício" title="Editar identificação e exercício" onClick={() => setEditando(d)} />
+                  <Botao pequeno variante="fantasma" icone={<Copy className="size-4" />} aria-label="Nova dotação a partir desta" title="Nova a partir desta (copiar e ajustar)" onClick={() => copiar(d)} />
                   <Botao pequeno variante="fantasma" icone={<Power className="size-4" />} aria-label={d.ativo ? 'Inativar dotação' : 'Reativar dotação'} onClick={() => setAlternando(d)} />
                 </li>
               );
@@ -340,7 +394,8 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
           </ul>
         )}
       {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
-      <FormDotacao ente={ente} orgaosDoEnte={orgaosDoEnte} aberto={!!form} inicial={form?.inicial ?? null} aoFechar={() => setForm(null)} />
+      <FormDotacao ente={ente} orgaosDoEnte={orgaosDoEnte} aberto={!!form} inicial={form?.inicial ?? null} exercicioInicial={form?.exercicio ?? null} aoFechar={() => setForm(null)} />
+      <EditarDotacao dotacao={editando} aoFechar={() => setEditando(null)} />
       <Importacao ente={ente} orgaosDoEnte={orgaosDoEnte} arquivo={arquivo} aoFechar={() => setArquivo(null)} />
       <ConfirmarComMotivo aberto={!!alternando} aoFechar={() => setAlternando(null)} perigo={!!alternando?.ativo}
         titulo={alternando?.ativo ? 'Inativar dotação?' : 'Reativar dotação?'}

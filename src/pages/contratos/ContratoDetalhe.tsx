@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Trash2, UserMinus, X } from 'lucide-react';
+import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, UserMinus, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,11 +14,12 @@ import { brl, centavos, decimalDeCentavos, formatarData, formatarDataHora } from
 import type { Aditivo, ContratoResumo, Designacao } from '@/lib/tipos';
 import { FotoServidor } from '@/pages/cadastros/Servidores';
 import {
-  decidirAditivo, definirStatusContrato, designar, desvincularDotacao, emitirExtrato, encerrarDesignacao, listarAditivos, listarDesignacoes,
-  listarDotacoesContrato, listarEmitidos, listarEmpenhos, listarNotas, modalidades, obterContrato, renovarContrato, salvarAditivo, vincularDotacao,
+  decidirAditivo, definirStatusContrato, designar, emitirExtrato, encerrarDesignacao, listarAditivos, listarDesignacoes,
+  listarEmitidos, listarEmpenhos, listarNotas, modalidades, obterContrato, renovarContrato, salvarAditivo,
 } from '@/services/execucao';
-import { AvisoVencido, SeletorDotacao, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
+import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
 import { FormContrato } from './Contratos';
+import { DotacoesContrato } from './DotacoesContrato';
 
 type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
@@ -121,36 +122,6 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
       <ConfirmarComMotivo aberto={!!encerrando} aoFechar={() => setEncerrando(null)} titulo={`Encerrar a designação de ${encerrando?.servidor_nome ?? ''}?`}
         descricao="A pessoa deixa de ver o contrato e não atesta mais. O histórico e os documentos já emitidos continuam com o nome dela."
         rotuloConfirmar="Encerrar" aoConfirmar={async (m) => { await encerrarDesignacao(encerrando!.id, hoje(), m); await qc.invalidateQueries({ queryKey: ['designacoes', c.id] }); toast.success('Designação encerrada.'); }} />
-    </div>
-  );
-}
-
-function Dotacao({ c }: { c: ContratoResumo }) {
-  const { pode } = useSessao();
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['contrato-dotacoes', c.id], queryFn: () => listarDotacoesContrato(c.id) });
-  const incluir = useMutation({ mutationFn: (id: string) => vincularDotacao(c.id, id), onSuccess: () => qc.invalidateQueries({ queryKey: ['contrato-dotacoes', c.id] }), onError: (e) => toast.error(mensagemDeErro(e)) });
-  const remover = useMutation({ mutationFn: (id: string) => desvincularDotacao(c.id, id), onSuccess: () => qc.invalidateQueries({ queryKey: ['contrato-dotacoes', c.id] }), onError: (e) => toast.error(mensagemDeErro(e)) });
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-slate-600">As dotações vêm do cadastro de Classificação orçamentária (nada é digitado aqui). Cada empenho escolhe uma delas.</p>
-      {pode('contratos', 'editar') && (
-        <div className="max-w-2xl"><SeletorDotacao rotulo="Vincular dotação" valor={null} aoMudar={(v) => { if (v) incluir.mutate(v); }} excluir={q.data?.map((d) => d.id)} /></div>
-      )}
-      {q.isLoading ? <Carregando /> : !q.data?.length ? <Vazio titulo="Nenhuma dotação vinculada" descricao="Vincule ao menos uma dotação para poder empenhar." /> : (
-        <table className="w-full text-sm">
-          <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500"><th className="py-2 pr-3 font-medium">Classificação</th><th className="py-2 pr-3 font-medium">Observação</th><th /></tr></thead>
-          <tbody>
-            {q.data.map((d) => (
-              <tr key={d.id} className="border-b border-slate-100">
-                <td className="numero py-2 pr-3 font-mono">{d.codigo_completo} {!d.ativo && <Selo tom="perigo">Inativa</Selo>}</td>
-                <td className="py-2 pr-3 text-slate-600">{d.descricao ?? '—'}</td>
-                <td className="py-2 text-right">{pode('contratos', 'editar') && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4 text-red-600" />} aria-label={`Desvincular ${d.codigo_completo}`} onClick={() => remover.mutate(d.id)} />}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </div>
   );
 }
@@ -345,7 +316,7 @@ export function ContratoDetalhe() {
           { id: 'documentos', rotulo: 'Documentos e extratos' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'resumo' && <Resumo c={c} />}
         {aba === 'responsaveis' && <Responsaveis c={c} />}
-        {aba === 'dotacao' && <Dotacao c={c} />}
+        {aba === 'dotacao' && <DotacoesContrato c={c} />}
         {aba === 'aditivos' && <Aditivos c={c} />}
         {aba === 'empenhos' && <ListaEmpenhos c={c} />}
         {aba === 'notas' && <ListaNotas c={c} />}

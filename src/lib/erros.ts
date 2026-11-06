@@ -21,6 +21,7 @@ const UNICOS: Record<string, ErroApp> = {
   unidades_nome_unico: { mensagem: 'Já existe uma unidade com esse nome no mesmo nível da estrutura.', campo: 'nome' },
   tenants_cnpj_key: { mensagem: 'Já existe um órgão cadastrado com esse CNPJ.', campo: 'cnpj' },
   vinculos_unico: { mensagem: 'Esta pessoa já tem esse papel nessa unidade.', campo: 'papel' },
+  classificacoes_combinacao_unica: { mensagem: 'Já existe uma dotação com exatamente estas classificações neste exercício.', campo: 'exercicio' },
 };
 
 const CHECAGENS: Record<string, ErroApp> = {

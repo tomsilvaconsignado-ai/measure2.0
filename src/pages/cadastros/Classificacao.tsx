@@ -33,12 +33,13 @@ export function Classificacao() {
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
   const [situacao, setSituacao] = useState<'ATIVOS' | 'INATIVOS' | 'TODOS'>('ATIVOS');
+  const [exercicio, setExercicio] = useState('');
   const [pagina, setPagina] = useState(0);
   const [aberta, setAberta] = useState<string | null>(null);
-  useEffect(() => setPagina(0), [termo, situacao]);
+  useEffect(() => setPagina(0), [termo, situacao, exercicio]);
   const q = useQuery({
-    queryKey: ['dotacoes', orgao?.id, termo, situacao, pagina],
-    queryFn: () => listarClassificacoes({ tenantId: orgao!.id, busca: termo, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
+    queryKey: ['dotacoes', orgao?.id, termo, situacao, exercicio, pagina],
+    queryFn: () => listarClassificacoes({ tenantId: orgao!.id, busca: termo, situacao, exercicio: exercicio ? Number(exercicio) : null, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
     enabled: !!orgao && pode('classificacoes', 'ler'), placeholderData: (a) => a,
   });
   if (!orgao) return <SemPermissao texto="Escolha um órgão." />;
@@ -49,8 +50,12 @@ export function Classificacao() {
       <CabecalhoPagina titulo="Classificação orçamentária"
         descricao="Dotações do município disponíveis para este órgão. Contratos, empenhos e relatórios usam este catálogo, cadastrado pela equipe da plataforma." />
       <Cartao>
-        <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_10rem] sm:items-center">
-          <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código (18401, 2090, 33903914, 27490000) ou descrição" rotulo="Buscar dotação" />
+        <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_11rem_10rem] sm:items-center">
+          <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código, fonte, ação, elemento, unidade ou descrição" rotulo="Buscar dotação" />
+          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
+            <option value="">Todos os exercícios</option>
+            {[0, 1, 2, -1].map((k) => new Date().getFullYear() + (k === -1 ? 1 : -k)).map((a) => <option key={a} value={a}>Exercício {a}</option>)}
+          </select>
           <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
             <option value="ATIVOS">Ativas</option><option value="INATIVOS">Inativas</option><option value="TODOS">Todas</option>
           </select>
@@ -61,13 +66,16 @@ export function Classificacao() {
               {q.data!.itens.map((d) => (
                 <li key={d.id} className={cx('py-3', !d.ativo && 'opacity-60')}>
                   <button className="w-full text-left" onClick={() => setAberta(aberta === d.id ? null : d.id)} aria-expanded={aberta === d.id}>
-                    <p className="numero break-words font-mono text-sm font-semibold text-slate-900">{d.codigo_completo} {!d.ativo && <Selo tom="perigo">Inativa</Selo>}</p>
+                    <p className="numero flex flex-wrap items-center gap-2 break-words font-mono text-sm font-semibold text-slate-900">{d.codigo_completo}
+                      {d.exercicio ? <Selo tom="info">Exercício {d.exercicio}</Selo> : <Selo>Qualquer exercício</Selo>}{!d.ativo && <Selo tom="perigo">Inativa</Selo>}</p>
+                    {d.descricao && <p className="text-sm font-medium text-slate-800">{d.descricao}</p>}
                     <p className="text-sm text-slate-700">{d.uo_descricao ? `${d.uo_descricao} · ` : ''}{d.acao_descricao}</p>
                     <p className="text-xs text-slate-600">{d.subelemento_descricao ?? d.elemento_descricao} · Fonte: {d.fonte_descricao}</p>
                   </button>
                   {aberta === d.id && (
                     <dl className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                       <Linha rotulo="Unidade Orçamentária" codigo={d.uo_codigo} descricao={d.uo_descricao} />
+                      <Linha rotulo="Unidade Gestora" codigo={d.ug_codigo} descricao={d.ug_descricao} />
                       <Linha rotulo="Função" codigo={d.funcao_codigo} descricao={d.funcao_descricao} />
                       <Linha rotulo="SubFunção" codigo={d.subfuncao_codigo} descricao={d.subfuncao_descricao} />
                       <Linha rotulo="Programa" codigo={d.programa_codigo} descricao={d.programa_descricao} />

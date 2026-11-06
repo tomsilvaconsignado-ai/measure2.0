@@ -199,7 +199,7 @@ export interface UnidadeAtendida {
   observacoes: string | null; ativo: boolean;
 }
 
-export type TipoClassificador = 'ORGAO' | 'UNIDADE_ORCAMENTARIA' | 'FUNCAO' | 'SUBFUNCAO' | 'PROGRAMA' | 'ACAO'
+export type TipoClassificador = 'ORGAO' | 'UNIDADE_ORCAMENTARIA' | 'UNIDADE_GESTORA' | 'FUNCAO' | 'SUBFUNCAO' | 'PROGRAMA' | 'ACAO'
   | 'CATEGORIA_ECONOMICA' | 'GND' | 'MODALIDADE' | 'ELEMENTO' | 'SUBELEMENTO' | 'FONTE' | 'DETALHAMENTO_FONTE'
   | 'SUBFONTE' | 'CODIGO_ACOMPANHAMENTO' | 'ID_USO' | 'IDOC' | 'RESULTADO_PRIMARIO';
 
@@ -217,6 +217,9 @@ export interface ClassificacaoOrcamentaria {
   modalidade_id: string | null; elemento_id: string; subelemento_id: string | null; fonte_id: string; detalhamento_fonte_id: string | null;
   subfonte_id: string | null; codigo_acompanhamento_id: string | null; id_uso_id: string | null; idoc_id: string | null; resultado_primario_id: string | null;
   descricao: string | null; codigo_completo: string; ativo: boolean;
+  unidade_gestora_id: string | null;
+  /** exercício financeiro (LOA); vazio = vale para qualquer exercício */
+  exercicio: number | null;
 }
 
 /** Município (ente): dono do catálogo orçamentário, compartilhado pelos órgãos dele */
@@ -232,6 +235,19 @@ export interface DotacaoDetalhada {
   fonte_codigo: string; fonte_descricao: string; co_codigo: string | null; co_descricao: string | null;
   iduso_codigo: string | null; iduso_descricao: string | null; idoc_codigo: string | null; idoc_descricao: string | null;
   resultado_primario_codigo: string | null; resultado_primario_descricao: string | null; subfonte_codigo: string | null; subfonte_descricao: string | null;
+  ug_codigo: string | null; ug_descricao: string | null; exercicio: number | null; natureza_acao: 'PROJETO' | 'ATIVIDADE' | 'OPERACAO_ESPECIAL' | null;
+  detalhamento_codigo: string | null;
+}
+
+/** Dotação vinculada ao contrato, com as classificações e o valor empenhado nela */
+export interface DotacaoDoContrato {
+  contrato_id: string; id: string; codigo_completo: string; descricao: string | null; ativo: boolean; exercicio: number | null;
+  uo_codigo: string | null; uo_descricao: string | null; ug_codigo: string | null; ug_descricao: string | null;
+  funcao_codigo: string | null; subfuncao_codigo: string | null; programa_codigo: string | null; programa_descricao: string | null;
+  acao_codigo: string; acao_descricao: string; natureza_acao: 'PROJETO' | 'ATIVIDADE' | 'OPERACAO_ESPECIAL' | null;
+  categoria_codigo: string | null; gnd_codigo: string | null; modalidade_codigo: string | null;
+  elemento_codigo: string; elemento_descricao: string; subelemento_codigo: string | null; subelemento_descricao: string | null;
+  fonte_codigo: string; fonte_descricao: string; detalhamento_codigo: string | null; empenhos: number; empenhado: Decimal;
 }
 
 export interface TipoServico { id: string; tenant_id: string; nome: string; descricao: string | null; ordem: number; ativo: boolean }

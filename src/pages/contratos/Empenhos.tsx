@@ -16,22 +16,25 @@ import type { EmpenhoResumo } from '@/lib/tipos';
 import { listarUnidadesAtendidas } from '@/services/cadastros';
 import {
   cancelarReforco, criarReforco, definirStatusEmpenho, emitirExtrato, listarDotacoesContrato, listarEmpenhos, listarNotas, listarReforcos,
-  obterContrato, obterEmpenho, salvarEmpenho, unidadesDoEmpenho,
+  obterContrato, obterEmpenho, salvarEmpenho, unidadesDoEmpenho, vincularDotacao,
 } from '@/services/execucao';
-import { AvisoVencido, SeletorContrato, SeloAtesto, SeloPagamento } from './comum';
+import { AvisoVencido, SeletorContrato, SeletorDotacao, SeloAtesto, SeloPagamento } from './comum';
+import { ClassificacoesDaDotacao } from './DotacoesContrato';
 
 const POR_PAGINA = 25;
 const TIPOS = { ORDINARIO: 'Ordinário', ESTIMATIVO: 'Estimativo', GLOBAL: 'Global' } as const;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 
 function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: boolean; aoFechar: () => void; empenho: EmpenhoResumo | null; contratoInicial?: string | null }) {
-  const { orgao } = useSessao();
+  const { orgao, pode } = useSessao();
   const qc = useQueryClient();
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(null);
   const [f, setF] = useState({ numero: '', ano: String(new Date().getFullYear()), tipo: 'ORDINARIO', data_empenho: hoje(), vigencia_fim: '', classificacao_id: '', processo: '', sd: '', licitacao: '', observacoes: '' });
   const [valor, setValor] = useState<number | null>(null);
   const [unidades, setUnidades] = useState<Array<{ id: string; nome: string }>>([]);
   const [erros, setErros] = useState<Record<string, string>>({});
+  // dotação do órgão que ainda não está no contrato: é vinculada ao contrato ao salvar
+  const [outra, setOutra] = useState<{ id: string; rotulo: string } | null>(null);
   const ct = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: !!contrato });
   const dots = useQuery({ queryKey: ['contrato-dotacoes', contrato?.id], queryFn: () => listarDotacoesContrato(contrato!.id), enabled: !!contrato });
   const unidAtuais = useQuery({ queryKey: ['empenho-unidades', empenho?.id], queryFn: () => unidadesDoEmpenho(empenho!.id), enabled: aberto && !!empenho });
@@ -44,19 +47,26 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
       vigencia_fim: e?.vigencia_fim ?? '', classificacao_id: e?.classificacao_id ?? '', processo: e?.processo ?? '', sd: e?.sd ?? '', licitacao: e?.licitacao ?? '', observacoes: e?.observacoes ?? '' });
     setValor(e ? centavos(e.valor) : null);
     setUnidades([]);
+    setOutra(null);
   }, [aberto, empenho, contratoInicial]);
   useEffect(() => { if (unidAtuais.data) setUnidades(unidAtuais.data.map((u) => ({ id: u.id, nome: u.nome }))); }, [unidAtuais.data]);
   useEffect(() => { if (ct.data && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: ct.data.id, rotulo: `${ct.data.numero} – ${ct.data.fornecedor_nome}` }); }, [ct.data, contrato]);
-  useEffect(() => { if (dots.data?.length === 1 && !f.classificacao_id) setF((x) => ({ ...x, classificacao_id: dots.data![0]!.id })); }, [dots.data, f.classificacao_id]);
+  // dotações do contrato que servem para o exercício do empenho (as sem exercício valem para qualquer ano)
+  const doAno = (dots.data ?? []).filter((d) => !d.exercicio || String(d.exercicio) === f.ano);
+  useEffect(() => { if (doAno.length === 1 && !f.classificacao_id && !outra) setF((x) => ({ ...x, classificacao_id: doAno[0]!.id })); }, [doAno, f.classificacao_id, outra]);
+  const escolhida = dots.data?.find((d) => d.id === f.classificacao_id) ?? null;
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
 
   const salvar = useMutation({
-    mutationFn: () => salvarEmpenho(empenho?.id ?? null, {
+    mutationFn: async () => {
+      if (outra) await vincularDotacao(contrato!.id, outra.id);
+      return salvarEmpenho(empenho?.id ?? null, {
       tenant_id: orgao!.id, contrato_id: contrato!.id, numero: f.numero.trim(), ano: Number(f.ano), tipo: f.tipo as EmpenhoResumo['tipo'],
-      data_empenho: f.data_empenho, vigencia_fim: f.vigencia_fim || null, valor: decimalDeCentavos(valor!), classificacao_id: f.classificacao_id,
+      data_empenho: f.data_empenho, vigencia_fim: f.vigencia_fim || null, valor: decimalDeCentavos(valor!), classificacao_id: outra?.id ?? f.classificacao_id,
       processo: f.processo.trim() || null, sd: f.sd.trim() || null, licitacao: f.licitacao.trim() || null, observacoes: f.observacoes.trim() || null,
-    }, unidades.map((u) => u.id)),
-    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); toast.success(empenho ? 'Empenho atualizado.' : 'Empenho cadastrado.'); aoFechar(); },
+    }, unidades.map((u) => u.id));
+    },
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); await qc.invalidateQueries({ queryKey: ['contrato-dotacoes'] }); toast.success(empenho ? 'Empenho atualizado.' : 'Empenho cadastrado.'); aoFechar(); },
     onError: (e) => {
       const msg = (e as Error).message ?? '';
       if (/empenhos_numero_unico/.test(msg)) setErros({ numero: `Já existe o empenho ${f.numero}/${f.ano} neste órgão.` });
@@ -69,7 +79,8 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
     if (!contrato) n.contrato_id = 'Escolha o contrato.';
     if (!f.numero.trim()) n.numero = 'Informe o número do empenho.';
     if (!/^\d{4}$/.test(f.ano)) n.ano = 'Ano inválido.';
-    if (!f.classificacao_id) n.classificacao_id = 'Escolha a dotação usada pelo empenho.';
+    if (!f.classificacao_id && !outra) n.classificacao_id = 'Escolha a dotação usada pelo empenho.';
+    else if (escolhida?.exercicio && String(escolhida.exercicio) !== f.ano) n.classificacao_id = `Esta dotação é do exercício ${escolhida.exercicio}; o empenho é de ${f.ano}. Escolha uma dotação do exercício ${f.ano}.`;
     if (!valor || valor <= 0) n.valor = 'Informe o valor.';
     setErros(n);
     if (!Object.keys(n).length) salvar.mutate();
@@ -88,11 +99,29 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
         <Campo className="sm:col-span-2" rotulo="Número" obrigatorio value={f.numero} onChange={set('numero')} erro={erros.numero} maxLength={40} />
         <Campo className="sm:col-span-1" rotulo="Ano" obrigatorio inputMode="numeric" value={f.ano} onChange={set('ano')} erro={erros.ano} maxLength={4} />
         <Selecao className="sm:col-span-3" rotulo="Tipo" value={f.tipo} onChange={set('tipo')}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
-        <Selecao className="sm:col-span-6" rotulo="Dotação (classificação usada)" obrigatorio value={f.classificacao_id} onChange={set('classificacao_id')} erro={erros.classificacao_id}
-          disabled={!contrato} ajuda={contrato && dots.data && !dots.data.length ? 'O contrato ainda não tem dotação vinculada: vincule na aba Dotação do contrato.' : 'Só as dotações vinculadas ao contrato aparecem aqui.'}>
+        {!outra ? <Selecao className="sm:col-span-6" rotulo="Dotação (classificação usada)" obrigatorio value={f.classificacao_id} onChange={set('classificacao_id')} erro={erros.classificacao_id}
+          disabled={!contrato} ajuda={contrato && dots.data && !dots.data.length ? 'O contrato ainda não tem dotação vinculada: vincule na aba Dotação do contrato.'
+            : `Dotações do contrato para o exercício ${f.ano}. As de outros exercícios aparecem desabilitadas.`}>
           <option value="">{contrato ? 'Escolha…' : 'Escolha antes o contrato'}</option>
-          {dots.data?.map((d) => <option key={d.id} value={d.id}>{d.codigo_completo}</option>)}
-        </Selecao>
+          {dots.data?.map((d) => {
+            const outroAno = !!d.exercicio && String(d.exercicio) !== f.ano;
+            return <option key={d.id} value={d.id} disabled={outroAno && d.id !== f.classificacao_id}>
+              {d.exercicio ? `[${d.exercicio}] ` : ''}{d.codigo_completo} · {d.acao_descricao} · Fonte {d.fonte_codigo}{outroAno ? ' (outro exercício)' : ''}</option>;
+          })}
+        </Selecao> : (
+          <div className="sm:col-span-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+            <p>Dotação escolhida fora do contrato: <span className="numero font-mono">{outra.rotulo}</span>. Ela será <b>vinculada ao contrato</b> ao salvar o empenho.</p>
+            <Botao pequeno variante="secundario" className="mt-2" onClick={() => setOutra(null)}>Voltar às dotações do contrato</Botao>
+          </div>
+        )}
+        {!outra && escolhida && <div className="sm:col-span-6"><ClassificacoesDaDotacao d={escolhida} /></div>}
+        {contrato && !outra && !empenho && pode('contratos', 'editar') && (
+          <div className="sm:col-span-6">
+            <SeletorDotacao rotulo="Ou use outra dotação do órgão (exercício do empenho)" valor={null} exercicio={/^\d{4}$/.test(f.ano) ? Number(f.ano) : null}
+              excluir={dots.data?.map((d) => d.id)} ajuda="Só quando a dotação certa ainda não está no contrato. Ela passa a fazer parte das dotações do contrato."
+              aoMudar={(v, o) => { if (v && o) { setOutra({ id: v, rotulo: o.rotulo }); setF((x) => ({ ...x, classificacao_id: '' })); } }} />
+          </div>
+        )}
         <CampoMoeda className="sm:col-span-2" rotulo="Valor do empenho" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} />
         <Campo className="sm:col-span-2" rotulo="Data do empenho" type="date" obrigatorio value={f.data_empenho} onChange={set('data_empenho')} />
         <Campo className="sm:col-span-2" rotulo="Vigência" type="date" value={f.vigencia_fim} onChange={set('vigencia_fim')} />

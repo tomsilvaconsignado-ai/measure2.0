@@ -1,7 +1,7 @@
 // Acesso a dados de contratos, empenhos, notas fiscais, atesto, pagamentos e documentos emitidos.
 import { supabase } from '@/lib/supabase';
 import type {
-  Aditivo, Atesto, Contrato, ContratoResumo, Designacao, DocumentoEmitido, Empenho, EmpenhoResumo, Modalidade, NotaResumo,
+  Aditivo, Atesto, Contrato, ContratoResumo, Designacao, DocumentoEmitido, DotacaoDoContrato, Empenho, EmpenhoResumo, Modalidade, NotaResumo,
   ItemFilaPagamento, Pagamento, PagamentoRealizado, Reforco, SituacaoContrato, StatusPagamento,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
@@ -88,11 +88,18 @@ export async function encerrarDesignacao(id: string, fim: string, motivo: string
 }
 
 export async function listarDotacoesContrato(contratoId: string) {
-  return falhou(await supabase.from('v_contrato_dotacoes').select('id, codigo_completo, descricao, ativo').eq('contrato_id', contratoId).order('codigo_completo')) as Array<{ id: string; codigo_completo: string; descricao: string | null; ativo: boolean }>;
+  return falhou(await supabase.from('v_contrato_dotacoes').select('*').eq('contrato_id', contratoId)
+    .order('exercicio', { ascending: false, nullsFirst: false }).order('codigo_completo')) as DotacaoDoContrato[];
 }
 
 export async function vincularDotacao(contratoId: string, classificacaoId: string) {
   falhou(await supabase.from('contrato_dotacoes').insert({ contrato_id: contratoId, classificacao_id: classificacaoId }));
+}
+
+/** Várias dotações de uma vez (seleção múltipla no contrato) */
+export async function vincularDotacoes(contratoId: string, classificacaoIds: string[]) {
+  if (!classificacaoIds.length) return;
+  falhou(await supabase.from('contrato_dotacoes').insert(classificacaoIds.map((id) => ({ contrato_id: contratoId, classificacao_id: id }))));
 }
 
 export async function desvincularDotacao(contratoId: string, classificacaoId: string) {

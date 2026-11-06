@@ -58,13 +58,13 @@ export function SeletorServidor(p: { rotulo: string; valor: string | null; rotul
       .map((s) => ({ valor: s.id, rotulo: s.nome, detalhe: `Mat. ${s.matricula} · ${s.unidade_sigla ?? s.unidade_nome}${s.tem_acesso ? '' : ' · sem acesso ao sistema'}` }))} />;
 }
 
-export function SeletorDotacao(p: { rotulo?: string; valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; excluir?: string[] }) {
+export function SeletorDotacao(p: { rotulo?: string; valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; excluir?: string[]; exercicio?: number | null; ajuda?: string }) {
   const { orgao } = useSessao();
-  return <BuscaSelect rotulo={p.rotulo ?? 'Dotação orçamentária'} valor={p.valor} rotuloValor={p.rotuloValor} aoMudar={p.aoMudar} erro={p.erro}
-    chave={['dotacoes-opcoes', orgao?.id, p.excluir?.length]} placeholder="UO, ação, natureza (33903914), fonte ou descrição"
-    buscar={async (t) => (await listarClassificacoes({ tenantId: orgao!.id, busca: t, situacao: 'ATIVOS', limite: 20, offset: 0 })).itens
+  return <BuscaSelect rotulo={p.rotulo ?? 'Dotação orçamentária'} valor={p.valor} rotuloValor={p.rotuloValor} aoMudar={p.aoMudar} erro={p.erro} ajuda={p.ajuda}
+    chave={['dotacoes-opcoes', orgao?.id, p.excluir?.length, p.exercicio]} placeholder="UO, ação, natureza (33903914), fonte ou descrição"
+    buscar={async (t) => (await listarClassificacoes({ tenantId: orgao!.id, busca: t, situacao: 'ATIVOS', limite: 20, offset: 0, exercicio: p.exercicio ?? null })).itens
       .filter((d) => !p.excluir?.includes(d.id)).map((d) => ({ valor: d.id, rotulo: d.codigo_completo,
-        detalhe: [d.uo_descricao, d.acao_descricao, d.subelemento_descricao ?? d.elemento_descricao].filter(Boolean).join(' · ') }))} />;
+        detalhe: [d.exercicio ? `Exercício ${d.exercicio}` : 'Qualquer exercício', d.uo_descricao, d.acao_descricao, d.subelemento_descricao ?? d.elemento_descricao, `Fonte ${d.fonte_codigo}`].filter(Boolean).join(' · ') }))} />;
 }
 
 export function SeletorContrato(p: { valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; obrigatorio?: boolean; desabilitado?: boolean }) {

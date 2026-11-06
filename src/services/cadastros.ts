@@ -223,17 +223,18 @@ export async function definirStatusClassificador(id: string, ativo: boolean, mot
 }
 
 /** Órgão: dotações do ente disponíveis para ele (conforme a unidade orçamentária) */
-export async function listarClassificacoes(p: { tenantId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
-  const r = falhou(await supabase.rpc('dotacoes_do_orgao', { p_tenant: p.tenantId, p_busca: termo(p.busca ?? '') || null, p_situacao: p.situacao, p_limite: p.limite, p_offset: p.offset })) as
+export async function listarClassificacoes(p: { tenantId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number; exercicio?: number | null }) {
+  const r = falhou(await supabase.rpc('dotacoes_do_orgao', { p_tenant: p.tenantId, p_busca: termo(p.busca ?? '') || null, p_situacao: p.situacao, p_limite: p.limite, p_offset: p.offset, p_exercicio: p.exercicio ?? null })) as
     { total: number; itens: DotacaoDetalhada[] };
   return r;
 }
 
 /** Plataforma: dotações de um ente */
-export async function listarDotacoesEnte(p: { enteId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
+export async function listarDotacoesEnte(p: { enteId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number; exercicio?: number | 'SEM' | null }) {
   let q = supabase.from('classificacoes_orcamentarias').select('*', { count: 'exact' }).eq('ente_id', p.enteId)
-    .order('codigo_completo').range(p.offset, p.offset + p.limite - 1);
+    .order('exercicio', { ascending: false, nullsFirst: false }).order('codigo_completo').range(p.offset, p.offset + p.limite - 1);
   if (p.situacao !== 'TODOS') q = q.eq('ativo', p.situacao === 'ATIVOS');
+  if (p.exercicio === 'SEM') q = q.is('exercicio', null); else if (p.exercicio) q = q.eq('exercicio', p.exercicio);
   const t = termo(p.busca ?? '').toLowerCase();
   if (t) q = q.ilike('busca', `%${t}%`);
   const r = await q;
@@ -249,19 +250,24 @@ export async function salvarObservacaoDotacao(id: string, descricao: string | nu
   falhou(await supabase.from('classificacoes_orcamentarias').update({ descricao }).eq('id', id));
 }
 
-export type CampoEmpenho = 'unidade_orcamentaria' | 'funcao' | 'subfuncao' | 'programa' | 'acao' | 'natureza' | 'subelemento' | 'fonte'
+/** Plataforma: identificação e exercício da dotação (as classificações não mudam: para outra combinação, cadastre uma nova) */
+export async function editarDotacao(id: string, dados: { descricao: string | null; exercicio: number | null }) {
+  falhou(await supabase.from('classificacoes_orcamentarias').update(dados).eq('id', id).select('id').single());
+}
+
+export type CampoEmpenho = 'unidade_orcamentaria' | 'unidade_gestora' | 'funcao' | 'subfuncao' | 'programa' | 'acao' | 'natureza' | 'subelemento' | 'fonte'
   | 'codigo_acompanhamento' | 'id_uso' | 'idoc' | 'resultado_primario' | 'subfonte';
 export type CamposEmpenho = Partial<Record<CampoEmpenho, { codigo: string; descricao: string }>>;
 
 /** Plataforma: cadastra a dotação no formato da nota de empenho (reaproveita códigos já existentes) */
-export async function cadastrarDotacao(p: { enteId: string; campos: CamposEmpenho; orgaos: string[]; descricao?: string | null }) {
-  return falhou(await supabase.rpc('cadastrar_dotacao', { p: { ente_id: p.enteId, campos: p.campos, orgaos: p.orgaos, descricao: p.descricao ?? null } })) as
-    { id: string; criada: boolean; codigo_completo: string };
+export async function cadastrarDotacao(p: { enteId: string; campos: CamposEmpenho; orgaos: string[]; descricao?: string | null; exercicio?: number | null }) {
+  return falhou(await supabase.rpc('cadastrar_dotacao', { p: { ente_id: p.enteId, campos: p.campos, orgaos: p.orgaos, descricao: p.descricao ?? null, exercicio: p.exercicio ?? null } })) as
+    { id: string; criada: boolean; codigo_completo: string; exercicio: number | null };
 }
 
 export interface ResultadoImportacaoDotacoes { total: number; novas: number; existentes: number; erros: Array<{ linha: number; mensagem: string }>; aplicado: boolean }
 
-export async function importarDotacoes(enteId: string, linhas: Array<{ linha: number; campos: CamposEmpenho; orgaos?: string[]; descricao?: string | null }>, aplicar: boolean) {
+export async function importarDotacoes(enteId: string, linhas: Array<{ linha: number; campos: CamposEmpenho; orgaos?: string[]; descricao?: string | null; exercicio?: string | null }>, aplicar: boolean) {
   return falhou(await supabase.rpc('importar_dotacoes', { p_ente: enteId, p_linhas: linhas, p_aplicar: aplicar })) as ResultadoImportacaoDotacoes;
 }
 
