@@ -86,7 +86,7 @@ export function FluxoDFD() {
 export function Papeis() {
   const papeis = [
     { icone: <UserCog className="size-5" />, nome: 'Gestor', foco: 'Cuida do contrato como um todo (lado administrativo)',
-      itens: ['Vigência e prazos (vencimento, prorrogação)', 'Saldo do contrato e dos empenhos', 'Aditivos, apostilas e reajustes', 'Pedidos e reclamações da empresa (resposta em até 1 mês)', 'Encaminhar sanções quando a empresa falha'] },
+      itens: ['Vigência e prazos (vencimento, prorrogação)', 'Saldo do contrato e dos empenhos', 'Aditivos, apostilas e reajustes', 'Pedidos e reclamações da empresa (decisão expressa; em regra até 1 mês após a instrução)', 'Encaminhar sanções quando a empresa falha'] },
     { icone: <Eye className="size-5" />, nome: 'Fiscal', foco: 'É os olhos da Administração na execução (dia a dia)',
       itens: ['Confere se o que foi contratado foi entregue', 'Anota todas as ocorrências', 'Manda corrigir faltas e defeitos', 'Avisa a chefia quando o problema é maior', 'Recebe provisoriamente e atesta a nota'] },
     { icone: <UserRound className="size-5" />, nome: 'Suplente', foco: 'Substitui o fiscal nas ausências',
@@ -103,7 +103,7 @@ export function Papeis() {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs text-slate-500">As atribuições exatas estão na portaria de designação e no regulamento municipal. Fiscal e suplente: art. 117 da Lei 14.133/2021.</p>
+      <p className="mt-3 text-xs text-slate-500">As atribuições exatas estão na portaria de designação e no regulamento municipal (art. 8º, § 3º). Fiscal e substituto: art. 117 da Lei 14.133/2021.</p>
     </Quadro>
   );
 }
@@ -112,9 +112,9 @@ export function Papeis() {
 
 export function LinhasDefesa() {
   const linhas = [
-    { n: '1ª linha', quem: 'Servidores, fiscais, gestores, agentes de contratação e autoridades do órgão', papel: 'Estão perto da execução: evitam o erro antes que aconteça', largura: '100%', voce: true },
-    { n: '2ª linha', quem: 'Assessoria jurídica (NUJUR/PGM) e controle interno do órgão', papel: 'Orientam e conferem; apoiam o fiscal (art. 117, § 3º)', largura: '82%' },
-    { n: '3ª linha', quem: 'Controladoria-Geral do Município e Tribunal de Contas', papel: 'Auditam depois; apuram responsabilidades', largura: '64%' },
+    { n: '1ª linha', quem: 'Servidores (entre eles gestores e fiscais), agentes de licitação e autoridades do órgão', papel: 'Estão perto da execução: evitam o erro antes que aconteça', largura: '100%', voce: true },
+    { n: '2ª linha', quem: 'Assessoramento jurídico e controle interno do próprio órgão (na SMS: NUJUR e CI)', papel: 'Orientam e conferem; apoiam o fiscal (art. 117, § 3º)', largura: '82%' },
+    { n: '3ª linha', quem: 'Órgão central de controle interno (Controladoria-Geral do Município) e Tribunal de Contas', papel: 'Fiscalizam e auditam; apuram responsabilidades', largura: '64%' },
   ];
   return (
     <Quadro titulo="As três linhas de defesa das contratações (art. 169)" tabela={<TabelaSimples cab={['Linha', 'Quem', 'Papel']} linhas={linhas.map((l) => [l.n, l.quem, l.papel])} />}>
@@ -149,7 +149,7 @@ export function FilaPagamentos() {
       </div>
       <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
         <Ban className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <p><b>Proibido furar a fila sem justificativa.</b> A NF 422 não pode ser paga antes da NF 101 por pedido da empresa ou de alguém. Fora das exceções do § 1º, gera apuração de responsabilidade (art. 141, § 2º) e pode ser crime (art. 337-H: 4 a 8 anos de reclusão).</p>
+        <p><b>Proibido furar a fila sem justificativa.</b> A NF 422 não pode ser paga antes da NF 101 só porque a empresa ou alguém pediu. A ordem só muda nas 5 situações do § 1º, com justificativa prévia da autoridade e comunicação posterior ao controle interno e ao Tribunal de Contas. Fora disso, gera apuração de responsabilidade (art. 141, § 2º), e pagar preterindo a ordem é crime (Código Penal, art. 337-H: 4 a 8 anos de reclusão).</p>
       </div>
     </Quadro>
   );
@@ -189,8 +189,8 @@ export function EscadaSancoes() {
   const degraus = [
     { nome: 'Advertência', detalhe: 'Só para inexecução parcial, quando não couber pena mais grave', alcance: '—' },
     { nome: 'Multa', detalhe: 'De 0,5% a 30% do valor do contrato (pode somar com as outras)', alcance: 'Valor' },
-    { nome: 'Impedimento', detalhe: 'Não licita nem contrata com o município', alcance: 'Até 3 anos' },
-    { nome: 'Inidoneidade', detalhe: 'Não licita nem contrata com nenhum ente do país', alcance: '3 a 6 anos' },
+    { nome: 'Impedimento', detalhe: 'Não licita nem contrata com o ente que aplicou (o Município de Aracaju, inclusive a administração indireta)', alcance: 'Até 3 anos' },
+    { nome: 'Inidoneidade', detalhe: 'Não licita nem contrata com nenhum ente do país (União, estados e municípios)', alcance: '3 a 6 anos' },
   ];
   return (
     <Quadro titulo="Escada de sanções à empresa (art. 156) — da mais leve à mais grave"
@@ -204,7 +204,7 @@ export function EscadaSancoes() {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs text-slate-500">Toda sanção exige processo com direito de defesa (arts. 157 e 158). Sem os registros do fiscal, não há prova — e a empresa fica sem punição.</p>
+      <p className="mt-3 text-xs text-slate-500">Multa: 15 dias úteis para defesa (art. 157). Impedimento e inidoneidade: processo conduzido por comissão, com 15 dias úteis para defesa (art. 158). Cabem recurso ou reconsideração (arts. 166 e 167). Sem os registros do fiscal não há prova — e a empresa fica sem punição.</p>
     </Quadro>
   );
 }
@@ -214,12 +214,17 @@ export function EscadaSancoes() {
 export function GraficoPenas() {
   const crimes = [
     { art: '337-E', nome: 'Contratação direta ilegal', min: 4, max: 8, tipo: 'reclusão' },
-    { art: '337-F', nome: 'Frustrar o caráter competitivo', min: 4, max: 8, tipo: 'reclusão' },
-    { art: '337-H', nome: 'Modificação ou pagamento irregular (inclui furar a fila)', min: 4, max: 8, tipo: 'reclusão' },
+    { art: '337-F', nome: 'Frustrar o caráter competitivo da licitação', min: 4, max: 8, tipo: 'reclusão' },
+    { art: '337-H', nome: 'Modificação ou pagamento irregular (inclui pagar fora da ordem)', min: 4, max: 8, tipo: 'reclusão' },
     { art: '337-L', nome: 'Fraude em licitação ou contrato', min: 4, max: 8, tipo: 'reclusão' },
-    { art: '337-M, § 1º', nome: 'Contratar empresa inidônea', min: 3, max: 6, tipo: 'reclusão' },
+    { art: '337-M, § 1º', nome: 'Celebrar contrato com empresa inidônea', min: 3, max: 6, tipo: 'reclusão' },
+    { art: '337-K', nome: 'Afastar licitante (violência, ameaça, fraude, vantagem)', min: 3, max: 5, tipo: 'reclusão' },
+    { art: '337-J', nome: 'Violar o sigilo de proposta', min: 2, max: 3, tipo: 'detenção' },
+    { art: '337-M', nome: 'Admitir empresa inidônea na licitação', min: 1, max: 3, tipo: 'reclusão' },
     { art: '337-G', nome: 'Patrocínio de contratação indevida', min: 0.5, max: 3, tipo: 'reclusão' },
     { art: '337-I', nome: 'Perturbação de processo licitatório', min: 0.5, max: 3, tipo: 'detenção' },
+    { art: '337-O', nome: 'Omissão grave de dado por projetista', min: 0.5, max: 3, tipo: 'reclusão' },
+    { art: '337-N', nome: 'Impedimento indevido de cadastro', min: 0.5, max: 2, tipo: 'reclusão' },
   ];
   const escala = 8;
   const anos = (v: number) => (v < 1 ? '6 meses' : `${v} anos`);
@@ -253,8 +258,8 @@ export function GraficoPenas() {
 export function TermometroResponsabilidade() {
   const niveis = [
     { icone: <ClipboardCheck className="size-5" />, nome: 'Erro formal ou de boa-fé', exemplo: 'Esqueceu um campo, digitou uma data errada, corrigiu ao perceber.', resultado: 'Corrige-se e vira capacitação (art. 169, § 3º, I).', tom: 'border-slate-200 bg-slate-50', rotulo: 'Corrigir' },
-    { icone: <AlertTriangle className="size-5" />, nome: 'Erro grosseiro', exemplo: 'Atestou sem conferir, ignorou alertas repetidos, deixou de cobrar documentos obrigatórios.', resultado: 'Responde pessoalmente (LINDB, art. 28) e pode ressarcir o dano.', tom: 'border-amber-300 bg-amber-50', rotulo: 'Responsabilidade pessoal' },
-    { icone: <Gavel className="size-5" />, nome: 'Dolo (má-fé)', exemplo: 'Atestou sabendo que não foi entregue, favoreceu a empresa, recebeu vantagem.', resultado: 'Responde pessoalmente, ressarce, perde a proteção do art. 10 e pode responder por crime.', tom: 'border-red-300 bg-red-50', rotulo: 'Grave' },
+    { icone: <AlertTriangle className="size-5" />, nome: 'Erro grosseiro', exemplo: 'Atestou sem conferir, ignorou alertas repetidos, deixou de cobrar documentos obrigatórios.', resultado: 'Responde pessoalmente (LINDB, art. 28) e pode ter de ressarcir o dano.', tom: 'border-amber-300 bg-amber-50', rotulo: 'Responsabilidade pessoal' },
+    { icone: <Gavel className="size-5" />, nome: 'Dolo (má-fé)', exemplo: 'Atestou sabendo que não foi entregue, favoreceu a empresa, recebeu vantagem.', resultado: 'Responde pessoalmente, pode ter de ressarcir, perde a defesa pela advocacia pública se houver prova de dolo nos autos (art. 10, § 1º, II) e pode responder por crime.', tom: 'border-red-300 bg-red-50', rotulo: 'Grave' },
   ];
   return (
     <Quadro titulo="Termômetro da responsabilidade do servidor"
@@ -295,7 +300,7 @@ export function CadeiaTrabalhista() {
           </li>
         ))}
       </ol>
-      <p className="mt-3 text-xs text-slate-600"><b>Como evitar:</b> todo mês, peça e confira os documentos do art. 50; o contrato pode prever conta vinculada, pagamento condicionado à quitação e outras garantias (art. 121, § 3º).</p>
+      <p className="mt-3 text-xs text-slate-600"><b>Como evitar (boa prática):</b> peça e confira regularmente — de preferência todo mês — os documentos do art. 50; o contrato pode prever conta vinculada, pagamento condicionado à quitação e outras garantias (art. 121, § 3º).</p>
     </Quadro>
   );
 }
@@ -306,9 +311,9 @@ export function LinhaPrazos() {
   const prazos = [
     { prazo: 'Em tempo hábil', o: 'Fiscal avisa a chefia quando o problema passa da sua competência', ref: 'Art. 117, § 2º' },
     { prazo: 'Até 1 mês', o: 'Formalizar o aditivo quando a execução foi antecipada por urgência justificada', ref: 'Art. 132' },
-    { prazo: '1 mês (+1)', o: 'Decidir pedidos e reclamações da empresa após a instrução', ref: 'Art. 123' },
+    { prazo: '1 mês (+1)', o: 'Decidir pedidos e reclamações da empresa após a instrução, salvo prazo específico na lei ou no contrato', ref: 'Art. 123' },
     { prazo: '15 dias úteis', o: 'Defesa da empresa antes de multa; defesa no processo de impedimento/inidoneidade', ref: 'Arts. 157 e 158' },
-    { prazo: '15 dias úteis', o: 'Recurso da empresa contra advertência, multa ou impedimento', ref: 'Art. 166' },
+    { prazo: '15 dias úteis', o: 'Recurso da empresa contra advertência, multa ou impedimento; reconsideração contra inidoneidade', ref: 'Arts. 166 e 167' },
     { prazo: 'Mensal', o: 'Publicar a ordem cronológica de pagamentos e as justificativas de alteração', ref: 'Art. 141, § 3º' },
     { prazo: '20 / 10 dias úteis', o: 'Divulgar contrato e aditivos no PNCP (licitação / contratação direta) — condição de eficácia', ref: 'Art. 94' },
   ];
