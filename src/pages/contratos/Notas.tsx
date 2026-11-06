@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, Layers, Plus, Wallet, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Anexos } from '@/components/Anexos';
@@ -325,6 +325,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             </div>
           ))}
           {n.status_atesto === 'PENDENTE' && !n.cancelada_em && <>
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950">Antes de atestar, confira se o que está na nota foi realmente entregue, na quantidade e na qualidade contratadas. Atestar o que não foi entregue gera responsabilidade pessoal. <Link to="/ajuda/capacitacao" className="font-medium underline">Ver a capacitação de fiscais</Link></p>
             <AreaTexto rotulo="Texto de atesto" value={texto} onChange={(e) => setTexto(e.target.value)} rows={7} maxLength={5000}
               ajuda="Gerado a partir do modelo do órgão. Pode ser copiado para o processo externo." />
             <div className="flex flex-wrap gap-2">

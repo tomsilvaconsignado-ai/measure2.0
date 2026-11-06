@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  CalendarCheck, Bug, HelpCircle,
+  CalendarCheck, Bug, HelpCircle, GraduationCap,
 } from 'lucide-react';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -52,7 +52,7 @@ const GESTAO: Item[] = [
 
 function Link({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
   return (
-    <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores'}
+    <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores' || item.para === '/ajuda'}
       className={({ isActive }) => cx('flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
       {item.icone}<span className="truncate">{item.rotulo}</span>
@@ -123,6 +123,7 @@ export function AppLayout() {
         )}
         <Grupo titulo="Suporte">
           <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} />
+          <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} />
         </Grupo>
       </div>
     </nav>

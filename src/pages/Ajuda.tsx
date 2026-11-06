@@ -1,5 +1,5 @@
 // Manual do usuário dentro do sistema: passo a passo por módulo, com busca.
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, GraduationCap } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CampoBusca } from '@/components/ui/Abas';
@@ -142,6 +142,14 @@ export function Ajuda() {
   return (
     <>
       <CabecalhoPagina titulo="Ajuda e manual do usuário" descricao="Passo a passo de cada módulo. Você vê no menu apenas o que o seu papel permite." />
+      <Link to="/ajuda/capacitacao" className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-marca-300 bg-marca-50 p-4 hover:bg-marca-100">
+        <GraduationCap className="size-8 shrink-0 text-marca-700" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-marca-950">Capacitação de gestores, fiscais e suplentes de contrato</span>
+          <span className="block text-sm text-marca-900">Trilha em linguagem simples, gráficos, consulta rápida à Lei 14.133/2021 e à LINDB, riscos e responsabilidades, teste de conhecimentos e normas de Aracaju.</span>
+        </span>
+        <span className="text-sm font-medium text-marca-700">Começar →</span>
+      </Link>
       <div className="mb-6 max-w-md"><CampoBusca valor={busca} aoMudar={setBusca} rotulo="Buscar na ajuda" placeholder="Ex.: atesto, consolidado, importar" /></div>
       {!grupos.length ? <Cartao><Vazio titulo="Nada encontrado" descricao="Tente outra palavra." /></Cartao> : (
         <div className="grid gap-6 lg:grid-cols-2">

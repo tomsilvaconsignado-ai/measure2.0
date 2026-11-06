@@ -35,6 +35,7 @@ const Painel = pagina(() => import('@/pages/Painel'), 'Painel');
 const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServico');
 const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Consolidado');
 const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
+const Capacitacao = pagina(() => import('@/pages/ajuda/Capacitacao'), 'Capacitacao');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
 
@@ -92,6 +93,7 @@ export function App() {
         <Route path="servidores" element={<Servidores />} />
         <Route path="servidores/consolidado" element={<Consolidado />} />
         <Route path="ajuda" element={<Ajuda />} />
+        <Route path="ajuda/capacitacao" element={<Capacitacao />} />
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />
