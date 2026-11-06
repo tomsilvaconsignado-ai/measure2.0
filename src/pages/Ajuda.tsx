@@ -77,7 +77,7 @@ const TOPICOS: Topico[] = [
     'Clique em "Nova nota fiscal" e siga as abas: contrato e empenho, dados da nota, meses de referência e unidades, texto de atesto.',
     'Se o valor passar do saldo do empenho, o sistema avisa. A exceção exige justificativa e permissão.',
     'O gestor, fiscal ou suplente designado abre a nota (selo "Aguardando o seu atesto") e clica em "Atestar nota" na aba Atesto.',
-    'Depois do atesto, registre os pagamentos. Pagamento menor que o valor deixa a nota como "Parcial".',
+    'Depois do atesto, a administração dá baixa em Pagamentos: valor bruto, retenções (ISS, IRRF, INSS, PIS/COFINS/CSLL, outras), data e OB. O líquido é calculado na hora. A fila segue a ordem cronológica por fonte de recurso; pagar fora da ordem exige justificativa. Pagamento menor que o valor deixa a nota como "Parcial".',
     'Na aba Documentos, clique em "Emitir checklist" para gerar a conferência da nota em PDF e anexe os comprovantes.',
   ] },
   { id: 'os', grupo: 'Contratos e execução', titulo: 'Ordens de serviço', link: '/ordens-servico', passos: [

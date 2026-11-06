@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  CalendarCheck, Bug, HelpCircle, GraduationCap,
+  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote,
 } from 'lucide-react';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -16,7 +16,7 @@ import { Notificacoes } from './Notificacoes';
 import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
 import type { Recurso } from '@/lib/tipos';
 
-interface Item { para: string; rotulo: string; icone: ReactNode; recurso?: Recurso; plataforma?: boolean }
+interface Item { para: string; rotulo: string; icone: ReactNode; recurso?: Recurso; acao?: 'ler' | 'editar'; plataforma?: boolean }
 
 const ADMINISTRACAO: Item[] = [
   { para: '/estrutura', rotulo: 'Estrutura organizacional', icone: <FolderTree className="size-4" />, recurso: 'estrutura' },
@@ -43,6 +43,7 @@ const EXECUCAO: Item[] = [
   { para: '/contratos', rotulo: 'Contratos', icone: <FileText className="size-4" /> },
   { para: '/empenhos', rotulo: 'Empenhos', icone: <Wallet className="size-4" /> },
   { para: '/notas', rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" /> },
+  { para: '/pagamentos', rotulo: 'Pagamentos', icone: <Banknote className="size-4" />, recurso: 'notas_fiscais', acao: 'editar' },
   { para: '/ordens-servico', rotulo: 'Ordens de serviço', icone: <ClipboardList className="size-4" />, recurso: 'ordens_servico' },
 ];
 const GESTAO: Item[] = [
@@ -110,7 +111,7 @@ export function AppLayout() {
           <Grupo titulo="Gestão">{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
         {orgao && (
-          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
         {orgao && cadastros.length > 0 && (
           <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>

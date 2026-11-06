@@ -30,6 +30,7 @@ export function Configuracoes() {
   const [alertas, setAlertas] = useState('');
   const [anexoMb, setAnexoMb] = useState('10');
   const [bloquear, setBloquear] = useState(false);
+  const [atestoLancador, setAtestoLancador] = useState(true);
   const [textoAtesto, setTextoAtesto] = useState('');
   const [decreto, setDecreto] = useState('');
   const [consolidadoTitulo, setConsolidadoTitulo] = useState('');
@@ -44,6 +45,7 @@ export function Configuracoes() {
     setAlertas(cfg.data.alerta_vencimento_dias.join(', '));
     setAnexoMb(String(cfg.data.anexo_tamanho_max_mb));
     setBloquear(cfg.data.bloquear_nota_contrato_vencido);
+    setAtestoLancador(cfg.data.permitir_atesto_lancador);
     setTextoAtesto(texto(cfg.data.textos?.atesto));
     setDecreto(texto(cfg.data.textos?.decreto));
     setConsolidadoTitulo(texto(cfg.data.textos?.consolidado_titulo));
@@ -78,6 +80,7 @@ export function Configuracoes() {
         alerta_vencimento_dias: [...new Set(dias)].sort((a, b) => b - a),
         anexo_tamanho_max_mb: mb,
         bloquear_nota_contrato_vencido: bloquear,
+        permitir_atesto_lancador: atestoLancador,
         textos: Object.fromEntries(Object.entries({
           ...(cfg.data?.textos ?? {}), atesto: textoAtesto.trim(), decreto: decreto.trim(),
           consolidado_titulo: consolidadoTitulo.trim(), checklist_titulo: checklistTitulo.trim(),
@@ -150,6 +153,8 @@ export function Configuracoes() {
             </div>
             <Interruptor rotulo="Bloquear lançamento de nota fiscal em contrato vencido" marcado={bloquear} aoMudar={setBloquear} desabilitado={!podeEditar}
               descricao="Desligado: o sistema só alerta. Ligado: impede o lançamento (exceções devem ser tratadas pelo administrador)." />
+            <Interruptor rotulo="Quem lançou a nota também pode atestá-la" marcado={atestoLancador} aoMudar={setAtestoLancador} desabilitado={!podeEditar}
+              descricao="Ligado: além do gestor, do fiscal e do suplente designados, o servidor que digitou a nota pode atestar (o atesto registra quem foi). Desligado: só os designados atestam, o que reforça a segregação de funções (Lei 14.133/2021, art. 7º, § 1º)." />
             <AreaTexto rotulo="Modelo do texto de atesto" value={textoAtesto} onChange={(e) => setTextoAtesto(e.target.value)} disabled={!podeEditar} rows={5}
               placeholder="Vazio = modelo padrão do MEASURE"
               ajuda={`Variáveis preenchidas automaticamente: ${VARIAVEIS_ATESTO.map(([v, d]) => `${v} = ${d}`).join(' · ')}`} />

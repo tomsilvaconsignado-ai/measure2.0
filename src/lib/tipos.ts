@@ -91,6 +91,8 @@ export interface TenantConfiguracoes {
   alerta_vencimento_dias: number[];
   anexo_tamanho_max_mb: number;
   bloquear_nota_contrato_vencido: boolean;
+  /** quem lançou a nota também pode atestá-la (além dos designados) */
+  permitir_atesto_lancador: boolean;
   textos: Record<string, string | string[]>;
 }
 
@@ -273,9 +275,30 @@ export interface NotaResumo {
   cancelada_em: string | null; motivo_cancelamento: string | null;
   contrato_numero: string; contrato_objeto: string; fornecedor_nome: string; fornecedor_documento: string;
   empenho_numero: string; empenho_ano: number; tipo_servico_nome: string | null; pago: Decimal; meses_referencia: string | null; sou_designado: boolean;
+  /** designado no contrato ou quem lançou a nota (se o órgão permitir) */
+  posso_atestar: boolean; atestado_em: string | null; retido: Decimal;
 }
 
-export interface Pagamento { id: string; nota_id: string; data_pagamento: string; valor: Decimal; documento: string | null; observacao: string | null; registrado_em: string; cancelado_em: string | null; motivo_cancelamento: string | null }
+export interface Pagamento {
+  id: string; nota_id: string; data_pagamento: string; valor: Decimal; documento: string | null; observacao: string | null; registrado_em: string;
+  cancelado_em: string | null; motivo_cancelamento: string | null;
+  retencao_iss: Decimal; retencao_irrf: Decimal; retencao_inss: Decimal; retencao_federais: Decimal; retencao_outras: Decimal;
+  retencao_outras_descricao: string | null; valor_liquido: Decimal; justificativa_ordem: string | null;
+}
 export interface Atesto { id: string; nota_id: string; servidor_id: string; papel: string; texto: string; atestado_em: string; servidor_nome: string | null; servidor_matricula: string | null }
+
+/** Nota atestada aguardando pagamento, na fila da ordem cronológica (por fonte de recurso) */
+export interface ItemFilaPagamento {
+  nota_id: string; numero: string; serie: string | null; fornecedor_nome: string; contrato_numero: string; empenho: string;
+  valor: Decimal; pago: Decimal; restante: Decimal; status_pagamento: StatusPagamento; atestado_em: string; dias_aguardando: number;
+  fonte_id: string; fonte: string; posicao: number; unidade_id: string;
+}
+
+export interface PagamentoRealizado {
+  pagamento_id: string; nota_id: string; numero: string; fornecedor_nome: string; contrato_numero: string; data_pagamento: string; valor: Decimal;
+  retencao_iss: Decimal; retencao_irrf: Decimal; retencao_inss: Decimal; retencao_federais: Decimal; retencao_outras: Decimal;
+  retencao_outras_descricao: string | null; valor_liquido: Decimal; documento: string | null; justificativa_ordem: string | null;
+  registrado_por: string; registrado_em: string;
+}
 
 export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }

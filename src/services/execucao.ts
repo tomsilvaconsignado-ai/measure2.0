@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Aditivo, Atesto, Contrato, ContratoResumo, Designacao, DocumentoEmitido, Empenho, EmpenhoResumo, Modalidade, NotaResumo,
-  Pagamento, Reforco, SituacaoContrato, StatusPagamento,
+  ItemFilaPagamento, Pagamento, PagamentoRealizado, Reforco, SituacaoContrato, StatusPagamento,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
 
@@ -208,6 +208,24 @@ export async function salvarNota(dados: DadosNota) {
 
 export async function atestarNota(id: string, texto: string) {
   falhou(await supabase.rpc('atestar_nota', { p_nota: id, p_texto: texto }));
+}
+
+export interface DadosBaixa {
+  nota_id: string; data_pagamento: string; valor: string; documento?: string | null; observacao?: string | null; justificativa_ordem?: string | null;
+  retencoes: { iss: string; irrf: string; inss: string; federais: string; outras: string; outras_descricao?: string | null };
+}
+
+/** Baixa do pagamento com retenções (o banco confere atesto, datas, saldo e ordem cronológica) */
+export async function baixarPagamento(p: DadosBaixa) {
+  return falhou(await supabase.rpc('baixar_pagamento', { p })) as string;
+}
+
+export async function filaPagamentos(tenantId: string) {
+  return falhou(await supabase.rpc('fila_pagamentos', { p_tenant: tenantId })) as ItemFilaPagamento[];
+}
+
+export async function pagamentosRealizados(tenantId: string, inicio: string, fim: string, busca: string) {
+  return falhou(await supabase.rpc('pagamentos_realizados', { p_tenant: tenantId, p_inicio: inicio, p_fim: fim, p_busca: busca || null })) as PagamentoRealizado[];
 }
 
 export async function registrarPagamento(nota: string, data: string, valor: string, documento: string | null, observacao: string | null) {

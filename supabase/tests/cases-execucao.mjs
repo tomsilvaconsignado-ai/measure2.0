@@ -123,7 +123,10 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
 
   console.log('Atesto e pagamento');
   const texto = 'Atesto que os serviços da NF 5501 foram prestados de forma satisfatória.';
-  await expectFail('administrativo (não designado) não atesta', u.adminCoinfra, `SELECT atestar_nota($1, $2)`, [nf1, texto], /designado/);
+  // com a opção do órgão desligada, quem lançou a nota (sem designação) não atesta
+  await db.query(`UPDATE tenant_configuracoes SET permitir_atesto_lancador = false WHERE tenant_id = $1`, [A]);
+  await expectFail('administrativo que lançou, sem designação, não atesta com a opção desligada', u.adminCoinfra, `SELECT atestar_nota($1, $2)`, [nf1, texto], /designado/);
+  await db.query(`UPDATE tenant_configuracoes SET permitir_atesto_lancador = true WHERE tenant_id = $1`, [A]);
   await expectFail('Master (não designado) não atesta', u.masterA, `SELECT atestar_nota($1, $2)`, [nf1, texto], /designado/);
   await expectFail('pagamento antes do atesto é recusado', u.adminCoinfra, `SELECT registrar_pagamento($1, hoje(), 100)`, [nf1], /atestada/);
   await expectOk('fiscal designado atesta a nota', u.adminCoaf, `SELECT atestar_nota($1, $2)`, [nf1, texto]);

@@ -29,6 +29,7 @@ const Contratos = pagina(() => import('@/pages/contratos/Contratos'), 'Contratos
 const Empenhos = pagina(() => import('@/pages/contratos/Empenhos'), 'Empenhos');
 const Imprimir = pagina(() => import('@/pages/contratos/Imprimir'), 'Imprimir');
 const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
+const Pagamentos = pagina(() => import('@/pages/contratos/Pagamentos'), 'Pagamentos');
 const Relatorios = pagina(() => import('@/pages/relatorios/Relatorios'), 'Relatorios');
 const RelatorioImprimir = pagina(() => import('@/pages/relatorios/RelatorioImprimir'), 'RelatorioImprimir');
 const Painel = pagina(() => import('@/pages/Painel'), 'Painel');
@@ -101,6 +102,7 @@ export function App() {
         <Route path="contratos/:id" element={<ContratoDetalhe />} />
         <Route path="empenhos" element={<Empenhos />} />
         <Route path="notas" element={<Notas />} />
+        <Route path="pagamentos" element={<Pagamentos />} />
         <Route path="relatorios" element={<Relatorios />} />
         <Route path="painel" element={<Painel />} />
         <Route path="ordens-servico" element={<OrdensServico />} />

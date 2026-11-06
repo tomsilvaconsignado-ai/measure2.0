@@ -13,7 +13,7 @@ import { obterEmitido } from '@/services/execucao';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type D = Record<string, any>;
 
-const PAPEIS: Record<string, string> = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente' };
+const PAPEIS: Record<string, string> = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente', LANCADOR: 'Quem lançou a nota' };
 const SIT_PAG: Record<string, string> = { PENDENTE: 'Pendente', PARCIAL: 'Parcial', PAGO: 'Paga', CANCELADA: 'Cancelada' };
 const TIPO_ADITIVO: Record<string, string> = { PRAZO: 'Prazo', VALOR: 'Valor', PRAZO_E_VALOR: 'Prazo e valor', SUPRESSAO: 'Supressão', OUTRO: 'Outro' };
 const TIPO_EMPENHO: Record<string, string> = { ORDINARIO: 'Ordinário', ESTIMATIVO: 'Estimativo', GLOBAL: 'Global' };

@@ -16,13 +16,15 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, registrarPagamento, saldoEmpenho, salvarNota,
+  atestarNota, cancelarNota, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
 import { emitirChecklist } from '@/services/consolidado';
+import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
+const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente', LANCADOR: 'quem lançou a nota' };
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null }
@@ -276,8 +278,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
   const modelo = useQuery({ queryKey: ['modelo-atesto', orgao?.id], queryFn: () => modeloAtesto(orgao!.id), enabled: !!orgao });
   const [aba, setAba] = useState<'dados' | 'atesto' | 'pagamentos' | 'documentos'>('dados');
   const [texto, setTexto] = useState('');
-  const [pag, setPag] = useState<{ data: string; valor: number | null; documento: string; observacao: string } | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [baixando, setBaixando] = useState<NotaParaBaixa | null>(null);
   const [cancelandoPag, setCancelandoPag] = useState<string | null>(null);
   const [cancelandoNota, setCancelandoNota] = useState(false);
   useEffect(() => setAba('dados'), [id]);
@@ -290,10 +291,6 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
   useEffect(() => { if (sugerido) setTexto(sugerido); }, [sugerido]);
   const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['emitidos', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
   const atestar = useMutation({ mutationFn: () => atestarNota(id!, texto), onSuccess: async () => { await invalidar(); toast.success('Nota atestada.'); }, onError: (e) => toast.error(mensagemDeErro(e)) });
-  const pagar = useMutation({
-    mutationFn: () => registrarPagamento(id!, pag!.data, decimalDeCentavos(pag!.valor!), pag!.documento.trim() || null, pag!.observacao.trim() || null),
-    onSuccess: async () => { await invalidar(); setPag(null); toast.success('Pagamento registrado.'); }, onError: (e) => setErro(mensagemDeErro(e)),
-  });
   if (!id) return null;
   const restante = n ? centavos(n.valor) - centavos(n.pago) : 0;
   return (
@@ -321,7 +318,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
         {aba === 'atesto' && <div className="flex flex-col gap-3">
           {q.data!.atestos.map((a) => (
             <div key={a.id} className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
-              <p className="mb-1 flex items-center gap-2 font-medium text-emerald-900"><BadgeCheck className="size-4" />Atestada por {a.servidor_nome} ({a.papel.toLowerCase()}) em {formatarDataHora(a.atestado_em)}</p>
+              <p className="mb-1 flex items-center gap-2 font-medium text-emerald-900"><BadgeCheck className="size-4" />Atestada por {a.servidor_nome} ({PAPEL_ATESTO[a.papel] ?? a.papel.toLowerCase()}) em {formatarDataHora(a.atestado_em)}</p>
               <p className="whitespace-pre-line text-slate-800">{a.texto}</p>
               <Botao pequeno variante="fantasma" className="mt-2" icone={<ClipboardCopy className="size-4" />} onClick={() => { void navigator.clipboard.writeText(a.texto); toast.success('Texto copiado.'); }}>Copiar texto</Botao>
             </div>
@@ -332,9 +329,9 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
               ajuda="Gerado a partir do modelo do órgão. Pode ser copiado para o processo externo." />
             <div className="flex flex-wrap gap-2">
               <Botao variante="secundario" icone={<ClipboardCopy className="size-4" />} onClick={() => { void navigator.clipboard.writeText(texto); toast.success('Texto copiado.'); }}>Copiar texto</Botao>
-              {n.sou_designado
+              {n.posso_atestar
                 ? <Botao icone={<BadgeCheck className="size-4" />} carregando={atestar.isPending} disabled={!texto.trim()} title={texto.trim() ? undefined : 'Aguarde o texto de atesto ser gerado'} onClick={() => atestar.mutate()}>Atestar nota</Botao>
-                : <p className="self-center text-xs text-slate-500">Só o gestor, o fiscal ou o suplente designado no contrato pode atestar.</p>}
+                : <p className="self-center text-xs text-slate-500">Só o gestor, o fiscal ou o suplente designado no contrato (ou quem lançou a nota, se o órgão permitir) pode atestar.</p>}
             </div>
           </>}
         </div>}
@@ -343,14 +340,16 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             <span>Pago <strong className="numero">{brl(n.pago)}</strong> de <span className="numero">{brl(n.valor)}</span>{restante > 0 && !n.cancelada_em && <> · falta <strong className="numero">{formatarCentavos(restante)}</strong></>}</span>
             {pode('notas_fiscais', 'editar') && !n.cancelada_em && restante > 0 && (
               n.status_atesto === 'ATESTADA'
-                ? <Botao pequeno icone={<Wallet className="size-4" />} onClick={() => { setErro(null); setPag({ data: hoje(), valor: restante, documento: '', observacao: '' }); }}>Registrar pagamento</Botao>
+                ? <Botao pequeno icone={<Wallet className="size-4" />} onClick={() => setBaixando({ id: n.id, rotulo: `${n.numero}${n.serie ? `-${n.serie}` : ''}`, fornecedor: n.fornecedor_nome, restanteCentavos: restante })}>Dar baixa</Botao>
                 : <span className="text-xs text-slate-500">O pagamento é liberado depois do atesto.</span>)}
           </div>
           {!q.data!.pagamentos.length ? <p className="text-sm text-slate-500">Nenhum pagamento registrado.</p> : <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
             {q.data!.pagamentos.map((p) => (
               <li key={p.id} className={cx('flex items-center gap-3 px-3 py-2 text-sm', p.cancelado_em && 'opacity-50')}>
-                <span className="flex-1">{formatarData(p.data_pagamento)}{p.documento ? ` · ${p.documento}` : ''}{p.observacao ? ` · ${p.observacao}` : ''}{p.cancelado_em && <> · <Selo>Cancelado: {p.motivo_cancelamento}</Selo></>}</span>
-                <span className="numero font-medium">{brl(p.valor)}</span>
+                <span className="flex-1">{formatarData(p.data_pagamento)}{p.documento ? ` · ${p.documento}` : ''}{p.observacao ? ` · ${p.observacao}` : ''}{p.cancelado_em && <> · <Selo>Cancelado: {p.motivo_cancelamento}</Selo></>}
+                  {centavos(p.valor) !== centavos(p.valor_liquido) && <span className="block text-xs text-slate-500">Retido {formatarCentavos(centavos(p.valor) - centavos(p.valor_liquido))} · líquido <span className="numero">{brl(p.valor_liquido)}</span></span>}
+                  {p.justificativa_ordem && <span className="block text-xs text-amber-800">Fora da ordem cronológica: {p.justificativa_ordem}</span>}</span>
+                <span className="numero font-medium" title="Valor bruto">{brl(p.valor)}</span>
                 {!p.cancelado_em && pode('notas_fiscais', 'excluir') && <Botao pequeno variante="fantasma" icone={<X className="size-4 text-red-600" />} aria-label="Cancelar pagamento" onClick={() => setCancelandoPag(p.id)} />}
               </li>))}
           </ul>}
@@ -358,16 +357,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
         {aba === 'documentos' && <DocumentosEmitidosNota notaId={n.id} />}
         {aba === 'documentos' && <Anexos recurso="notas_fiscais" registroId={n.id} unidadeId={n.unidade_id} titulo="Nota fiscal e comprovantes" />}
       </>}
-      <Modal aberto={!!pag} aoFechar={() => setPag(null)} titulo="Registrar pagamento" largura="sm"
-        rodape={<><Botao variante="secundario" onClick={() => setPag(null)}>Cancelar</Botao><Botao carregando={pagar.isPending} disabled={!pag?.valor} onClick={() => pagar.mutate()}>Registrar</Botao></>}>
-        {pag && <div className="flex flex-col gap-4">
-          <CampoMoeda rotulo="Valor pago" obrigatorio centavos={pag.valor} aoMudar={(v) => setPag({ ...pag, valor: v })} ajuda={`Restante: ${formatarCentavos(restante)}. Valor menor = pagamento parcial.`} />
-          <Campo rotulo="Data do pagamento" type="date" value={pag.data} onChange={(e) => setPag({ ...pag, data: e.target.value })} />
-          <Campo rotulo="Documento (OB, comprovante)" value={pag.documento} onChange={(e) => setPag({ ...pag, documento: e.target.value })} maxLength={60} />
-          <AreaTexto rotulo="Observação" value={pag.observacao} onChange={(e) => setPag({ ...pag, observacao: e.target.value })} maxLength={500} />
-          {erro && <CaixaErro mensagem={erro} />}
-        </div>}
-      </Modal>
+      <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={invalidar} />
       <ConfirmarComMotivo aberto={!!cancelandoPag} aoFechar={() => setCancelandoPag(null)} titulo="Cancelar pagamento?" descricao="O pagamento sai do total pago e o status da nota é recalculado. O registro fica no histórico."
         rotuloConfirmar="Cancelar pagamento" aoConfirmar={async (m) => { await cancelarPagamento(cancelandoPag!, m); await invalidar(); toast.success('Pagamento cancelado.'); }} />
       <ConfirmarComMotivo aberto={cancelandoNota} aoFechar={() => setCancelandoNota(false)} titulo="Cancelar esta nota fiscal?"
@@ -401,7 +391,7 @@ export function Notas() {
       <button className={cx('grid w-full gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">NF {n.numero}{n.serie ? `-${n.serie}` : ''}<span className="font-normal text-slate-500">· {n.fornecedor_nome}</span>
-            {n.sou_designado && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="marca">Aguardando o seu atesto</Selo>}</span>
+            {n.posso_atestar && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="marca">Aguardando o seu atesto</Selo>}</span>
           <span className="block truncate text-sm text-slate-600">Contrato {n.contrato_numero} · Empenho {n.empenho_numero}/{n.empenho_ano} · Ref. {n.meses_referencia}</span>
           <span className="block text-xs text-slate-500">Emitida em {formatarData(n.data_emissao)}{n.processo_administrativo ? ` · Proc. ${n.processo_administrativo}` : ''}</span>
         </span>

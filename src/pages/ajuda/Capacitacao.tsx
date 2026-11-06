@@ -155,7 +155,7 @@ const LICOES: Licao[] = [
       <P>A lei chama de <b>superfaturamento</b> o dano ao dinheiro público durante a execução. Vários exemplos acontecem exatamente onde gestor e fiscal atuam:</P>
       <Lei id="a6-lvii" />
       <Risco titulo="pagar pelo que não foi entregue">Pagar quantidade maior do que a entregue é o exemplo da letra "a" do superfaturamento. Quem atesta sabendo que não houve entrega responde pessoalmente (LINDB, art. 28) e, se agir em conluio com a empresa, pode responder como participante do crime de fraude em contrato (Código Penal, art. 337-L: 4 a 8 anos de reclusão).</Risco>
-      <NoMeasure>Só gestor, fiscal ou suplente designado no contrato consegue atestar uma nota. O sistema registra quem atestou, quando e o texto do atesto, e esse registro fica na auditoria.</NoMeasure>
+      <NoMeasure>Atesta a nota o gestor, o fiscal ou o suplente designado no contrato. Se o órgão permitir (em Configurações), quem lançou a nota também pode atestar. O sistema registra quem atestou, em qual papel, quando e o texto do atesto, e esse registro fica na auditoria. Quem atesta responde pelo que atestou, seja qual for o papel.</NoMeasure>
     </>,
   },
   {
@@ -243,7 +243,7 @@ const LICOES: Licao[] = [
       <Lei id="a145" />
       <Risco titulo="pagamento irregular">Pagar fatura preterindo a ordem cronológica, ou dar vantagem à empresa sem previsão em lei, no edital ou no contrato, é crime (Código Penal, art. 337-H: 4 a 8 anos de reclusão).</Risco>
       <Lei id="cp337h" />
-      <NoMeasure>O pagamento só é liberado depois do atesto. Pagamento menor que o valor da nota deixa a situação como <b>Parcial</b>, e cada pagamento fica registrado com data, documento e responsável.</NoMeasure>
+      <NoMeasure>O pagamento só é liberado depois do atesto. A administração dá baixa no menu <b>Pagamentos</b>, que mostra a fila na ordem cronológica de cada fonte de recurso, com as retenções e o valor líquido. Pagar fora da ordem exige justificativa, que fica registrada. Pagamento menor que o valor da nota deixa a situação como <b>Parcial</b>, e cada pagamento fica registrado com data, documento e responsável.</NoMeasure>
     </>,
   },
   {
