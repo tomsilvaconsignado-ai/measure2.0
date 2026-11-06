@@ -402,7 +402,7 @@ SELECT cd.contrato_id,
     (SELECT count(*)::int FROM empenhos e WHERE e.contrato_id = cd.contrato_id AND e.classificacao_id = cl.id) AS empenhos,
     COALESCE((SELECT sum(e.valor) FROM empenhos e WHERE e.contrato_id = cd.contrato_id AND e.classificacao_id = cl.id), 0::numeric)
       + COALESCE((SELECT sum(r.valor) FROM empenho_reforcos r JOIN empenhos e ON e.id = r.empenho_id
-                   WHERE e.contrato_id = cd.contrato_id AND e.classificacao_id = cl.id), 0::numeric) AS empenhado
+                   WHERE e.contrato_id = cd.contrato_id AND e.classificacao_id = cl.id AND r.cancelado_em IS NULL), 0::numeric) AS empenhado
    FROM contrato_dotacoes cd
      JOIN classificacoes_orcamentarias cl ON cl.id = cd.classificacao_id
      JOIN classificacao_detalhada d ON d.id = cl.id
