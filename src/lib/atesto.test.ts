@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inteiroPorExtenso, mesesDeReferencia, montarAtesto, valorPorExtenso } from './atesto';
+import { inteiroPorExtenso, mesesDeReferencia, montarAtesto, textoDecretoRenovacao, textoEncaminhamentoAtesto, valorPorExtenso } from './atesto';
 
 describe('valor por extenso', () => {
   it.each([
@@ -41,5 +41,20 @@ describe('modelo do órgão (SMS Aracaju)', () => {
   });
   it('variável desconhecida fica como está', () => {
     expect(montarAtesto('{QUALQUER}', '', { objeto: 'x', contrato: '1', fornecedor: 'y', nota: '1', valorCentavos: 1, meses: [] })).toBe('{QUALQUER}');
+  });
+});
+
+describe('textos copiáveis da nota', () => {
+  it('encaminhamento do atesto com o número da nota e parágrafos', () => {
+    expect(textoEncaminhamentoAtesto('5501-A')).toBe('Prezados,\n\nAtesto, nota fiscal n° 5501-A e toda documentação exigida no contrato, as quais estão devidamente conferidas.\n\nSegue para análise, providências e posterior encaminhamento ao setor financeiro.');
+  });
+  it('decreto em renovação com o número do decreto e o processo do contrato', () => {
+    expect(textoDecretoRenovacao('7.123/2026', ' 2026.01.000123 ')).toBe('Prezados,\n\nDocumentação referente ao Decreto nº 7.123/2026 encontra-se no processo de renovação através do processo nº 2026.01.000123.');
+  });
+  it('dado que falta vira lacuna para preencher, nunca "undefined"', () => {
+    const t = textoDecretoRenovacao(null, '');
+    expect(t).toContain('Decreto nº ________ encontra-se');
+    expect(t).toContain('processo nº ________.');
+    expect(t).not.toMatch(/undefined|null|\{/);
   });
 });

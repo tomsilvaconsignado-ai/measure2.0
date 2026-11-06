@@ -36,12 +36,15 @@ const TOPICOS: Topico[] = [
     'O e-mail institucional liga o cadastro à conta de acesso da pessoa.',
     'Ao informar a data de exoneração, o servidor passa para a aba "Servidores exonerados" sem perder histórico nem documentos.',
     'Dados pessoais (CPF, nascimento, tipo sanguíneo, endereço) só aparecem para quem tem a permissão específica.',
+    'Na aba "Dados curriculares" do servidor, registre (opcionalmente) escolaridade, formação acadêmica, especializações, cursos, capacitações, certificações e experiências, e anexe os comprovantes.',
+    'Na aba "Histórico de férias", registre cada período: aquisitivo, gozo e observações. A situação (pendente, programada, em gozo ou gozada) é calculada pelas datas. Nada é apagado: para desfazer, cancele com motivo.',
   ] },
   { id: 'consolidado', grupo: 'Servidores', titulo: 'Consolidado mensal de frequência', link: '/servidores/consolidado', passos: [
     'Abra "Consolidado mensal", escolha a Coordenação (todas as Gerências e setores abaixo dela entram automaticamente), uma Gerência ou um setor, e o mês.',
     'Lance atrasos e faltas de cada servidor e marque "Justif." quando houver justificativa ou documento anexado. Clique em "Salvar lançamentos".',
     'A observação é automática: "Nomeação em…" ou "Exoneração em…" no mês, "Justificativa anexada." ou "Frequência integral.". Digite no campo para substituí-la.',
     'Clique em "Emitir consolidado" para gerar o documento em A4 paisagem e imprimir ou salvar em PDF.',
+    'Quem esteve de férias no mês aparece com a marca "Férias" e no quadro "Servidores em férias", que também entra no documento emitido (nome, período, dias e situação). Os dados vêm do histórico de férias do servidor.',
   ], dicas: ['O documento emitido fica guardado como foi gerado. Mudanças posteriores no cadastro não o alteram. Para corrigir, emita de novo.',
     'O título do documento é configurado em Configurações do órgão, conforme o modelo oficial.'] },
   { id: 'unidades', grupo: 'Cadastros', titulo: 'Unidades atendidas e grupos de rateio', link: '/unidades-atendidas', passos: [
@@ -79,6 +82,7 @@ const TOPICOS: Topico[] = [
     'O gestor, fiscal ou suplente designado abre a nota (selo "Aguardando o seu atesto") e clica em "Atestar nota" na aba Atesto.',
     'Depois do atesto, a administração dá baixa em Pagamentos: valor bruto, retenções (ISS, IRRF, INSS, PIS/COFINS/CSLL, outras), data e OB. O líquido é calculado na hora. A fila segue a ordem cronológica por fonte de recurso; pagar fora da ordem exige justificativa. Pagamento menor que o valor deixa a nota como "Parcial".',
     'Na aba Documentos, clique em "Emitir checklist" para gerar a conferência da nota em PDF e anexe os comprovantes.',
+    'Na aba Atesto, em "Textos para copiar": depois do atesto, use "Copiar texto do atesto" para encaminhar a nota ao financeiro; e, escolhendo um decreto do órgão, copie o texto "Decreto em renovação" já com o número do processo do contrato.',
   ] },
   { id: 'os', grupo: 'Contratos e execução', titulo: 'Ordens de serviço', link: '/ordens-servico', passos: [
     'Clique em "Nova ordem de serviço". O número (NNNN/ANO) é gerado automaticamente.',

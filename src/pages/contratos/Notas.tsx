@@ -21,6 +21,7 @@ import {
 import { montarAtesto } from '@/lib/atesto';
 import { emitirChecklist } from '@/services/consolidado';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
+import { TextosNota } from './TextosNota';
 import { usePendencias } from '@/components/Pendencias';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
@@ -341,6 +342,9 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
                 : <p className="self-center text-xs text-slate-500">Só o gestor, o fiscal ou o suplente designado no contrato (ou quem lançou a nota, se o órgão permitir) pode atestar.</p>}
             </div>
           </>}
+          {!n.cancelada_em && <div className="mt-2 border-t border-slate-200 pt-4">
+            <TextosNota tenantId={n.tenant_id} numeroNota={n.serie ? `${n.numero}-${n.serie}` : n.numero} atestada={n.status_atesto === 'ATESTADA'} processoContrato={ct.data?.processo_administrativo ?? null} />
+          </div>}
         </div>}
         {aba === 'pagamentos' && <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">

@@ -127,9 +127,30 @@ function ConsolidadoMensal({ d }: { d: D }) {
         <tr><td colSpan={7} className="pt-2 text-center text-[8.5px] text-slate-600">{[d.secretaria, d.orgao?.endereco].filter(Boolean).join(' · ')}</td></tr>
       </tfoot>
     </table>
+    {!!(d.ferias as D[] | undefined)?.length && <>
+      <p className="mb-1 mt-4 text-[11px] font-semibold">Servidores em férias no mês de referência</p>
+      <table className="w-full table-fixed border-collapse text-[10px] leading-snug">
+        <colgroup><col style={{ width: '9%' }} /><col style={{ width: '37%' }} /><col style={{ width: '24%' }} /><col style={{ width: '14%' }} /><col style={{ width: '16%' }} /></colgroup>
+        <thead className="table-header-group">
+          <tr className="bg-slate-100">{['Matrícula', 'Nome do servidor', 'Período de férias', 'Dias', 'Situação'].map((c) => <th key={c} className={`${cel} text-left font-semibold`}>{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {(d.ferias as D[]).map((f, i) => (
+            <tr key={i} className="break-inside-avoid">
+              <td className={cel}>{f.matricula}</td><td className={cel}>{f.nome}</td>
+              <td className={cel}>{formatarData(f.inicio)} a {formatarData(f.fim)}</td>
+              <td className={cel}>{f.dias}{f.dias_no_mes !== f.dias ? ` (${f.dias_no_mes} no mês)` : ''}</td>
+              <td className={cel}>{SITUACAO_FERIAS_DOC[f.situacao as string] ?? f.situacao}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>}
     <Assinaturas nomes={d.assinaturas as string[]} />
   </>;
 }
+
+const SITUACAO_FERIAS_DOC: Record<string, string> = { PENDENTE: 'Pendente', PROGRAMADA: 'Programada', EM_GOZO: 'Em gozo', GOZADA: 'Gozada' };
 
 function Assinaturas({ nomes }: { nomes: string[] }) {
   return (

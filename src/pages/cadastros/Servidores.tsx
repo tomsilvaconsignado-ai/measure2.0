@@ -12,8 +12,10 @@ import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando
 import { Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { cpfValido, formatarCpf, formatarData, formatarTelefone, iniciais, somenteDigitos } from '@/lib/formatacao';
-import type { DadosPessoais, Servidor, ServidorListado } from '@/lib/tipos';
+import type { DadosPessoais, Escolaridade, Servidor, ServidorListado } from '@/lib/tipos';
 import { aniversariantes, enviarFotoServidor, listarServidores, obterServidor, salvarServidor } from '@/services/cadastros';
+import { ESCOLARIDADES, rotuloEscolaridade, ServidorCurriculo } from './ServidorCurriculo';
+import { ServidorFerias } from './ServidorFerias';
 
 const POR_PAGINA = 20;
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -28,10 +30,10 @@ export function FotoServidor({ caminho, nome, tamanho = 'size-11', exonerado }: 
 
 interface FormS { nome: string; matricula: string; cargo: string; funcao: string; unidade_id: string | null; unidade_rotulo: string | null;
   email_institucional: string; telefone: string; data_nomeacao: string; data_exoneracao: string; jornada: string; numero_comunicado: string;
-  atribuicoes: string; observacoes: string }
+  atribuicoes: string; observacoes: string; escolaridade: string }
 interface FormP { cpf: string; data_nascimento: string; nome_mae: string; naturalidade: string; tipo_sanguineo: string; email_pessoal: string }
 const vazioS: FormS = { nome: '', matricula: '', cargo: '', funcao: '', unidade_id: null, unidade_rotulo: null, email_institucional: '', telefone: '',
-  data_nomeacao: '', data_exoneracao: '', jornada: '', numero_comunicado: '', atribuicoes: '', observacoes: '' };
+  data_nomeacao: '', data_exoneracao: '', jornada: '', numero_comunicado: '', atribuicoes: '', observacoes: '', escolaridade: '' };
 const vazioP: FormP = { cpf: '', data_nascimento: '', nome_mae: '', naturalidade: '', tipo_sanguineo: '', email_pessoal: '' };
 
 function FormServidor({ id, aberto, aoFechar }: { id: string | null; aberto: boolean; aoFechar: () => void }) {
@@ -54,7 +56,7 @@ function FormServidor({ id, aberto, aoFechar }: { id: string | null; aberto: boo
     setS({ nome: v.nome, matricula: v.matricula, cargo: v.cargo ?? '', funcao: v.funcao ?? '', unidade_id: v.unidade_id, unidade_rotulo: null,
       email_institucional: v.email_institucional ?? '', telefone: formatarTelefone(v.telefone), data_nomeacao: v.data_nomeacao ?? '',
       data_exoneracao: v.data_exoneracao ?? '', jornada: v.jornada ?? '', numero_comunicado: v.numero_comunicado ?? '',
-      atribuicoes: v.atribuicoes ?? '', observacoes: v.observacoes ?? '' });
+      atribuicoes: v.atribuicoes ?? '', observacoes: v.observacoes ?? '', escolaridade: v.escolaridade ?? '' });
     const x = d.pessoais;
     setP({ cpf: formatarCpf(x?.cpf), data_nascimento: x?.data_nascimento ?? '', nome_mae: x?.nome_mae ?? '', naturalidade: x?.naturalidade ?? '',
       tipo_sanguineo: x?.tipo_sanguineo ?? '', email_pessoal: x?.email_pessoal ?? '' });
@@ -69,6 +71,7 @@ function FormServidor({ id, aberto, aoFechar }: { id: string | null; aberto: boo
       funcao: s.funcao.trim() || null, email_institucional: s.email_institucional.trim() || null, telefone: somenteDigitos(s.telefone) || null,
       data_nomeacao: s.data_nomeacao || null, data_exoneracao: s.data_exoneracao || null, jornada: s.jornada.trim() || null,
       numero_comunicado: s.numero_comunicado.trim() || null, atribuicoes: s.atribuicoes.trim() || null, observacoes: s.observacoes.trim() || null,
+      escolaridade: (s.escolaridade || null) as Escolaridade | null,
     }, editaSensivel ? {
       cpf: somenteDigitos(p.cpf) || null, data_nascimento: p.data_nascimento || null, nome_mae: p.nome_mae.trim() || null,
       naturalidade: p.naturalidade.trim() || null, tipo_sanguineo: p.tipo_sanguineo || null, email_pessoal: p.email_pessoal.trim().toLowerCase() || null,
@@ -125,6 +128,13 @@ function FormServidor({ id, aberto, aoFechar }: { id: string | null; aberto: boo
             <AreaTexto className="sm:col-span-2" rotulo="Atribuições" value={s.atribuicoes} onChange={set('atribuicoes')} maxLength={4000} rows={3} />
             <AreaTexto className="sm:col-span-2" rotulo="Observações" value={s.observacoes} onChange={set('observacoes')} maxLength={2000} />
           </fieldset>
+          <fieldset className="grid gap-4 sm:grid-cols-2">
+            <legend className="mb-2 text-sm font-semibold text-slate-800">Dados curriculares <span className="font-normal text-slate-500">(opcional)</span></legend>
+            <Selecao rotulo="Escolaridade" value={s.escolaridade} onChange={set('escolaridade')}>
+              <option value="">Não informada</option>{ESCOLARIDADES.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+            </Selecao>
+            <p className="self-end text-xs text-slate-500">Formações, cursos, capacitações, certificações, experiências e comprovantes ficam na aba <b>Dados curriculares</b> do servidor.</p>
+          </fieldset>
           {editaSensivel ? (
             <fieldset className="grid gap-4 rounded-xl border border-amber-200 bg-amber-50/40 p-4 sm:grid-cols-2">
               <legend className="flex items-center gap-1.5 px-1 text-sm font-semibold text-amber-900"><Lock className="size-4" />Dados pessoais (acesso restrito – LGPD)</legend>
@@ -150,7 +160,7 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
   const { pode } = useSessao();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['servidor', id], queryFn: () => obterServidor(id!), enabled: !!id });
-  const [aba, setAba] = useState<'funcionais' | 'pessoais' | 'documentos'>('funcionais');
+  const [aba, setAba] = useState<'funcionais' | 'pessoais' | 'curriculo' | 'ferias' | 'documentos'>('funcionais');
   const entrada = useRef<HTMLInputElement>(null);
   useEffect(() => setAba('funcionais'), [id]);
   const foto = useMutation({
@@ -181,12 +191,13 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
             <Botao pequeno variante="secundario" icone={<Camera className="size-4" />} carregando={foto.isPending} onClick={() => entrada.current?.click()}>Foto</Botao>
           </>}
         </div>
-        <Abas abas={[{ id: 'funcionais', rotulo: 'Dados funcionais' }, ...(x ? [{ id: 'pessoais' as const, rotulo: 'Dados pessoais' }] : []), { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
+        <Abas abas={[{ id: 'funcionais', rotulo: 'Dados funcionais' }, ...(x ? [{ id: 'pessoais' as const, rotulo: 'Dados pessoais' }] : []), { id: 'curriculo', rotulo: 'Dados curriculares' }, { id: 'ferias', rotulo: 'Histórico de férias' }, { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'funcionais' && (
           <dl className="grid gap-3 sm:grid-cols-2">
             {linha('E-mail institucional', v.email_institucional)}{linha('Telefone', formatarTelefone(v.telefone))}
             {linha('Nomeação', formatarData(v.data_nomeacao))}{linha('Exoneração', formatarData(v.data_exoneracao))}
             {linha('Jornada', v.jornada)}{linha('Nº do comunicado', v.numero_comunicado)}
+            {linha('Escolaridade', rotuloEscolaridade(v.escolaridade))}
             <div className="sm:col-span-2">{linha('Atribuições', v.atribuicoes)}</div>
             <div className="sm:col-span-2">{linha('Observações', v.observacoes)}</div>
           </dl>
@@ -199,6 +210,8 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
             <div className="sm:col-span-2">{linha('Endereço', [x.logradouro, x.numero, x.complemento, x.bairro, x.cidade && `${x.cidade}/${x.uf ?? ''}`].filter(Boolean).join(', '))}</div>
           </dl>
         )}
+        {aba === 'curriculo' && <ServidorCurriculo servidor={v} podeEditar={pode('servidores', 'editar')} />}
+        {aba === 'ferias' && <ServidorFerias servidorId={v.id} podeEditar={pode('servidores', 'editar')} />}
         {aba === 'documentos' && <Anexos recurso="servidores" registroId={v.id} unidadeId={v.unidade_id} categoria="FUNCIONAL" titulo="Documentos funcionais" />}
       </>}
     </Modal>

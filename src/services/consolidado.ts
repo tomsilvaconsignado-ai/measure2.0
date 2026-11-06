@@ -24,6 +24,13 @@ export async function consolidadoMensal(tenantId: string, unidadeId: string, ano
   }
 }
 
+/** Servidores do consolidado com férias no mês (a mesma regra entra no documento emitido) */
+export interface FeriasDoMes { servidor_id: string; matricula: string; nome: string; gozo_inicio: string; gozo_fim: string; dias: number; dias_no_mes: number; situacao: string }
+
+export async function feriasDoConsolidado(tenantId: string, unidadeId: string, ano: number, mes: number) {
+  return falhou(await supabase.rpc('ferias_do_consolidado', { p_tenant: tenantId, p_unidade: unidadeId, p_ano: ano, p_mes: mes })) as FeriasDoMes[];
+}
+
 export interface Lancamento { servidor_id: string; atrasos: number | null; faltas: number | null; justificativa_anexada: boolean; observacao: string | null }
 
 export async function salvarFrequencias(tenantId: string, ano: number, mes: number, linhas: Lancamento[]) {

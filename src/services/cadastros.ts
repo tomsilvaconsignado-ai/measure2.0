@@ -2,7 +2,7 @@
 // classificação orçamentária e tipos de serviço).
 import { supabase } from '@/lib/supabase';
 import type {
-  Aniversariante, Classificador, ClassificadorTipo, ClassificacaoOrcamentaria, ContaBancaria, DadosPessoais, DotacaoDetalhada, Ente, Fornecedor,
+  Aniversariante, Classificador, Decreto, FeriasServidor, ItemCurriculo, ClassificadorTipo, ClassificacaoOrcamentaria, ContaBancaria, DadosPessoais, DotacaoDetalhada, Ente, Fornecedor,
   Servidor, ServidorListado, TipoClassificador, TipoServico, UnidadeAtendida,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
@@ -306,4 +306,70 @@ export async function salvarTipoServico(id: string | null, dados: Partial<TipoSe
 
 export async function definirStatusTipoServico(id: string, ativo: boolean, motivo: string) {
   falhou(await supabase.from('tipos_servico').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
+}
+
+// ---------------------------------------------------------------- decretos do órgão (cadastro pela plataforma)
+
+export async function listarDecretos(tenantId: string, somenteAtivos = false) {
+  let q = supabase.from('decretos_orgao').select('*').eq('tenant_id', tenantId).order('data_publicacao', { ascending: false, nullsFirst: false }).order('numero');
+  if (somenteAtivos) q = q.eq('ativo', true);
+  return falhou(await q) as Decreto[];
+}
+
+export async function salvarDecreto(id: string | null, dados: Pick<Decreto, 'tenant_id' | 'numero' | 'descricao' | 'data_publicacao'> | Partial<Pick<Decreto, 'ativo'>>) {
+  if (id) {
+    const { tenant_id: _t, ...resto } = dados as Partial<Decreto>;
+    return falhou(await supabase.from('decretos_orgao').update(resto).eq('id', id).select().single()) as Decreto;
+  }
+  return falhou(await supabase.from('decretos_orgao').insert(dados).select().single()) as Decreto;
+}
+
+// ---------------------------------------------------------------- currículo e férias do servidor
+
+export async function salvarCurriculoServidor(servidorId: string, dados: Pick<Servidor, 'escolaridade' | 'curriculo_observacoes'>) {
+  falhou(await supabase.from('servidores').update(dados).eq('id', servidorId).select('id').single());
+}
+
+export async function listarCurriculo(servidorId: string) {
+  return falhou(await supabase.from('servidor_curriculo_itens').select('*').eq('servidor_id', servidorId).is('excluido_em', null)
+    .order('tipo').order('ano_conclusao', { ascending: false, nullsFirst: false }).order('inicio', { ascending: false, nullsFirst: false })) as ItemCurriculo[];
+}
+
+export type DadosItemCurriculo = Omit<ItemCurriculo, 'id' | 'criado_em'>;
+
+export async function salvarItemCurriculo(id: string | null, dados: DadosItemCurriculo) {
+  if (id) {
+    const { servidor_id: _s, ...resto } = dados;
+    falhou(await supabase.from('servidor_curriculo_itens').update(resto).eq('id', id).select('id').single());
+  } else {
+    falhou(await supabase.from('servidor_curriculo_itens').insert(dados));
+  }
+}
+
+/** Remoção lógica: o item sai do currículo e o registro fica na auditoria */
+export async function removerItemCurriculo(id: string) {
+  falhou(await supabase.from('servidor_curriculo_itens').update({ excluido_em: new Date().toISOString() }).eq('id', id).select('id').single());
+}
+
+export async function listarFerias(servidorId: string) {
+  return falhou(await supabase.from('v_servidor_ferias').select('*').eq('servidor_id', servidorId)
+    .order('aquisitivo_inicio', { ascending: false }).order('gozo_inicio', { ascending: false, nullsFirst: true })) as FeriasServidor[];
+}
+
+export interface DadosFerias {
+  servidor_id: string; aquisitivo_inicio: string; aquisitivo_fim: string; gozo_inicio: string | null; gozo_fim: string | null; observacoes: string | null;
+}
+
+export async function salvarFerias(id: string | null, dados: DadosFerias) {
+  if (id) {
+    const { servidor_id: _s, ...resto } = dados;
+    falhou(await supabase.from('servidor_ferias').update(resto).eq('id', id).select('id').single());
+  } else {
+    falhou(await supabase.from('servidor_ferias').insert(dados));
+  }
+}
+
+/** Cancela mantendo o registro no histórico (o banco carimba quem e quando) */
+export async function cancelarFerias(id: string, motivo: string) {
+  falhou(await supabase.from('servidor_ferias').update({ cancelada_em: new Date().toISOString(), motivo_cancelamento: motivo }).eq('id', id).select('id').single());
 }

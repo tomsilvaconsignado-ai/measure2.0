@@ -1,17 +1,19 @@
 // Consolidado mensal de servidores: lança atrasos/faltas do mês, mostra a prévia e emite o documento
 // (versão histórica imutável, impressa em A4 paisagem).
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileCheck2, History, Save } from 'lucide-react';
+import { FileCheck2, History, Palmtree, Save } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { SeletorUnidadeOrg } from '@/components/CamposEndereco';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, SemPermissao, Selecao, Vazio, cx } from '@/components/ui/basicos';
+import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
-import { formatarDataHora } from '@/lib/formatacao';
+import { formatarData, formatarDataHora } from '@/lib/formatacao';
 import { MESES, observacaoFrequencia } from '@/lib/frequencia';
-import { consolidadoMensal, emitirConsolidado, listarConsolidados, salvarFrequencias, type Lancamento, type LinhaConsolidado } from '@/services/consolidado';
+import { consolidadoMensal, emitirConsolidado, feriasDoConsolidado, listarConsolidados, salvarFrequencias, type Lancamento, type LinhaConsolidado } from '@/services/consolidado';
+import { SITUACAO_FERIAS } from './ServidorFerias';
+import type { SituacaoFerias } from '@/lib/tipos';
 
 type Edicao = Omit<Lancamento, 'servidor_id'>;
 const inteiro = (v: string, max: number) => (v === '' ? null : Math.min(max, Math.max(0, Math.trunc(Number(v)) || 0)));
@@ -32,6 +34,16 @@ export function Consolidado() {
     queryFn: () => consolidadoMensal(orgao!.id, unidade!.id, ano, mes),
     enabled: !!orgao && !!unidade && ano >= 2000 && ano <= 2100,
   });
+  const ferias = useQuery({
+    queryKey: ['consolidado', orgao?.id, unidade?.id, ano, mes, 'ferias'],
+    queryFn: () => feriasDoConsolidado(orgao!.id, unidade!.id, ano, mes),
+    enabled: !!orgao && !!unidade && ano >= 2000 && ano <= 2100,
+  });
+  const feriasDe = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const f of ferias.data ?? []) m.set(f.servidor_id, [m.get(f.servidor_id), `${formatarData(f.gozo_inicio)} a ${formatarData(f.gozo_fim)}`].filter(Boolean).join(' e '));
+    return m;
+  }, [ferias.data]);
   const historico = useQuery({
     queryKey: ['consolidados', orgao?.id, unidade?.id],
     queryFn: () => listarConsolidados(orgao!.id, unidade?.id ?? null),
@@ -108,7 +120,8 @@ export function Consolidado() {
                         <tr key={l.servidor_id} className={cx('border-b border-slate-100 align-top', edicoes[l.servidor_id] && 'bg-marca-50/50')}>
                           <td className="numero py-2 pr-3">{l.matricula}</td>
                           <td className="py-2 pr-3"><span className="font-medium text-slate-900">{l.nome}</span>
-                            <span className="block text-xs text-slate-500">{l.unidade_sigla ?? l.unidade_nome}</span></td>
+                            <span className="block text-xs text-slate-500">{l.unidade_sigla ?? l.unidade_nome}</span>
+                            {feriasDe.has(l.servidor_id) && <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] text-sky-900"><Palmtree className="size-3" />Férias {feriasDe.get(l.servidor_id)}</span>}</td>
                           <td className="py-2 pr-3 text-slate-700">{l.cargo ?? '—'}<span className="block text-xs text-slate-500">{l.funcao ?? ''}</span></td>
                           <td className="py-1.5 pr-3"><input type="number" min={0} max={999} disabled={ed} aria-label={`Atrasos de ${l.nome}`}
                             className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-50" value={v.atrasos ?? ''}
@@ -131,6 +144,33 @@ export function Consolidado() {
             )}
           </Cartao>
         )}
+
+      {unidade && !!ferias.data?.length && (
+        <Cartao className="mt-6" titulo={<span className="flex items-center gap-2"><Palmtree className="size-4" />Servidores em férias em {MESES[mes - 1]!.toLowerCase()} de {ano} · {new Set(ferias.data.map((f) => f.servidor_id)).size}</span>}>
+          <p className="mb-2 text-xs text-slate-500">Vem do histórico de férias de cada servidor e entra automaticamente no consolidado emitido.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                <th className="py-2 pr-3 font-medium">Servidor</th><th className="py-2 pr-3 font-medium">Período de férias</th>
+                <th className="py-2 pr-3 font-medium">Dias</th><th className="py-2 font-medium">Situação</th>
+              </tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {ferias.data.map((f) => {
+                  const s = SITUACAO_FERIAS[f.situacao as SituacaoFerias];
+                  return (
+                    <tr key={`${f.servidor_id}-${f.gozo_inicio}`}>
+                      <td className="py-2 pr-3"><span className="font-medium text-slate-900">{f.nome}</span><span className="block text-xs text-slate-500">Mat. {f.matricula}</span></td>
+                      <td className="py-2 pr-3">{formatarData(f.gozo_inicio)} a {formatarData(f.gozo_fim)}</td>
+                      <td className="py-2 pr-3">{f.dias}{f.dias_no_mes !== f.dias && <span className="block text-xs text-slate-500">{f.dias_no_mes} neste mês</span>}</td>
+                      <td className="py-2">{s ? <Selo tom={s.tom}>{s.rotulo}</Selo> : f.situacao}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Cartao>
+      )}
 
       <Cartao className="mt-6" titulo={<span className="flex items-center gap-2"><History className="size-4" />Consolidados emitidos{unidade ? ` · ${unidade.rotulo}` : ''}</span>}>
         {historico.isLoading ? <Carregando /> : !historico.data?.length ? <p className="text-sm text-slate-600">Nenhum consolidado emitido ainda.</p> : (

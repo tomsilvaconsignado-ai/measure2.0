@@ -130,3 +130,23 @@ export const VARIAVEIS_ATESTO: Array<[string, string]> = [
   ['{PROCESSO}', 'processo administrativo'],
   ['{DECRETO}', 'texto do decreto configurado'],
 ];
+
+// Textos padronizados da nota fiscal, prontos para copiar (além do texto de atesto do órgão)
+
+/** Encaminhamento do atesto à administração (depois que o gestor/fiscal/suplente atesta) */
+export const MODELO_ENCAMINHAMENTO_ATESTO = 'Prezados,\n\nAtesto, nota fiscal n° {NUMERO_NOTA} e toda documentação exigida no contrato, as quais estão devidamente conferidas.\n\nSegue para análise, providências e posterior encaminhamento ao setor financeiro.';
+
+/** Decreto cuja documentação está em renovação, no processo do contrato */
+export const MODELO_DECRETO_RENOVACAO = 'Prezados,\n\nDocumentação referente ao Decreto nº {NUMERO_DECRETO_01} encontra-se no processo de renovação através do processo nº {NUMERO_PROCESSO_CONTRATO}.';
+
+const PENDENTE = '________';
+const preencher = (modelo: string, valores: Record<string, string | null | undefined>) =>
+  modelo.replace(/\{([A-Z0-9_]+)\}/g, (orig, k: string) => (k in valores ? valores[k]?.trim() || PENDENTE : orig));
+
+export function textoEncaminhamentoAtesto(numeroNota: string) {
+  return preencher(MODELO_ENCAMINHAMENTO_ATESTO, { NUMERO_NOTA: numeroNota });
+}
+
+export function textoDecretoRenovacao(numeroDecreto: string | null | undefined, processoContrato: string | null | undefined) {
+  return preencher(MODELO_DECRETO_RENOVACAO, { NUMERO_DECRETO_01: numeroDecreto, NUMERO_PROCESSO_CONTRATO: processoContrato });
+}

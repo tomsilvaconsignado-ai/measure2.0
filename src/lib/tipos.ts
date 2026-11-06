@@ -3,7 +3,7 @@ export type TipoUnidade = 'ORGANIZACAO' | 'SECRETARIA' | 'DIRETORIA' | 'COORDENA
 export type Recurso =
   | 'estrutura' | 'usuarios' | 'configuracoes' | 'auditoria'
   | 'fornecedores' | 'servidores' | 'servidores_sensiveis' | 'unidades' | 'classificacoes' | 'tipos_servico'
-  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'ordens_servico' | 'relatorios';
+  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'decretos' | 'ordens_servico' | 'relatorios';
 export type Acao = 'ler' | 'criar' | 'editar' | 'excluir' | 'aprovar' | 'atestar' | 'exportar';
 
 export const TIPOS_UNIDADE: Record<TipoUnidade, string> = {
@@ -156,7 +156,25 @@ export interface Servidor {
   email_institucional: string | null; telefone: string | null; data_nomeacao: string | null; data_exoneracao: string | null;
   jornada: string | null; numero_comunicado: string | null; atribuicoes: string | null; observacoes: string | null;
   foto_path: string | null; user_id: string | null;
+  escolaridade: Escolaridade | null; curriculo_observacoes: string | null;
 }
+
+export type Escolaridade = 'FUNDAMENTAL_INCOMPLETO' | 'FUNDAMENTAL' | 'MEDIO_INCOMPLETO' | 'MEDIO' | 'TECNICO' | 'SUPERIOR_INCOMPLETO'
+  | 'SUPERIOR' | 'ESPECIALIZACAO' | 'MESTRADO' | 'DOUTORADO' | 'POS_DOUTORADO';
+export type TipoItemCurriculo = 'FORMACAO' | 'CURSO' | 'CAPACITACAO' | 'ESPECIALIZACAO' | 'CERTIFICACAO' | 'EXPERIENCIA';
+export interface ItemCurriculo {
+  id: string; servidor_id: string; tipo: TipoItemCurriculo; titulo: string; instituicao: string | null; ano_conclusao: number | null;
+  carga_horaria: number | null; inicio: string | null; fim: string | null; observacoes: string | null; criado_em: string;
+}
+export type SituacaoFerias = 'PENDENTE' | 'PROGRAMADA' | 'EM_GOZO' | 'GOZADA' | 'CANCELADA';
+export interface FeriasServidor {
+  id: string; servidor_id: string; aquisitivo_inicio: string; aquisitivo_fim: string; gozo_inicio: string | null; gozo_fim: string | null;
+  dias: number | null; observacoes: string | null; situacao: SituacaoFerias; criado_em: string; registrado_por_nome: string | null;
+  cancelada_em: string | null; motivo_cancelamento: string | null; cancelada_por_nome: string | null;
+}
+
+/** Decreto do órgão (cadastrado pela plataforma; usado nos textos da nota fiscal) */
+export interface Decreto { id: string; tenant_id: string; numero: string; descricao: string; data_publicacao: string | null; ativo: boolean }
 
 export interface ServidorListado {
   id: string; nome: string; matricula: string; cargo: string | null; funcao: string | null;

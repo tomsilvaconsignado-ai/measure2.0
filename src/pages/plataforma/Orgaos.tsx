@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRightLeft, LifeBuoy, Pencil, Plus, Power, Search } from 'lucide-react';
+import { ArrowRightLeft, LifeBuoy, Pencil, Plus, Power, ScrollText, Search } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { consultarCnpj } from '@/services/consultasPublicas';
 import { cnpjValido, formatarCep, formatarCnpj, formatarDataHora, formatarTelefone, somenteDigitos } from '@/lib/formatacao';
 import type { Tenant } from '@/lib/tipos';
 import { definirStatusOrgao, iniciarSuporte, listarOrgaos, salvarOrgao, type DadosOrgao } from '@/services/api';
+import { DecretosOrgao, ModalDecretos } from './DecretosOrgao';
 
 const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
@@ -124,6 +125,10 @@ export function FormOrgao({ orgao, aberto, aoFechar }: { orgao: Tenant | null; a
         )}
         {erros.geral && <div className="sm:col-span-2"><CaixaErro mensagem={erros.geral} /></div>}
       </form>
+      {ehPlataforma && <div className="mt-6 border-t border-slate-200 pt-4">
+        {orgao ? <DecretosOrgao tenantId={orgao.id} />
+          : <p className="text-sm text-slate-600"><b>Decretos do órgão:</b> salve o órgão e abra a edição para cadastrar os decretos dele.</p>}
+      </div>}
     </Modal>
   );
 }
@@ -170,6 +175,7 @@ export function Orgaos() {
   const [editando, setEditando] = useState<Tenant | null | 'novo'>(null);
   const [alternando, setAlternando] = useState<Tenant | null>(null);
   const [suporte, setSuporte] = useState<Tenant | null>(null);
+  const [decretos, setDecretos] = useState<Tenant | null>(null);
   const q = useQuery({ queryKey: ['orgaos', busca], queryFn: () => listarOrgaos(busca), enabled: ehPlataforma });
   if (!ehPlataforma) return <SemPermissao texto="Área exclusiva do administrador da plataforma." />;
 
@@ -205,6 +211,7 @@ export function Orgaos() {
                       Administrar
                     </Botao>
                     <Botao pequeno variante="secundario" icone={<LifeBuoy className="size-4" />} onClick={() => setSuporte(t)}>Suporte</Botao>
+                    <Botao pequeno variante="secundario" icone={<ScrollText className="size-4" />} onClick={() => setDecretos(t)}>Decretos</Botao>
                     <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} onClick={() => setEditando(t)} aria-label={`Editar ${t.nome_curto}`} />
                     <Botao pequeno variante="fantasma" icone={<Power className="size-4" />} onClick={() => setAlternando(t)}
                       aria-label={t.ativo ? `Suspender ${t.nome_curto}` : `Reativar ${t.nome_curto}`} />
@@ -217,6 +224,7 @@ export function Orgaos() {
 
       <FormOrgao aberto={editando !== null} orgao={editando === 'novo' ? null : editando} aoFechar={() => setEditando(null)} />
       <AbrirSuporte orgao={suporte} aoFechar={() => setSuporte(null)} />
+      <ModalDecretos orgao={decretos} aoFechar={() => setDecretos(null)} />
       <ConfirmarComMotivo aberto={!!alternando} aoFechar={() => setAlternando(null)} perigo={!!alternando?.ativo}
         titulo={alternando?.ativo ? `Suspender ${alternando.nome_curto}?` : `Reativar ${alternando?.nome_curto}?`}
         descricao={alternando?.ativo

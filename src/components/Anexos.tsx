@@ -11,10 +11,15 @@ import { abrirDocumento, enviarDocumento, excluirDocumento, listarDocumentos, ty
 import { Botao, Carregando } from './ui/basicos';
 import { ConfirmarComMotivo } from './ui/Modal';
 
-export function Anexos({ recurso, registroId, unidadeId = null, categoria = 'GERAL', titulo = 'Documentos anexados', vazio = 'Nenhum documento anexado.' }: {
+export function Anexos({ recurso, registroId, unidadeId = null, categoria = 'GERAL', titulo = 'Documentos anexados', vazio = 'Nenhum documento anexado.', tenantId, podeGerenciar }: {
   recurso: Recurso; registroId: string; unidadeId?: string | null; categoria?: string; titulo?: string; vazio?: string;
+  /** órgão dono do registro quando não é o órgão escolhido na sessão (ex.: plataforma cadastrando decretos) */
+  tenantId?: string;
+  /** permissão de anexar/excluir decidida por quem usa (o banco confere de novo) */
+  podeGerenciar?: boolean;
 }) {
-  const { orgao, pode } = useSessao();
+  const { orgao: orgaoSessao, pode } = useSessao();
+  const orgao = tenantId ? { id: tenantId } : orgaoSessao;
   const qc = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
   const [excluindo, setExcluindo] = useState<Documento | null>(null);
@@ -30,8 +35,8 @@ export function Anexos({ recurso, registroId, unidadeId = null, categoria = 'GER
     onError: (e) => toast.error(mensagemDeErro(e)),
     onSettled: () => qc.invalidateQueries({ queryKey: chave }),
   });
-  const podeEnviar = pode(recurso, 'criar') || pode(recurso, 'editar');
-  const podeExcluir = pode(recurso, 'excluir');
+  const podeEnviar = podeGerenciar ?? (pode(recurso, 'criar') || pode(recurso, 'editar'));
+  const podeExcluir = podeGerenciar ?? pode(recurso, 'excluir');
 
   return (
     <div>
