@@ -7,6 +7,7 @@ import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarCep, formatarCnpj, formatarTelefone } from '@/lib/formatacao';
 import { enviarLogoOrgao, obterConfiguracoes, obterOrgao, salvarConfiguracoes, urlArquivo } from '@/services/api';
+import { VARIAVEIS_ATESTO } from '@/lib/atesto';
 import { exportarBackup } from '@/services/consolidado';
 import { FormOrgao } from './plataforma/Orgaos';
 
@@ -151,7 +152,7 @@ export function Configuracoes() {
               descricao="Desligado: o sistema só alerta. Ligado: impede o lançamento (exceções devem ser tratadas pelo administrador)." />
             <AreaTexto rotulo="Modelo do texto de atesto" value={textoAtesto} onChange={(e) => setTextoAtesto(e.target.value)} disabled={!podeEditar} rows={5}
               placeholder="Vazio = modelo padrão do MEASURE"
-              ajuda="Variáveis: {objeto} {contrato} {fornecedor} {nota} {valor} {meses} {periodo} {processo} {decreto}" />
+              ajuda={`Variáveis preenchidas automaticamente: ${VARIAVEIS_ATESTO.map(([v, d]) => `${v} = ${d}`).join(' · ')}`} />
             <AreaTexto rotulo="Decreto / observação legal do atesto" value={decreto} onChange={(e) => setDecreto(e.target.value)} disabled={!podeEditar} rows={2}
               ajuda="Entra no lugar de {decreto} (ex.: número e artigo do decreto municipal aplicável)." />
             <p className="border-t border-slate-200 pt-4 text-sm font-medium text-slate-900">Modelos de documentos</p>

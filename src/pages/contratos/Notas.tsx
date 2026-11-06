@@ -112,8 +112,9 @@ function NovaNota({ aberto, aoFechar, contratoInicial, aoSalvar }: { aberto: boo
   };
 
   const textoAtesto = ct.data && atesto.data ? montarAtesto(atesto.data.modelo, atesto.data.decreto, {
-    objeto: ct.data.objeto, contrato: ct.data.numero, fornecedor: ct.data.fornecedor_nome, nota: f.numero || '___', valorCentavos: valor ?? 0,
+    objeto: ct.data.objeto, contrato: ct.data.numero, fornecedor: ct.data.fornecedor_nome, nota: f.numero ? (f.serie ? `${f.numero}-${f.serie}` : f.numero) : '', valorCentavos: valor ?? 0,
     meses, periodoInicio: f.periodo_inicio, periodoFim: f.periodo_fim, processo: f.processo_administrativo,
+    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual, locais: unidades.map((u) => u.nome),
   }) : '';
 
   // Para chegar a uma etapa, valida só as etapas anteriores a ela ('fim' = registrar a nota)
@@ -284,6 +285,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
   const sugerido = useMemo(() => (n && ct.data && modelo.data ? montarAtesto(modelo.data.modelo, modelo.data.decreto, {
     objeto: ct.data.objeto, contrato: n.contrato_numero, fornecedor: n.fornecedor_nome, nota: n.serie ? `${n.numero}-${n.serie}` : n.numero,
     valorCentavos: centavos(n.valor), meses: q.data!.referencias, periodoInicio: n.periodo_inicio, periodoFim: n.periodo_fim, processo: n.processo_administrativo,
+    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual, locais: q.data!.unidades.map((u) => u.nome),
   }) : ''), [n, ct.data, modelo.data, q.data]);
   useEffect(() => { if (sugerido) setTexto(sugerido); }, [sugerido]);
   const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['emitidos', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
