@@ -247,4 +247,5 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
   await (await import('./cases-execucao.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-relatorios.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-servidores.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
+  await (await import('./cases-dotacao.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
 }

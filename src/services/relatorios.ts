@@ -14,7 +14,8 @@ export const CAMPOS_CLASSIFICACAO = [
   ['subfuncoes', 'SUBFUNCAO', 'Subfunção'], ['programas', 'PROGRAMA', 'Programa'], ['acoes', 'ACAO', 'Ação'],
   ['categorias', 'CATEGORIA_ECONOMICA', 'Categoria econômica'], ['gnds', 'GND', 'GND'], ['modalidades', 'MODALIDADE', 'Modalidade de aplicação'],
   ['elementos', 'ELEMENTO', 'Elemento de despesa'], ['subelementos', 'SUBELEMENTO', 'Subelemento'], ['fontes', 'FONTE', 'Fonte de recurso'],
-  ['detalhamentos', 'DETALHAMENTO_FONTE', 'Detalhamento da fonte'],
+  ['detalhamentos', 'DETALHAMENTO_FONTE', 'Detalhamento da fonte'], ['subfontes', 'SUBFONTE', 'Subfonte'],
+  ['codigos_acompanhamento', 'CODIGO_ACOMPANHAMENTO', 'Código de acompanhamento (CO)'],
 ] as const;
 
 export interface Filtros {

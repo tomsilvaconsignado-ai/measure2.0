@@ -5,10 +5,10 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
   const cons = async (quem, filtros) => (await as(quem, `SELECT * FROM relatorio_consumo($1)`, [JSON.stringify({ tenant_id: A, ...filtros })])).rows;
   const adminC = (await one(`SELECT id FROM perfis WHERE email = 'adminc@teste.gov.br'`)).id;
   const ct = (await one(`SELECT id FROM contratos WHERE tenant_id = $1 AND numero = '001/2026'`, [A])).id;
-  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '2088 | 30.24%'`, [A])).id;
-  const acao2090 = (await one(`SELECT id FROM classificadores WHERE tenant_id = $1 AND tipo = 'ACAO' AND codigo = '2090'`, [A])).id;
-  const acao2088 = (await one(`SELECT id FROM classificadores WHERE tenant_id = $1 AND tipo = 'ACAO' AND codigo = '2088'`, [A])).id;
-  const el30 = (await one(`SELECT id FROM classificadores WHERE tenant_id = $1 AND tipo = 'ELEMENTO' AND codigo = '30'`, [A])).id;
+  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND codigo_completo LIKE '2088 | 30.24%'`, [A])).id;
+  const acao2090 = (await one(`SELECT id FROM classificadores WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND tipo = 'ACAO' AND codigo = '2090'`, [A])).id;
+  const acao2088 = (await one(`SELECT id FROM classificadores WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND tipo = 'ACAO' AND codigo = '2088'`, [A])).id;
+  const el30 = (await one(`SELECT id FROM classificadores WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND tipo = 'ELEMENTO' AND codigo = '30'`, [A])).id;
   const forn = (await one(`SELECT fornecedor_id FROM contratos WHERE id = $1`, [ct])).fornecedor_id;
 
   // Segundo empenho (exercício 2025, dotação 2088/30) com uma nota de R$ 250

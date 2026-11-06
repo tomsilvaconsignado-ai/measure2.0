@@ -2,7 +2,7 @@
 // classificação orçamentária e tipos de serviço).
 import { supabase } from '@/lib/supabase';
 import type {
-  Aniversariante, Classificador, ClassificadorTipo, ClassificacaoOrcamentaria, ContaBancaria, DadosPessoais, Fornecedor,
+  Aniversariante, Classificador, ClassificadorTipo, ClassificacaoOrcamentaria, ContaBancaria, DadosPessoais, DotacaoDetalhada, Ente, Fornecedor,
   Servidor, ServidorListado, TipoClassificador, TipoServico, UnidadeAtendida,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
@@ -179,13 +179,15 @@ export async function removerDoGrupo(grupoId: string, membroId: string) {
 }
 
 // ---------------------------------------------------------------- classificação orçamentária
+// O catálogo pertence ao ente (município) e é cadastrado pela plataforma; os órgãos só consultam.
 
 export async function tiposClassificador() {
   return falhou(await supabase.from('classificador_tipos').select('*').order('ordem')) as ClassificadorTipo[];
 }
 
-export async function listarClassificadores(p: { tenantId: string; tipo?: TipoClassificador; busca?: string; paiId?: string | null; somenteAtivos?: boolean; limite?: number; offset?: number }) {
-  let q = supabase.from('classificadores').select('*', { count: 'exact' }).eq('tenant_id', p.tenantId).order('codigo');
+/** Plataforma: classificadores de um ente */
+export async function listarClassificadores(p: { enteId: string; tipo?: TipoClassificador; busca?: string; paiId?: string | null; somenteAtivos?: boolean; limite?: number; offset?: number }) {
+  let q = supabase.from('classificadores').select('*', { count: 'exact' }).eq('ente_id', p.enteId).order('codigo');
   if (p.tipo) q = q.eq('tipo', p.tipo);
   if (p.paiId) q = q.eq('pai_id', p.paiId);
   if (p.somenteAtivos) q = q.eq('ativo', true);
@@ -198,6 +200,11 @@ export async function listarClassificadores(p: { tenantId: string; tipo?: TipoCl
   return { itens: (r.data ?? []) as Classificador[], total: r.count ?? 0 };
 }
 
+/** Órgão: classificadores do ente dele (filtros de relatório) */
+export async function buscarClassificadoresOrgao(tenantId: string, tipo: TipoClassificador, busca: string, paiId?: string | null) {
+  return falhou(await supabase.rpc('buscar_classificadores', { p_tenant: tenantId, p_tipo: tipo, p_busca: busca || null, p_pai: paiId ?? null, p_limite: 30 })) as Classificador[];
+}
+
 export async function obterClassificadores(ids: string[]) {
   if (!ids.length) return [];
   return falhou(await supabase.from('classificadores').select('*').in('id', ids)) as Classificador[];
@@ -205,7 +212,7 @@ export async function obterClassificadores(ids: string[]) {
 
 export async function salvarClassificador(id: string | null, dados: Partial<Classificador>) {
   if (id) {
-    const { tenant_id: _t, tipo: _tp, ...resto } = dados;
+    const { ente_id: _e, tipo: _tp, ...resto } = dados;
     return falhou(await supabase.from('classificadores').update(resto).eq('id', id).select().single()) as Classificador;
   }
   return falhou(await supabase.from('classificadores').insert(dados).select().single()) as Classificador;
@@ -215,8 +222,16 @@ export async function definirStatusClassificador(id: string, ativo: boolean, mot
   falhou(await supabase.from('classificadores').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
 }
 
+/** Órgão: dotações do ente disponíveis para ele (conforme a unidade orçamentária) */
 export async function listarClassificacoes(p: { tenantId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
-  let q = supabase.from('classificacoes_orcamentarias').select('*', { count: 'exact' }).eq('tenant_id', p.tenantId)
+  const r = falhou(await supabase.rpc('dotacoes_do_orgao', { p_tenant: p.tenantId, p_busca: termo(p.busca ?? '') || null, p_situacao: p.situacao, p_limite: p.limite, p_offset: p.offset })) as
+    { total: number; itens: DotacaoDetalhada[] };
+  return r;
+}
+
+/** Plataforma: dotações de um ente */
+export async function listarDotacoesEnte(p: { enteId: string; busca?: string; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
+  let q = supabase.from('classificacoes_orcamentarias').select('*', { count: 'exact' }).eq('ente_id', p.enteId)
     .order('codigo_completo').range(p.offset, p.offset + p.limite - 1);
   if (p.situacao !== 'TODOS') q = q.eq('ativo', p.situacao === 'ATIVOS');
   const t = termo(p.busca ?? '').toLowerCase();
@@ -226,16 +241,56 @@ export async function listarClassificacoes(p: { tenantId: string; busca?: string
   return { itens: (r.data ?? []) as ClassificacaoOrcamentaria[], total: r.count ?? 0 };
 }
 
-export async function salvarClassificacao(id: string | null, dados: Partial<ClassificacaoOrcamentaria>) {
-  if (id) {
-    const { tenant_id: _t, ...resto } = dados;
-    return falhou(await supabase.from('classificacoes_orcamentarias').update(resto).eq('id', id).select().single()) as ClassificacaoOrcamentaria;
-  }
-  return falhou(await supabase.from('classificacoes_orcamentarias').insert(dados).select().single()) as ClassificacaoOrcamentaria;
-}
-
 export async function definirStatusClassificacao(id: string, ativo: boolean, motivo: string) {
   falhou(await supabase.from('classificacoes_orcamentarias').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
+}
+
+export async function salvarObservacaoDotacao(id: string, descricao: string | null) {
+  falhou(await supabase.from('classificacoes_orcamentarias').update({ descricao }).eq('id', id));
+}
+
+export type CampoEmpenho = 'unidade_orcamentaria' | 'funcao' | 'subfuncao' | 'programa' | 'acao' | 'natureza' | 'subelemento' | 'fonte'
+  | 'codigo_acompanhamento' | 'id_uso' | 'idoc' | 'resultado_primario' | 'subfonte';
+export type CamposEmpenho = Partial<Record<CampoEmpenho, { codigo: string; descricao: string }>>;
+
+/** Plataforma: cadastra a dotação no formato da nota de empenho (reaproveita códigos já existentes) */
+export async function cadastrarDotacao(p: { enteId: string; campos: CamposEmpenho; orgaos: string[]; descricao?: string | null }) {
+  return falhou(await supabase.rpc('cadastrar_dotacao', { p: { ente_id: p.enteId, campos: p.campos, orgaos: p.orgaos, descricao: p.descricao ?? null } })) as
+    { id: string; criada: boolean; codigo_completo: string };
+}
+
+export interface ResultadoImportacaoDotacoes { total: number; novas: number; existentes: number; erros: Array<{ linha: number; mensagem: string }>; aplicado: boolean }
+
+export async function importarDotacoes(enteId: string, linhas: Array<{ linha: number; campos: CamposEmpenho; orgaos?: string[]; descricao?: string | null }>, aplicar: boolean) {
+  return falhou(await supabase.rpc('importar_dotacoes', { p_ente: enteId, p_linhas: linhas, p_aplicar: aplicar })) as ResultadoImportacaoDotacoes;
+}
+
+// ---------------------------------------------------------------- entes (plataforma)
+
+export async function listarEntes() {
+  return falhou(await supabase.from('entes').select('*').order('nome')) as Ente[];
+}
+
+export async function salvarEnte(id: string | null, dados: Partial<Ente>) {
+  if (id) return falhou(await supabase.from('entes').update(dados).eq('id', id).select().single()) as Ente;
+  return falhou(await supabase.from('entes').insert(dados).select().single()) as Ente;
+}
+
+export async function vincularOrgaoAoEnte(tenantId: string, enteId: string | null) {
+  falhou(await supabase.from('tenants').update({ ente_id: enteId }).eq('id', tenantId));
+}
+
+/** Órgãos que usam cada unidade orçamentária (vazio = todos os órgãos do ente) */
+export async function orgaosDasUos(uoIds: string[]) {
+  if (!uoIds.length) return [];
+  return falhou(await supabase.from('unidade_orcamentaria_orgaos').select('classificador_id, tenant_id').in('classificador_id', uoIds)) as Array<{ classificador_id: string; tenant_id: string }>;
+}
+
+export async function definirOrgaosDaUo(uoId: string, atuais: string[], novos: string[]) {
+  const sair = atuais.filter((t) => !novos.includes(t));
+  const entrar = novos.filter((t) => !atuais.includes(t));
+  if (sair.length) falhou(await supabase.from('unidade_orcamentaria_orgaos').delete().eq('classificador_id', uoId).in('tenant_id', sair));
+  if (entrar.length) falhou(await supabase.from('unidade_orcamentaria_orgaos').insert(entrar.map((t) => ({ classificador_id: uoId, tenant_id: t }))));
 }
 
 // ---------------------------------------------------------------- tipos de serviço

@@ -36,6 +36,7 @@ const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServi
 const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Consolidado');
 const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
+const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
 
 function TelaCheia({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6 text-center">{children}</div>;
@@ -104,6 +105,7 @@ export function App() {
         <Route path="plataforma/orgaos" element={<Orgaos />} />
         <Route path="plataforma/permissoes" element={<Permissoes />} />
         <Route path="plataforma/erros" element={<Erros />} />
+        <Route path="plataforma/dotacoes" element={<Dotacoes />} />
         <Route path="entrar" element={<Navigate to="/" replace />} />
         <Route path="*" element={<div className="py-16 text-center text-sm text-slate-600">Página não encontrada.</div>} />
       </Route>

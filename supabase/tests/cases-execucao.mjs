@@ -3,8 +3,8 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
   const val = async (quem, sql, params = []) => (await as(quem, sql, params)).rows[0];
   const adminC = (await one(`SELECT id FROM perfis WHERE email = 'adminc@teste.gov.br'`)).id;
   const C = (await one(`SELECT id FROM tenants WHERE nome_curto = 'Gama'`)).id;
-  const dot1 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '%2090%'`, [A])).id;
-  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE tenant_id = $1 AND codigo_completo LIKE '2088 | 30.24%'`, [A])).id;
+  const dot1 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND codigo_completo LIKE '%2090%'`, [A])).id;
+  const dot2 = (await one(`SELECT id FROM classificacoes_orcamentarias WHERE ente_id = (SELECT ente_id FROM tenants WHERE id = $1) AND codigo_completo LIKE '2088 | 30.24%'`, [A])).id;
   const caps = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'CAPS'`, [A])).id;
   const ubs1 = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'UBS Centro'`, [A])).id;
   const ubs2 = (await one(`SELECT id FROM unidades_atendidas WHERE tenant_id = $1 AND nome = 'USF Bairro Industrial'`, [A])).id;
@@ -66,10 +66,9 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
     `INSERT INTO empenhos (tenant_id, contrato_id, numero, ano, data_empenho, valor, classificacao_id, unidade_id, fornecedor_id) VALUES ($1, $2, '100', 2026, hoje(), 1000, $3, $4, $5) RETURNING id, unidade_id, fornecedor_id`,
     [A, ct, dot1, coaf.id, fornInativo]))?.rows[0];
   check(emp.unidade_id === coinfra.id && emp.fornecedor_id === forn, 'empenho herda unidade e fornecedor do contrato (ignora o que o app mandar)');
-  const dot3 = (await val(u.masterA, `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, fonte_id)
-    SELECT tenant_id, acao_id, elemento_id, fonte_id FROM classificacoes_orcamentarias WHERE id = $1 AND false
-    UNION ALL SELECT $2, (SELECT acao_id FROM classificacoes_orcamentarias WHERE id = $3), (SELECT elemento_id FROM classificacoes_orcamentarias WHERE id = $1), (SELECT fonte_id FROM classificacoes_orcamentarias WHERE id = $1)
-    RETURNING id`, [dot1, A, dot2])).id;
+  const dot3 = (await val(u.plat, `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, fonte_id)
+    SELECT ente_id, (SELECT acao_id FROM classificacoes_orcamentarias WHERE id = $2), elemento_id, fonte_id FROM classificacoes_orcamentarias WHERE id = $1
+    RETURNING id`, [dot1, dot2])).id;
   await expectFail('empenho em dotação não vinculada ao contrato é recusado', u.adminCoinfra,
     `INSERT INTO empenhos (tenant_id, contrato_id, numero, ano, data_empenho, valor, classificacao_id) VALUES ($1, $2, '101', 2026, hoje(), 10, $3)`, [A, ct, dot3], /não está vinculada/);
   await expectFail('dotação usada por empenho não sai do contrato', u.adminCoinfra,

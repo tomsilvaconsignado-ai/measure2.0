@@ -61,9 +61,10 @@ export function SeletorServidor(p: { rotulo: string; valor: string | null; rotul
 export function SeletorDotacao(p: { rotulo?: string; valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; excluir?: string[] }) {
   const { orgao } = useSessao();
   return <BuscaSelect rotulo={p.rotulo ?? 'Dotação orçamentária'} valor={p.valor} rotuloValor={p.rotuloValor} aoMudar={p.aoMudar} erro={p.erro}
-    chave={['dotacoes-opcoes', orgao?.id, p.excluir?.length]} placeholder="Ação, elemento, fonte ou descrição"
+    chave={['dotacoes-opcoes', orgao?.id, p.excluir?.length]} placeholder="UO, ação, natureza (33903914), fonte ou descrição"
     buscar={async (t) => (await listarClassificacoes({ tenantId: orgao!.id, busca: t, situacao: 'ATIVOS', limite: 20, offset: 0 })).itens
-      .filter((d) => !p.excluir?.includes(d.id)).map((d) => ({ valor: d.id, rotulo: d.codigo_completo, detalhe: d.descricao ?? undefined }))} />;
+      .filter((d) => !p.excluir?.includes(d.id)).map((d) => ({ valor: d.id, rotulo: d.codigo_completo,
+        detalhe: [d.uo_descricao, d.acao_descricao, d.subelemento_descricao ?? d.elemento_descricao].filter(Boolean).join(' · ') }))} />;
 }
 
 export function SeletorContrato(p: { valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; obrigatorio?: boolean; desabilitado?: boolean }) {

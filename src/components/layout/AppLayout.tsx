@@ -27,6 +27,7 @@ const ADMINISTRACAO: Item[] = [
 const PLATAFORMA: Item[] = [
   { para: '/plataforma/orgaos', rotulo: 'Órgãos', icone: <Landmark className="size-4" />, plataforma: true },
   { para: '/plataforma/permissoes', rotulo: 'Matriz de permissões', icone: <KeyRound className="size-4" />, plataforma: true },
+  { para: '/plataforma/dotacoes', rotulo: 'Dotações orçamentárias', icone: <Network className="size-4" />, plataforma: true },
   { para: '/plataforma/erros', rotulo: 'Erros do sistema', icone: <Bug className="size-4" />, plataforma: true },
 ];
 const CADASTROS: Item[] = [

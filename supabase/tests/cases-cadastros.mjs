@@ -125,11 +125,19 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
     `UPDATE unidades_atendidas SET responsavel_id = $1 WHERE id = $2`, [serv.id, ucC], /responsável/);
   await expectOk('administrativo tira unidade do grupo', u.adminCoinfra, `DELETE FROM unidades_grupo_membros WHERE grupo_id = $1 AND membro_id = $2`, [grupo, ubs2]);
 
-  console.log('Classificação orçamentária');
-  const cl = (tipo, codigo, descricao, pai = null, quem = u.masterA, tenant = A) =>
-    as(quem, `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao, pai_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, natureza_acao`, [tenant, tipo, codigo, descricao, pai]);
+  console.log('Classificação orçamentária (catálogo do ente, cadastrado pela plataforma)');
+  const enteA = (await expectOk('plataforma cria o ente (município)', u.plat, `INSERT INTO entes (nome, uf) VALUES ('Município de Alfa', 'SE') RETURNING id`))?.rows[0].id;
+  await expectFail('Master do órgão não cria ente', u.masterA, `INSERT INTO entes (nome) VALUES ('Município Intruso')`);
+  await expectFail('Master do órgão não vincula o próprio órgão a um ente', u.masterA, `UPDATE tenants SET ente_id = $1 WHERE id = $2`, [enteA, A], /plataforma/);
+  await expectOk('plataforma vincula o órgão ao ente', u.plat, `UPDATE tenants SET ente_id = $1 WHERE id = $2`, [enteA, A]);
+  const enteC = (await as(u.plat, `INSERT INTO entes (nome) VALUES ('Município de Gama') RETURNING id`)).rows[0].id;
+  await as(u.plat, `UPDATE tenants SET ente_id = $1 WHERE id = $2`, [enteC, C]);
+  const cl = (tipo, codigo, descricao, pai = null, quem = u.plat, ente = enteA) =>
+    as(quem, `INSERT INTO classificadores (ente_id, tipo, codigo, descricao, pai_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, natureza_acao`, [ente, tipo, codigo, descricao, pai]);
+  await expectFail('Master do órgão não cadastra classificador (só a plataforma)', u.masterA,
+    `INSERT INTO classificadores (ente_id, tipo, codigo, descricao) VALUES ($1, 'FONTE', '1500', 'Recursos livres')`, [enteA]);
   await expectFail('administrativo não cadastra classificador (só lê)', u.adminCoinfra,
-    `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao) VALUES ($1, 'FONTE', '1500', 'Recursos livres')`, [A]);
+    `INSERT INTO classificadores (ente_id, tipo, codigo, descricao) VALUES ($1, 'FONTE', '1500', 'Recursos livres')`, [enteA]);
   const prog = (await cl('PROGRAMA', '0017', 'Atenção Básica')).rows[0].id;
   const acao = (await cl('ACAO', '2090', 'Manutenção da Rede Básica', prog)).rows[0];
   check(acao.natureza_acao === 'ATIVIDADE', 'natureza da ação pelo 1º dígito (2 = atividade)');
@@ -138,39 +146,39 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
   const el30 = (await cl('ELEMENTO', '30', 'Material de Consumo')).rows[0].id;
   const sub39 = (await cl('SUBELEMENTO', '16', 'Manutenção e conservação de bens imóveis', el39)).rows[0].id;
   const sub30 = (await cl('SUBELEMENTO', '24', 'Material para manutenção de bens imóveis', el30)).rows[0].id;
-  await expectFail('subelemento sem elemento é recusado', u.masterA,
-    `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao) VALUES ($1, 'SUBELEMENTO', '99', 'Solto')`, [A], /exige/);
-  await expectFail('subelemento abaixo de fonte é recusado', u.masterA,
-    `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao, pai_id) VALUES ($1, 'SUBELEMENTO', '98', 'Errado', $2)`, [A, prog], /só pode ficar abaixo/);
+  await expectFail('subelemento sem elemento é recusado', u.plat,
+    `INSERT INTO classificadores (ente_id, tipo, codigo, descricao) VALUES ($1, 'SUBELEMENTO', '99', 'Solto')`, [enteA], /exige/);
+  await expectFail('subelemento abaixo de programa é recusado', u.plat,
+    `INSERT INTO classificadores (ente_id, tipo, codigo, descricao, pai_id) VALUES ($1, 'SUBELEMENTO', '98', 'Errado', $2)`, [enteA, prog], /só pode ficar abaixo/);
   const fonte = (await cl('FONTE', '1500', 'Recursos não vinculados de impostos')).rows[0].id;
-  await expectFail('plataforma não cadastra classificação de um órgão sem sessão de suporte', u.plat,
-    `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao) VALUES ($1, 'FONTE', '1500', 'Recursos livres')`, [C]);
-  const sessaoC = (await as(u.plat, `SELECT iniciar_suporte($1, 'Carga inicial da classificação de Gama', 30) s`, [C])).rows[0].s;
-  const fonteC = (await cl('FONTE', '1500', 'Recursos livres', null, u.plat, C)).rows[0].id;
-  await as(u.plat, `SELECT encerrar_suporte($1)`, [sessaoC]);
-  await expectFail('código repetido do mesmo tipo é recusado', u.masterA,
-    `INSERT INTO classificadores (tenant_id, tipo, codigo, descricao) VALUES ($1, 'ELEMENTO', '39', 'Duplicado')`, [A], /classificadores_codigo_unico/);
-  const dot = (await expectOk('Master monta a dotação (ação + elemento + subelemento + fonte)', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, programa_id, codigo_completo`,
-    [A, acao.id, el39, sub39, fonte]))?.rows[0];
+  const fonteC = (await cl('FONTE', '1500', 'Recursos livres', null, u.plat, enteC)).rows[0].id;
+  await expectFail('código repetido do mesmo tipo no ente é recusado', u.plat,
+    `INSERT INTO classificadores (ente_id, tipo, codigo, descricao) VALUES ($1, 'ELEMENTO', '39', 'Duplicado')`, [enteA], /classificadores_codigo_unico/);
+  await expectFail('Master do órgão não monta dotação', u.masterA,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, fonte_id) VALUES ($1, $2, $3, $4)`, [enteA, acao.id, el39, fonte]);
+  const dot = (await expectOk('plataforma monta a dotação (ação + elemento + subelemento + fonte)', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, programa_id, codigo_completo`,
+    [enteA, acao.id, el39, sub39, fonte]))?.rows[0];
   check(dot.programa_id === prog, 'programa preenchido a partir da ação');
   check(dot.codigo_completo === '0017.2090 | 39.16 | Fonte 1500', `código completo montado pelo banco (${dot.codigo_completo})`);
-  await expectFail('a mesma combinação não é cadastrada duas vezes', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`,
-    [A, acao.id, el39, sub39, fonte], /classificacoes_combinacao_unica/);
-  await expectFail('subelemento de outro elemento é recusado', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`,
-    [A, acao2, el39, sub30, fonte], /não pertence ao elemento/);
-  await expectFail('classificador de outro órgão é recusado', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, fonte_id) VALUES ($1, $2, $3, $4)`, [A, acao2, el30, fonteC], /neste órgão/);
-  await expectFail('classificador do tipo errado no campo é recusado', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, fonte_id) VALUES ($1, $2, $3, $4)`, [A, el30, el30, fonte], /tipo errado/);
-  await expectOk('segunda dotação (2088 / 30.24)', u.masterA,
-    `INSERT INTO classificacoes_orcamentarias (tenant_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`, [A, acao2, el30, sub30, fonte]);
+  await expectFail('a mesma combinação não é cadastrada duas vezes', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`,
+    [enteA, acao.id, el39, sub39, fonte], /classificacoes_combinacao_unica/);
+  await expectFail('subelemento de outro elemento é recusado', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`,
+    [enteA, acao2, el39, sub30, fonte], /não pertence ao elemento/);
+  await expectFail('classificador de outro ente é recusado', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, fonte_id) VALUES ($1, $2, $3, $4)`, [enteA, acao2, el30, fonteC], /neste ente/);
+  await expectFail('classificador do tipo errado no campo é recusado', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, fonte_id) VALUES ($1, $2, $3, $4)`, [enteA, el30, el30, fonte], /tipo errado/);
+  await expectOk('segunda dotação (2088 / 30.24)', u.plat,
+    `INSERT INTO classificacoes_orcamentarias (ente_id, acao_id, elemento_id, subelemento_id, fonte_id) VALUES ($1, $2, $3, $4, $5)`, [enteA, acao2, el30, sub30, fonte]);
   check((await as(u.adminCoinfra, `SELECT count(*)::int n FROM classificacoes_orcamentarias WHERE busca LIKE '%manutenção da rede%'`)).rows[0].n === 1,
-    'administrativo pesquisa dotações pela descrição da ação');
-  await as(u.masterA, `UPDATE classificadores SET descricao = 'Manutenção da Atenção Primária' WHERE id = $1`, [acao.id]);
+    'administrativo do órgão pesquisa as dotações do ente pela descrição da ação');
+  check((await as(u.masterA, `UPDATE classificadores SET descricao = 'X' WHERE id = $1 RETURNING id`, [acao.id])).rows.length === 0,
+    'Master do órgão não altera classificador (nenhuma linha atualizada)');
+  await as(u.plat, `UPDATE classificadores SET descricao = 'Manutenção da Atenção Primária' WHERE id = $1`, [acao.id]);
   check((await one(`SELECT busca FROM classificacoes_orcamentarias WHERE id = $1`, [dot.id])).busca.includes('atenção primária'), 'mudar a descrição do classificador atualiza as dotações');
-  check((await as(adminC, `SELECT count(*)::int n FROM classificacoes_orcamentarias`)).rows[0].n === 0, 'outro órgão não vê as dotações');
-  await expectFail('ninguém apaga dotação pela API', u.masterA, `DELETE FROM classificacoes_orcamentarias WHERE id = $1`, [dot.id]);
+  check((await as(adminC, `SELECT count(*)::int n FROM classificacoes_orcamentarias`)).rows[0].n === 0, 'órgão de outro ente não vê as dotações');
+  await expectFail('ninguém apaga dotação pela API', u.plat, `DELETE FROM classificacoes_orcamentarias WHERE id = $1`, [dot.id]);
 }

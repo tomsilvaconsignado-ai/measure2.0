@@ -50,6 +50,8 @@ export interface MeuContexto {
 
 export interface Tenant {
   id: string;
+  /** município (ente) cujo catálogo orçamentário o órgão usa */
+  ente_id?: string | null;
   nome_oficial: string;
   nome_curto: string;
   cnpj: string | null;
@@ -178,21 +180,38 @@ export interface UnidadeAtendida {
 }
 
 export type TipoClassificador = 'ORGAO' | 'UNIDADE_ORCAMENTARIA' | 'FUNCAO' | 'SUBFUNCAO' | 'PROGRAMA' | 'ACAO'
-  | 'CATEGORIA_ECONOMICA' | 'GND' | 'MODALIDADE' | 'ELEMENTO' | 'SUBELEMENTO' | 'FONTE' | 'DETALHAMENTO_FONTE';
+  | 'CATEGORIA_ECONOMICA' | 'GND' | 'MODALIDADE' | 'ELEMENTO' | 'SUBELEMENTO' | 'FONTE' | 'DETALHAMENTO_FONTE'
+  | 'SUBFONTE' | 'CODIGO_ACOMPANHAMENTO' | 'ID_USO' | 'IDOC' | 'RESULTADO_PRIMARIO';
 
 export interface ClassificadorTipo { codigo: TipoClassificador; nome: string; pai_tipo: TipoClassificador | null; pai_obrigatorio: boolean; ordem: number }
 
 export interface Classificador {
-  id: string; tenant_id: string; tipo: TipoClassificador; codigo: string; descricao: string; pai_id: string | null;
+  id: string; ente_id: string; tipo: TipoClassificador; codigo: string; descricao: string; pai_id: string | null;
   natureza_acao: 'PROJETO' | 'ATIVIDADE' | 'OPERACAO_ESPECIAL' | null; ativo: boolean;
 }
 
 export interface ClassificacaoOrcamentaria {
-  id: string; tenant_id: string;
+  id: string; ente_id: string;
   orgao_id: string | null; unidade_orcamentaria_id: string | null; funcao_id: string | null; subfuncao_id: string | null;
   programa_id: string | null; acao_id: string; categoria_economica_id: string | null; gnd_id: string | null;
   modalidade_id: string | null; elemento_id: string; subelemento_id: string | null; fonte_id: string; detalhamento_fonte_id: string | null;
+  subfonte_id: string | null; codigo_acompanhamento_id: string | null; id_uso_id: string | null; idoc_id: string | null; resultado_primario_id: string | null;
   descricao: string | null; codigo_completo: string; ativo: boolean;
+}
+
+/** Município (ente): dono do catálogo orçamentário, compartilhado pelos órgãos dele */
+export interface Ente { id: string; nome: string; uf: string | null; cnpj: string | null; ativo: boolean }
+
+/** Dotação com o código e a descrição de cada campo (como na nota de empenho) */
+export interface DotacaoDetalhada {
+  id: string; ente_id: string; codigo_completo: string; descricao: string | null; ativo: boolean;
+  uo_codigo: string | null; uo_descricao: string | null; funcao_codigo: string | null; funcao_descricao: string | null;
+  subfuncao_codigo: string | null; subfuncao_descricao: string | null; programa_codigo: string | null; programa_descricao: string | null;
+  acao_codigo: string; acao_descricao: string; categoria_codigo: string | null; gnd_codigo: string | null; modalidade_codigo: string | null;
+  elemento_codigo: string; elemento_descricao: string; subelemento_codigo: string | null; subelemento_descricao: string | null;
+  fonte_codigo: string; fonte_descricao: string; co_codigo: string | null; co_descricao: string | null;
+  iduso_codigo: string | null; iduso_descricao: string | null; idoc_codigo: string | null; idoc_descricao: string | null;
+  resultado_primario_codigo: string | null; resultado_primario_descricao: string | null; subfonte_codigo: string | null; subfonte_descricao: string | null;
 }
 
 export interface TipoServico { id: string; tenant_id: string; nome: string; descricao: string | null; ordem: number; ativo: boolean }

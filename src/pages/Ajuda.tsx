@@ -48,9 +48,17 @@ const TOPICOS: Topico[] = [
     'Cadastre as unidades que recebem os serviços (unidades de saúde, escolas…).',
     'Para dividir uma nota entre várias unidades, crie um grupo e indique as unidades componentes.',
   ] },
-  { id: 'classificacao', grupo: 'Cadastros', titulo: 'Classificação orçamentária', link: '/classificacao', passos: [
-    'Cadastre ação, elemento, subelemento e fonte; depois monte as dotações combinando esses itens.',
-    'Os contratos e empenhos só podem usar dotações deste cadastro.',
+  { id: 'classificacao', grupo: 'Cadastros', titulo: 'Classificação orçamentária (dotações)', link: '/classificacao', passos: [
+    'As dotações são do município e são cadastradas pela equipe da plataforma, no mesmo formato do quadro CLASSIFICAÇÃO da nota de empenho.',
+    'Aqui o órgão consulta as dotações disponíveis para ele: busque por UO (18401), ação (2090), natureza (33903914), fonte ou descrição e clique para ver todos os campos.',
+    'Contratos, empenhos e relatórios só usam dotações deste catálogo. Precisa de uma dotação nova? Peça à equipe da plataforma, de preferência com a nota de empenho.',
+  ] },
+  { id: 'dotacoes-plataforma', grupo: 'Plataforma (desenvolvedor)', titulo: 'Cadastrar dotações do município', link: '/plataforma/dotacoes', passos: [
+    'Em Plataforma → Dotações orçamentárias, escolha o ente (município) ou cadastre um novo, e vincule os órgãos dele na aba "Órgãos do ente".',
+    'Clique em "Nova dotação" e preencha como na nota de empenho: Unidade Orçamentária, Função, SubFunção, Programa, Ação, Natureza (8 dígitos), SubElemento, Fonte, CO, IdUso, IDoc, Resultado primário e SubFonte.',
+    'Códigos já cadastrados são reconhecidos ao sair do campo e a descrição vem sozinha; para código novo, digite a descrição.',
+    'Marque os órgãos que usam a unidade orçamentária (ex.: 18401 → SMS). Sem marcação, a dotação vale para todos os órgãos do ente.',
+    'Para várias dotações parecidas, use "Nova a partir desta"; para a LOA inteira, baixe o "Modelo", preencha e use "Importar planilha" (prévia antes de gravar, tudo ou nada).',
   ] },
   { id: 'contratos', grupo: 'Contratos e execução', titulo: 'Contratos, responsáveis, dotação e aditivos', link: '/contratos', passos: [
     'Clique em "Novo contrato", escolha o fornecedor e a modalidade e informe vigência e valor global.',

@@ -107,3 +107,26 @@ Funções:
 Desempenho:
 - `unidades_acessiveis(recurso, ação)`, `orgaos_permitidos` e `contratos_designados` calculam uma vez por consulta o que a pessoa alcança;
 - as visões, os relatórios, o painel, as notificações, a busca de servidores, o consolidado e a auditoria filtram por esses conjuntos (junção hash), em vez de chamar `pode()` por linha.
+
+## Catálogo orçamentário do município (ente)
+
+| Tabela | Conteúdo |
+|---|---|
+| `entes` | município (ex.: Município de Aracaju); dono do catálogo orçamentário |
+| `tenants.ente_id` | órgão → ente; só a plataforma liga ou troca |
+| `classificadores` | códigos por ente (UO, função, subfunção, programa, ação, categoria, GND, modalidade, elemento, subelemento, fonte, detalhamento, subfonte, CO, IdUso, IDoc, resultado primário) |
+| `classificacoes_orcamentarias` | dotação do ente: combinação desses códigos; `codigo_completo` no formato da nota de empenho (`18401 | 10.301.0085.2090 | 33903914 | Fonte 27490000`) |
+| `unidade_orcamentaria_orgaos` | órgãos que usam cada UO; sem linha = todos os órgãos do ente |
+
+Regras:
+- Leitura por qualquer membro de um órgão do ente, porque o orçamento é público.
+- Escrita só pela plataforma (RLS).
+- O contrato só recebe dotação ativa e disponível para o órgão (`dotacao_disponivel`).
+
+Funções:
+- `cadastrar_dotacao(p)`:
+  - recebe código e descrição de cada linha da nota de empenho;
+  - desmembra a natureza de 8 dígitos;
+  - reaproveita os códigos existentes e não duplica a dotação.
+- `importar_dotacoes`: importa a LOA em lote, com prévia, tudo ou nada.
+- `dotacoes_do_orgao` e `buscar_classificadores`: consulta pelos órgãos.

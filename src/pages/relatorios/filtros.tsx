@@ -6,7 +6,7 @@ import { useSessao } from '@/auth/Sessao';
 import { MultiBusca, type Item } from '@/components/ui/MultiBusca';
 import { Botao, Selecao, cx } from '@/components/ui/basicos';
 import { formatarCnpj, formatarCpf } from '@/lib/formatacao';
-import { buscarFornecedoresOpcoes, listarClassificadores, listarUnidadesAtendidas } from '@/services/cadastros';
+import { buscarClassificadoresOrgao, buscarFornecedoresOpcoes, listarUnidadesAtendidas } from '@/services/cadastros';
 import { listarContratos } from '@/services/execucao';
 import { anosComMovimento, CAMPOS_CLASSIFICACAO, type Filtros } from '@/services/relatorios';
 
@@ -65,7 +65,7 @@ export function PainelFiltros({ estado, aoMudar, completo }: { estado: EstadoFil
   const setClass = (chave: string, itens: Item[]) => aoMudar({ ...estado, classificadores: { ...estado.classificadores, [chave]: itens } });
   const anosDisponiveis = [...new Set([...(anos.data ?? []), new Date().getFullYear()])].sort((a, b) => b - a);
   const classificadorBusca = (tipo: string) => async (t: string) =>
-    (await listarClassificadores({ tenantId: orgao!.id, tipo: tipo as never, busca: t, limite: 30 })).itens.map((c) => ({ valor: c.id, rotulo: `${c.codigo} – ${c.descricao}` }));
+    (await buscarClassificadoresOrgao(orgao!.id, tipo as never, t)).map((c) => ({ valor: c.id, rotulo: `${c.codigo} – ${c.descricao}` }));
   const principais = CAMPOS_CLASSIFICACAO.filter(([k]) => ['acoes', 'elementos', 'subelementos', 'fontes'].includes(k));
   const outros = CAMPOS_CLASSIFICACAO.filter(([k]) => !['acoes', 'elementos', 'subelementos', 'fontes'].includes(k));
 

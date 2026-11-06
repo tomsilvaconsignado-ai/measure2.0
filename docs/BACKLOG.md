@@ -97,6 +97,16 @@ Cada fase é entregue integrada às anteriores, com testes de banco, unitários 
 - [x] Exportação em Excel desses cadastros, com modelo de planilha para download.
 - [ ] Patrimônio e Comunidade: aguardando levantamento (decisão 13).
 
+## Dotação orçamentária do município ✔
+- [x] Catálogo por ente (município), compartilhado pelos órgãos (Prefeitura, SMS e demais), cadastrado só pela plataforma (módulo do desenvolvedor).
+- [x] Cadastro no formato da nota de empenho:
+  - UO, função, subfunção, programa, ação;
+  - natureza de 8 dígitos, subelemento, fonte;
+  - CO, IdUso, IDoc, resultado primário e subfonte.
+- [x] Unidade orçamentária → órgãos que a usam: cada órgão vê e usa só as suas dotações.
+- [x] "Nova a partir desta" e importação da LOA por planilha, com prévia e gravação tudo ou nada.
+- [x] Consulta pelo órgão, seletor de dotação no contrato, filtros de relatório (incluindo subfonte e CO).
+
 ## Fase 8: Homologação e produção
 - [x] Testes de segurança automatizados (`npm run test:db`). Verificam que:
   - toda tabela tem RLS;
