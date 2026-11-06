@@ -74,7 +74,7 @@ function Fila() {
                     <td className="numero px-2 py-2 text-right">{brl(r.valor)}</td>
                     <td className="numero px-2 py-2 text-right font-medium">{brl(r.restante)}</td>
                     <td className="px-2 py-2 text-right">
-                      <Botao pequeno variante={r.posicao === 1 ? 'primario' : 'secundario'} icone={<Wallet className="size-4" />}
+                      <Botao pequeno destaque={r.posicao === 1} variante={r.posicao === 1 ? 'primario' : 'secundario'} icone={<Wallet className="size-4" />}
                         onClick={() => setBaixando({ id: r.nota_id, rotulo: rotuloNota(r), fornecedor: r.fornecedor_nome, restanteCentavos: centavos(r.restante), posicao: r.posicao })}>
                         Dar baixa
                       </Botao>

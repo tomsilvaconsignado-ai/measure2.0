@@ -38,6 +38,18 @@ export async function obterContrato(id: string) {
   return falhou(await supabase.from('v_contratos').select('*').eq('id', id).single()) as ContratoResumo;
 }
 
+/** Pendências de quem está logado: notas que pode atestar e (se dá baixa) notas na fila de pagamento */
+export async function contarPendencias(tenantId: string, podePagar: boolean) {
+  const [atesto, fila] = await Promise.all([
+    supabase.from('v_notas').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId)
+      .eq('posso_atestar', true).eq('status_atesto', 'PENDENTE').is('cancelada_em', null),
+    podePagar ? supabase.rpc('fila_pagamentos', { p_tenant: tenantId }) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (atesto.error) throw atesto.error;
+  if (fila.error) throw fila.error;
+  return { atesto: atesto.count ?? 0, pagamento: (fila.data as unknown[]).length };
+}
+
 export async function contarSituacoes(tenantId: string) {
   const { data, error } = await supabase.from('v_contratos').select('situacao').eq('tenant_id', tenantId).eq('ativo', true);
   if (error) throw error;

@@ -14,18 +14,21 @@ const VARIANTES: Record<Variante, string> = {
 
 export const Botao = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
   variante?: Variante; carregando?: boolean; icone?: ReactNode; pequeno?: boolean;
-}>(function Botao({ variante = 'primario', carregando, icone, pequeno, className, children, disabled, type = 'button', ...resto }, ref) {
+  /** ação pendente: anel e ponto pulsante até a ação ser feita */
+  destaque?: boolean;
+}>(function Botao({ variante = 'primario', carregando, icone, pequeno, destaque, className, children, disabled, type = 'button', ...resto }, ref) {
   return (
     <button
       ref={ref}
       type={type}
       disabled={disabled || carregando}
       className={cx('inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed',
-        pequeno ? 'h-8 px-3 text-sm' : 'h-10 px-4 text-sm', VARIANTES[variante], className)}
+        pequeno ? 'h-8 px-3 text-sm' : 'h-10 px-4 text-sm', VARIANTES[variante], destaque && !disabled && 'relative ring-2 ring-amber-400 ring-offset-2', className)}
       {...resto}
     >
       {carregando ? <Loader2 className="size-4 animate-spin" aria-hidden /> : icone}
       {children}
+      {destaque && !disabled && <PontoPendente className="absolute -right-1.5 -top-1.5" rotulo="Ação pendente" />}
     </button>
   );
 });
@@ -206,4 +209,21 @@ export function Avatar({ nome, url, tamanho = 'md' }: { nome: string; url?: stri
   return url
     ? <img src={url} alt="" className={cx(cls, 'shrink-0 rounded-full object-cover ring-1 ring-slate-200')} />
     : <span className={cx(cls, 'inline-flex shrink-0 items-center justify-center rounded-full bg-marca-100 font-semibold text-marca-800')} aria-hidden>{ini}</span>;
+}
+
+/** Ponto âmbar pulsante que sinaliza uma ação pendente */
+export function PontoPendente({ className, rotulo }: { className?: string; rotulo?: string }) {
+  return (
+    <span className={cx('flex size-3', className)} aria-hidden={!rotulo}>
+      <span className="absolute inline-flex size-3 rounded-full bg-amber-400 opacity-75 motion-safe:animate-ping" />
+      <span className="relative inline-flex size-3 rounded-full border-2 border-white bg-amber-500" />
+      {rotulo && <span className="sr-only">{rotulo}</span>}
+    </span>
+  );
+}
+
+/** Contador âmbar de pendências (menu, abas) */
+export function ContadorPendente({ n, className }: { n: number; className?: string }) {
+  if (!n) return null;
+  return <span className={cx('inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-5 text-amber-950', className)} title={`${n} pendente(s)`}><span aria-hidden>{n > 99 ? '99+' : n}</span><span className="sr-only">, {n} pendente(s)</span></span>;
 }

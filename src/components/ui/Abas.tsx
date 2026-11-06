@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
-import { cx } from './basicos';
+import { ContadorPendente, PontoPendente, cx } from './basicos';
 
-export function Abas<T extends string>({ abas, ativa, aoMudar }: { abas: Array<{ id: T; rotulo: ReactNode }>; ativa: T; aoMudar: (id: T) => void }) {
+export function Abas<T extends string>({ abas, ativa, aoMudar }: { abas: Array<{ id: T; rotulo: ReactNode; /** pendência: número = contador, true = ponto */ alerta?: number | boolean }>; ativa: T; aoMudar: (id: T) => void }) {
   return (
     <div className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
       {abas.map((a) => (
         <button key={a.id} role="tab" aria-selected={a.id === ativa} onClick={() => aoMudar(a.id)}
           className={cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
             a.id === ativa ? 'border-marca-700 text-marca-800' : 'border-transparent text-slate-500 hover:text-slate-800')}>
-          {a.rotulo}
+          <span className="inline-flex items-center gap-1.5">{a.rotulo}{typeof a.alerta === 'number' ? <ContadorPendente n={a.alerta} /> : a.alerta && <span className="relative"><PontoPendente rotulo="pendente" /></span>}</span>
         </button>
       ))}
     </div>

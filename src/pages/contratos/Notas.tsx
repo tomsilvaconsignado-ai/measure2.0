@@ -21,6 +21,7 @@ import {
 import { montarAtesto } from '@/lib/atesto';
 import { emitirChecklist } from '@/services/consolidado';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
+import { usePendencias } from '@/components/Pendencias';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
@@ -293,6 +294,8 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
   const atestar = useMutation({ mutationFn: () => atestarNota(id!, texto), onSuccess: async () => { await invalidar(); toast.success('Nota atestada.'); }, onError: (e) => toast.error(mensagemDeErro(e)) });
   if (!id) return null;
   const restante = n ? centavos(n.valor) - centavos(n.pago) : 0;
+  const falta = { atesto: !!n && !n.cancelada_em && n.status_atesto === 'PENDENTE' && n.posso_atestar,
+    pagamento: !!n && !n.cancelada_em && n.status_atesto === 'ATESTADA' && restante > 0 && pode('notas_fiscais', 'editar') };
   return (
     <Modal aberto aoFechar={aoFechar} titulo={n ? `Nota fiscal ${n.numero}${n.serie ? `-${n.serie}` : ''}` : 'Nota fiscal'} descricao={n ? `${n.fornecedor_nome} · Contrato ${n.contrato_numero}` : undefined} largura="lg"
       rodape={n && !n.cancelada_em && pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" icone={<Ban className="size-4" />} onClick={() => setCancelandoNota(true)}>Cancelar nota</Botao>}>
@@ -302,7 +305,11 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
           {n.cancelada_em ? <Selo tom="perigo">Cancelada: {n.motivo_cancelamento}</Selo> : <><SeloAtesto status={n.status_atesto} /><SeloPagamento status={n.status_pagamento as StatusPagamento} /></>}
           {n.excecao_saldo && <Selo tom="alerta">Exceção de saldo</Selo>}
         </div>
-        <Abas abas={[{ id: 'dados', rotulo: 'Dados' }, { id: 'atesto', rotulo: 'Atesto' }, { id: 'pagamentos', rotulo: 'Pagamentos' }, { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
+        {(falta.atesto || falta.pagamento) && aba !== (falta.atesto ? 'atesto' : 'pagamentos') && (
+          <button onClick={() => setAba(falta.atesto ? 'atesto' : 'pagamentos')} className="mb-3 flex w-full items-center gap-2 rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-left text-sm text-amber-950 hover:bg-amber-100">
+            <AlertTriangle className="size-4 shrink-0" /><span className="flex-1">{falta.atesto ? 'Esta nota aguarda o seu atesto.' : 'Nota atestada aguardando a baixa do pagamento.'}</span><span className="font-medium">{falta.atesto ? 'Atestar →' : 'Dar baixa →'}</span>
+          </button>)}
+        <Abas abas={[{ id: 'dados', rotulo: 'Dados' }, { id: 'atesto', rotulo: 'Atesto', alerta: falta.atesto }, { id: 'pagamentos', rotulo: 'Pagamentos', alerta: falta.pagamento }, { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'dados' && <dl className="grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-xs text-slate-500">Data da nota</dt><dd>{formatarData(n.data_emissao)}</dd></div>
           <div><dt className="text-xs text-slate-500">Incluída em</dt><dd>{formatarDataHora(n.data_inclusao)}</dd></div>
@@ -330,7 +337,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             <div className="flex flex-wrap gap-2">
               <Botao variante="secundario" icone={<ClipboardCopy className="size-4" />} onClick={() => { void navigator.clipboard.writeText(texto); toast.success('Texto copiado.'); }}>Copiar texto</Botao>
               {n.posso_atestar
-                ? <Botao icone={<BadgeCheck className="size-4" />} carregando={atestar.isPending} disabled={!texto.trim()} title={texto.trim() ? undefined : 'Aguarde o texto de atesto ser gerado'} onClick={() => atestar.mutate()}>Atestar nota</Botao>
+                ? <Botao destaque icone={<BadgeCheck className="size-4" />} carregando={atestar.isPending} disabled={!texto.trim()} title={texto.trim() ? undefined : 'Aguarde o texto de atesto ser gerado'} onClick={() => atestar.mutate()}>Atestar nota</Botao>
                 : <p className="self-center text-xs text-slate-500">Só o gestor, o fiscal ou o suplente designado no contrato (ou quem lançou a nota, se o órgão permitir) pode atestar.</p>}
             </div>
           </>}
@@ -340,7 +347,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             <span>Pago <strong className="numero">{brl(n.pago)}</strong> de <span className="numero">{brl(n.valor)}</span>{restante > 0 && !n.cancelada_em && <> · falta <strong className="numero">{formatarCentavos(restante)}</strong></>}</span>
             {pode('notas_fiscais', 'editar') && !n.cancelada_em && restante > 0 && (
               n.status_atesto === 'ATESTADA'
-                ? <Botao pequeno icone={<Wallet className="size-4" />} onClick={() => setBaixando({ id: n.id, rotulo: `${n.numero}${n.serie ? `-${n.serie}` : ''}`, fornecedor: n.fornecedor_nome, restanteCentavos: restante })}>Dar baixa</Botao>
+                ? <Botao pequeno destaque icone={<Wallet className="size-4" />} onClick={() => setBaixando({ id: n.id, rotulo: `${n.numero}${n.serie ? `-${n.serie}` : ''}`, fornecedor: n.fornecedor_nome, restanteCentavos: restante })}>Dar baixa</Botao>
                 : <span className="text-xs text-slate-500">O pagamento é liberado depois do atesto.</span>)}
           </div>
           {!q.data!.pagamentos.length ? <p className="text-sm text-slate-500">Nenhum pagamento registrado.</p> : <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
@@ -372,7 +379,10 @@ export function Notas() {
   const [params, setParams] = useSearchParams();
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
-  const [filtro, setFiltro] = useState<'TODAS' | 'ATESTO' | 'PAGAMENTO' | 'PAGAS' | 'CANCELADAS'>('TODAS');
+  type Filtro = 'TODAS' | 'ATESTO' | 'PAGAMENTO' | 'PAGAS' | 'CANCELADAS';
+  const [filtro, setFiltro] = useState<Filtro>(() => (['ATESTO', 'PAGAMENTO', 'PAGAS', 'CANCELADAS'] as const).find((f) => f === params.get('filtro')) ?? 'TODAS');
+  const pendencias = usePendencias();
+  const podePagar = pode('notas_fiscais', 'editar');
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(params.get('contrato') ? { id: params.get('contrato')!, rotulo: 'Contrato selecionado' } : null);
   const [pagina, setPagina] = useState(0);
   const [nova, setNova] = useState(false);
@@ -386,12 +396,15 @@ export function Notas() {
   });
   if (!orgao) return <SemPermissao texto="Escolha um órgão." />;
   const ver = (id: string | null) => setParams((p) => { const n = new URLSearchParams(p); if (id) n.set('ver', id); else n.delete('ver'); return n; });
-  const linha = (n: NotaResumo) => (
-    <li key={n.id}>
+  const linha = (n: NotaResumo) => {
+    const minhaVez = !n.cancelada_em && ((n.posso_atestar && n.status_atesto === 'PENDENTE') || (podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO'));
+    return (
+    <li key={n.id} className={cx(minhaVez && '-mx-2 border-l-4 border-amber-400 bg-amber-50/50 px-2')}>
       <button className={cx('grid w-full gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">NF {n.numero}{n.serie ? `-${n.serie}` : ''}<span className="font-normal text-slate-500">· {n.fornecedor_nome}</span>
-            {n.posso_atestar && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="marca">Aguardando o seu atesto</Selo>}</span>
+            {n.posso_atestar && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="alerta">Aguardando o seu atesto</Selo>}
+            {podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO' && !n.cancelada_em && <Selo tom="alerta">Aguardando baixa</Selo>}</span>
           <span className="block truncate text-sm text-slate-600">Contrato {n.contrato_numero} · Empenho {n.empenho_numero}/{n.empenho_ano} · Ref. {n.meses_referencia}</span>
           <span className="block text-xs text-slate-500">Emitida em {formatarData(n.data_emissao)}{n.processo_administrativo ? ` · Proc. ${n.processo_administrativo}` : ''}</span>
         </span>
@@ -401,13 +414,14 @@ export function Notas() {
         </span>
       </button>
     </li>
-  );
+    );
+  };
   return (
     <>
       <CabecalhoPagina titulo="Notas fiscais e execução" descricao="Registro, atesto pelo gestor/fiscal designado e pagamento. Cancelamentos ficam no histórico."
         acoes={pode('notas_fiscais', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setNova(true)}>Nova nota fiscal</Botao>} />
       <Cartao>
-        <Abas abas={[{ id: 'TODAS', rotulo: 'Todas' }, { id: 'ATESTO', rotulo: 'Pendentes de atesto' }, { id: 'PAGAMENTO', rotulo: 'Pendentes de pagamento' }, { id: 'PAGAS', rotulo: 'Pagas' }, { id: 'CANCELADAS', rotulo: 'Canceladas' }]}
+        <Abas abas={[{ id: 'TODAS', rotulo: 'Todas' }, { id: 'ATESTO', rotulo: 'Pendentes de atesto', alerta: pendencias.atesto }, { id: 'PAGAMENTO', rotulo: 'Pendentes de pagamento', alerta: pendencias.pagamento }, { id: 'PAGAS', rotulo: 'Pagas' }, { id: 'CANCELADAS', rotulo: 'Canceladas' }]}
           ativa={filtro} aoMudar={setFiltro} />
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_20rem] sm:items-end">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Número da nota, contrato, fornecedor ou processo" rotulo="Buscar nota" />

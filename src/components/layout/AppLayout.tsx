@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { mensagemDeErro } from '@/lib/erros';
 import { encerrarSuporte, urlArquivo } from '@/services/api';
-import { Avatar, Botao, Carregando, cx } from '../ui/basicos';
+import { Avatar, Botao, Carregando, ContadorPendente, cx } from '../ui/basicos';
+import { usePendencias } from '../Pendencias';
 import { Marca } from './Marca';
 import { Notificacoes } from './Notificacoes';
 import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
@@ -51,12 +52,12 @@ const GESTAO: Item[] = [
   { para: '/relatorios', rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" /> },
 ];
 
-function Link({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
+function Link({ item, aoNavegar, pendentes = 0 }: { item: Item; aoNavegar: () => void; pendentes?: number }) {
   return (
     <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores' || item.para === '/ajuda'}
       className={({ isActive }) => cx('flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
-      {item.icone}<span className="truncate">{item.rotulo}</span>
+      {item.icone}<span className="flex-1 truncate">{item.rotulo}</span><ContadorPendente n={pendentes} />
     </NavLink>
   );
 }
@@ -96,6 +97,8 @@ export function AppLayout() {
   const papelAtual = vinculosDoOrgao.map((v) => v.unidade ? `${v.papel_nome} · ${v.unidade.sigla ?? v.unidade.nome}` : v.papel_nome).join(' | ');
 
   const fecharMenu = () => setMenuAberto(false);
+  const pendencias = usePendencias();
+  const pendentesDe: Record<string, number> = { '/notas': pendencias.atesto, '/pagamentos': pendencias.pagamento };
   const administracao = ADMINISTRACAO.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
   const cadastros = CADASTROS.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
 
@@ -111,7 +114,7 @@ export function AppLayout() {
           <Grupo titulo="Gestão">{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
         )}
         {orgao && (
-          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} />)}</Grupo>
         )}
         {orgao && cadastros.length > 0 && (
           <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>

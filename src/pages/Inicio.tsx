@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Building2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { BadgeCheck, Banknote, Building2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
-import { Botao, CabecalhoPagina, Cartao, Selo } from '@/components/ui/basicos';
+import { Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
+import { usePendencias } from '@/components/Pendencias';
 import { formatarDataHora } from '@/lib/formatacao';
 import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
@@ -38,11 +38,7 @@ export function Inicio() {
   const perfil = contexto!.perfil!;
   const resumo = useQuery({ queryKey: ['resumo', orgao?.id], queryFn: () => resumoOrgao(orgao!.id), enabled: !!orgao && pode('estrutura', 'ler') });
   const primeiroNome = (perfil.nome || perfil.email).split(/\s+/)[0];
-  const aguardando = useQuery({
-    queryKey: ['notas', orgao?.id, 'meu-atesto'], enabled: !!orgao,
-    queryFn: async () => (await supabase.from('v_notas').select('id', { count: 'exact', head: true }).eq('tenant_id', orgao!.id)
-      .eq('sou_designado', true).eq('status_atesto', 'PENDENTE').is('cancelada_em', null)).count ?? 0,
-  });
+  const pendencias = usePendencias();
 
   return (
     <>
@@ -62,11 +58,18 @@ export function Inicio() {
         </Cartao>
       )}
 
-      {!!aguardando.data && (
-        <Link to="/notas" className="mb-6 flex items-center gap-3 rounded-xl border border-marca-200 bg-marca-50 p-4 text-sm text-marca-900 hover:bg-marca-100">
-          <BadgeCheck className="size-5 shrink-0" />
-          <span className="flex-1"><strong>{aguardando.data} nota{aguardando.data > 1 ? 's' : ''} fiscal{aguardando.data > 1 ? 'is' : ''}</strong> aguardando o seu atesto como gestor/fiscal designado.</span>
-          <span className="font-medium">Ver notas →</span>
+      {!!pendencias.atesto && (
+        <Link to="/notas?filtro=ATESTO" className="mb-3 flex items-center gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 hover:bg-amber-100">
+          <span className="relative"><BadgeCheck className="size-5 shrink-0" /><PontoPendente className="absolute -right-1.5 -top-1.5" /></span>
+          <span className="flex-1"><strong>{pendencias.atesto} nota{pendencias.atesto > 1 ? 's' : ''} fisca{pendencias.atesto > 1 ? 'is' : 'l'}</strong> aguardando o seu atesto.</span>
+          <span className="font-medium">Atestar →</span>
+        </Link>
+      )}
+      {!!pendencias.pagamento && (
+        <Link to="/pagamentos" className="mb-3 flex items-center gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 hover:bg-amber-100">
+          <span className="relative"><Banknote className="size-5 shrink-0" /><PontoPendente className="absolute -right-1.5 -top-1.5" /></span>
+          <span className="flex-1"><strong>{pendencias.pagamento} nota{pendencias.pagamento > 1 ? 's' : ''} atestada{pendencias.pagamento > 1 ? 's' : ''}</strong> aguardando a baixa do pagamento.</span>
+          <span className="font-medium">Dar baixa →</span>
         </Link>
       )}
       {orgao && resumo.data && (
