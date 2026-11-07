@@ -122,6 +122,7 @@ function FormDotacao({ ente, orgaosDoEnte, inicial, exercicioInicial, aberto, ao
     onSuccess: async (r) => {
       await qc.invalidateQueries({ queryKey: ['dotacoes-ente'] });
       await qc.invalidateQueries({ queryKey: ['classificadores-ente'] });
+      await qc.invalidateQueries({ queryKey: ['naturezas-ente'] });
       const ano = r.exercicio ? ` (exercício ${r.exercicio})` : '';
       toast.success(r.criada ? `Dotação cadastrada: ${r.codigo_completo}${ano}` : `Esta dotação já existia${ano}: ${r.codigo_completo}. Nada foi duplicado.`);
       aoFechar();
@@ -247,7 +248,10 @@ function Importacao({ ente, orgaosDoEnte, arquivo, aoFechar }: { ente: Ente; org
   }, [arquivo]);
   const gravar = useMutation({
     mutationFn: () => importarDotacoes(ente.id, linhas, true),
-    onSuccess: async (r) => { await qc.invalidateQueries({ queryKey: ['dotacoes-ente'] }); toast.success(`${r.novas} dotação(ões) nova(s) gravada(s); ${r.existentes} já existiam.`); aoFechar(); },
+    onSuccess: async (r) => {
+      await qc.invalidateQueries({ queryKey: ['dotacoes-ente'] }); await qc.invalidateQueries({ queryKey: ['classificadores-ente'] }); await qc.invalidateQueries({ queryKey: ['naturezas-ente'] });
+      toast.success(`${r.novas} dotação(ões) nova(s) gravada(s); ${r.existentes} já existiam.`); aoFechar();
+    },
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
   const erros = [...errosLocais, ...(res?.erros ?? [])].sort((a, b) => a.linha - b.linha);
@@ -504,14 +508,20 @@ function FormClassificador({ ente, tipo, tipos, item, orgaosDoEnte, aoFechar }: 
 // Tipos na ordem do quadro CLASSIFICAÇÃO da nota de empenho; categoria, grupo, modalidade e elemento
 // vêm da natureza (8 dígitos) e não aparecem soltos
 const OCULTOS: TipoClassificador[] = ['CATEGORIA_ECONOMICA', 'GND', 'MODALIDADE', 'ELEMENTO'];
+// mesmos rótulos do quadro CLASSIFICAÇÃO da nota de empenho (e do cadastro do contrato/empenho)
+const ROTULO_NOTA: Partial<Record<TipoClassificador, string>> = {
+  ORGAO: 'Órgão', UNIDADE_ORCAMENTARIA: 'Unidade Orçamentária', UNIDADE_GESTORA: 'Unidade Gestora', FUNCAO: 'Função', SUBFUNCAO: 'SubFunção',
+  PROGRAMA: 'Programa', ACAO: 'Ação', SUBELEMENTO: 'SubElemento', FONTE: 'Fonte', DETALHAMENTO_FONTE: 'Detalhamento da Fonte',
+  CODIGO_ACOMPANHAMENTO: 'Cód. Acompanhamento - CO', ID_USO: 'IdUso', IDOC: 'IDoc', RESULTADO_PRIMARIO: 'Ind. Result. Prim.', SUBFONTE: 'SubFonte',
+};
+const ORDEM_NOTA: Array<TipoClassificador | 'NATUREZA'> = ['ORGAO', 'UNIDADE_ORCAMENTARIA', 'UNIDADE_GESTORA', 'FUNCAO', 'SUBFUNCAO', 'PROGRAMA', 'ACAO',
+  'NATUREZA', 'SUBELEMENTO', 'FONTE', 'DETALHAMENTO_FONTE', 'CODIGO_ACOMPANHAMENTO', 'ID_USO', 'IDOC', 'RESULTADO_PRIMARIO', 'SUBFONTE'];
 function menuTipos(tipos: ClassificadorTipo[]): Array<{ codigo: TipoClassificador | 'NATUREZA'; nome: string }> {
-  const lista: Array<{ codigo: TipoClassificador | 'NATUREZA'; nome: string }> = [];
-  for (const t of tipos) {
-    if (OCULTOS.includes(t.codigo)) continue;
-    if (t.codigo === 'SUBELEMENTO') lista.push({ codigo: 'NATUREZA', nome: 'Natureza da Despesa' });
-    lista.push({ codigo: t.codigo, nome: t.codigo === 'SUBELEMENTO' ? 'SubElemento' : t.nome });
-  }
-  return lista;
+  const lista: Array<{ codigo: TipoClassificador | 'NATUREZA'; nome: string }> = tipos.filter((t) => !OCULTOS.includes(t.codigo))
+    .map((t) => ({ codigo: t.codigo, nome: ROTULO_NOTA[t.codigo] ?? t.nome }));
+  lista.push({ codigo: 'NATUREZA', nome: 'Natureza Despesa' });
+  const pos = (c: TipoClassificador | 'NATUREZA') => { const i = ORDEM_NOTA.indexOf(c); return i < 0 ? 99 : i; };
+  return lista.sort((a, b) => pos(a.codigo) - pos(b.codigo));
 }
 
 function ClassificadoresDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tenant[] }) {

@@ -49,6 +49,11 @@ describe('erros', () => {
     expect(traduzirErro({ code: '23505', message: 'duplicate key value violates unique constraint "tenants_cnpj_key"' }))
       .toEqual({ mensagem: 'Já existe um órgão cadastrado com esse CNPJ.', campo: 'cnpj' });
   });
+  it('duplicidade apontada pelas nossas funções mantém a mensagem clara do banco', () => {
+    expect(traduzirErro({ code: '23505', message: 'Esta dotação já está no contrato.', hint: 'acao_id' }))
+      .toEqual({ mensagem: 'Esta dotação já está no contrato.', campo: 'acao_id' });
+    expect(traduzirErro({ code: '23505', message: 'duplicate key value violates unique constraint "x_unico"' }).mensagem).toMatch(/já existe/);
+  });
   it('mantém mensagem das funções do banco e usa o hint como campo', () => {
     expect(traduzirErro({ code: '23514', message: 'Informe o motivo (mínimo de 5 caracteres).', hint: 'justificativa' }))
       .toEqual({ mensagem: 'Informe o motivo (mínimo de 5 caracteres).', campo: 'justificativa' });

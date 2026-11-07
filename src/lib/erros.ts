@@ -54,7 +54,8 @@ export function traduzirErro(e: unknown): ErroApp {
   const msg = err.message ?? String(e);
 
   const restricao = msg.match(/constraint "([^"]+)"/)?.[1];
-  if (err.code === '23505' || /duplicate key/.test(msg)) {
+  // duplicidade detectada pelo Postgres (índice único) vira mensagem amigável; as das nossas funções já são claras
+  if (/duplicate key/.test(msg) || (err.code === '23505' && restricao)) {
     return (restricao && UNICOS[restricao]) || { mensagem: 'Este registro já existe (dado duplicado).' };
   }
   if (err.code === '23514' && restricao && CHECAGENS[restricao]) return CHECAGENS[restricao];

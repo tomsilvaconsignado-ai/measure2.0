@@ -37,6 +37,8 @@ export default async function ({ as, check, expectOk, expectFail, one, u, A }) {
   await expectFail('subelemento de outra natureza é recusado', u.adminCoinfra, `SELECT adicionar_dotacao_contrato($1)`,
     [JSON.stringify({ ...base, subelemento_id: await cl('SUBELEMENTO', '16', '39') })], /não pertence/);
   await expectFail('perfil de consulta não altera dotações do contrato', u.dirAdm, `SELECT adicionar_dotacao_contrato($1)`, [JSON.stringify(base)], /permissão/);
+  await expectFail('ação sem programa escolhido: o programa dela entra na comparação e a dotação não se repete', u.adminCoinfra, `SELECT adicionar_dotacao_contrato($1)`,
+    [JSON.stringify({ ...base, exercicio: 2027, programa_id: null, acao_id: await cl('ACAO', '2091') })], /já está no contrato/);
   const de = (await val(u.adminCoinfra, `SELECT dotacao_do_empenho($1) id`, [JSON.stringify({ ...base, exercicio: 2026 })])).id;
   check(de === d1, 'o empenho com as mesmas classificações usa a dotação já formada no contrato');
   await expectOk('empenho gravado com a dotação do contrato', u.adminCoinfra, `INSERT INTO empenhos (tenant_id, contrato_id, numero, ano, data_empenho, valor, classificacao_id)

@@ -6,7 +6,7 @@ import { useSessao } from '@/auth/Sessao';
 import { BuscaSelect } from '@/components/ui/BuscaSelect';
 import { Selecao } from '@/components/ui/basicos';
 import type { DotacaoDoContrato, TipoClassificador } from '@/lib/tipos';
-import { buscarClassificadoresOrgao, classificacaoDaDotacao, naturezasDoOrgao, type NaturezaDoCatalogo } from '@/services/cadastros';
+import { buscarClassificadoresOrgao, classificacaoDaDotacao, naturezasDoOrgao, obterClassificadores, type NaturezaDoCatalogo } from '@/services/cadastros';
 
 export type CampoClassificacao = 'unidade_orcamentaria_id' | 'funcao_id' | 'subfuncao_id' | 'programa_id' | 'acao_id' | 'subelemento_id' | 'fonte_id'
   | 'codigo_acompanhamento_id' | 'id_uso_id' | 'idoc_id' | 'resultado_primario_id' | 'subfonte_id';
@@ -17,6 +17,10 @@ export interface ValorClassificacao {
   natureza: Natureza | null;
 }
 export const classificacaoVazia: ValorClassificacao = { campos: {}, natureza: null };
+
+// fora do componente: as opções das buscas ficam em cache e a janela pode abrir de novo sem nova busca
+const naturezas = new Map<string, Natureza>();
+const paiDaAcao = new Map<string, string | null>();
 
 // ordem e nomes do quadro CLASSIFICAÇÃO da nota de empenho
 const LINHAS: Array<{ campo: CampoClassificacao | 'natureza'; rotulo: string; tipo?: TipoClassificador; obrigatorio?: boolean }> = [
@@ -57,7 +61,6 @@ export function ClassificacaoEmpenho({ valor, aoMudar, dotacaoInicial, dotacoesC
   const { orgao } = useSessao();
   const [modelo, setModelo] = useState<string | null>(dotacaoInicial ?? null);
   useEffect(() => setModelo(dotacaoInicial ?? null), [dotacaoInicial]);
-  const naturezas = useRef(new Map<string, Natureza>());
   const carregada = useQuery({
     queryKey: ['classificacao-dotacao', modelo], enabled: !!modelo,
     queryFn: async (): Promise<ValorClassificacao> => {
@@ -78,10 +81,24 @@ export function ClassificacaoEmpenho({ valor, aoMudar, dotacaoInicial, dotacoesC
   });
   useEffect(() => { if (carregada.data) aoMudar(carregada.data); }, [carregada.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const muda = (campo: CampoClassificacao, item: { id: string; rotulo: string } | null) => {
-    const campos = { ...valor.campos, [campo]: item ?? undefined };
+  // valor mais recente: completar o programa depois da consulta não pode desfazer o que foi escolhido nesse meio-tempo
+  const atual = useRef(valor);
+  atual.current = valor;
+  const muda = async (campo: CampoClassificacao, item: { id: string; rotulo: string } | null) => {
+    const campos = { ...atual.current.campos, [campo]: item ?? undefined };
     if (!item) delete campos[campo];
-    aoMudar({ ...valor, campos });
+    const novo = { ...atual.current, campos };
+    atual.current = novo;
+    aoMudar(novo);
+    // a ação ligada a um programa traz o programa junto
+    const pai = campo === 'acao_id' && item ? paiDaAcao.get(item.id) : null;
+    if (pai && !campos.programa_id) {
+      const [p] = await obterClassificadores([pai]);
+      const agora = atual.current;
+      if (p && agora.campos.acao_id?.id === item!.id && !agora.campos.programa_id) {
+        aoMudar({ ...agora, campos: { ...agora.campos, programa_id: { id: p.id, rotulo: `${p.codigo} ${p.descricao}` } } });
+      }
+    }
   };
   const nat6 = valor.natureza?.codigo.slice(0, 6) ?? '';
 
@@ -101,20 +118,22 @@ export function ClassificacaoEmpenho({ valor, aoMudar, dotacaoInicial, dotacoesC
             rotuloValor={valor.natureza ? `${valor.natureza.codigo} ${valor.natureza.descricao}` : null} chave={['naturezas', orgao?.id]}
             placeholder="Ex.: 33903900 ou Outros Serviços de Terceiros"
             aoMudar={(v) => {
-              const n = v ? naturezas.current.get(v) ?? null : null;
+              const n = v ? naturezas.get(v) ?? null : null;
               // trocar a natureza limpa o subelemento (ele pertence ao elemento)
-              const campos = { ...valor.campos }; delete campos.subelemento_id;
-              aoMudar({ campos, natureza: n });
+              const campos = { ...atual.current.campos }; delete campos.subelemento_id;
+              atual.current = { campos, natureza: n };
+              aoMudar(atual.current);
             }}
-            buscar={async (t) => (await naturezasDoOrgao(orgao!.id, t)).map((n) => { naturezas.current.set(chaveNatureza(n), n); return { valor: chaveNatureza(n), rotulo: `${n.codigo} ${n.descricao}` }; })} />
+            buscar={async (t) => (await naturezasDoOrgao(orgao!.id, t)).map((n) => { naturezas.set(chaveNatureza(n), n); return { valor: chaveNatureza(n), rotulo: `${n.codigo} ${n.descricao}` }; })} />
         ) : (
           <BuscaSelect key={l.campo} rotulo={l.rotulo} obrigatorio={l.obrigatorio} valor={valor.campos[l.campo]?.id ?? null} rotuloValor={valor.campos[l.campo]?.rotulo ?? null}
             chave={['classificadores-opcoes', orgao?.id, l.tipo, l.campo === 'subelemento_id' ? valor.natureza?.elemento_id : l.campo === 'acao_id' ? valor.campos.programa_id?.id : null]}
             desabilitado={l.campo === 'subelemento_id' && !valor.natureza}
             placeholder={l.campo === 'subelemento_id' && !valor.natureza ? 'Escolha antes a natureza da despesa' : 'Código ou descrição'}
-            aoMudar={(v, o) => muda(l.campo as CampoClassificacao, v && o ? { id: v, rotulo: o.rotulo } : null)}
+            aoMudar={(v, o) => void muda(l.campo as CampoClassificacao, v && o ? { id: v, rotulo: o.rotulo } : null)}
             buscar={async (t) => (await buscarClassificadoresOrgao(orgao!.id, l.tipo!, t, l.campo === 'subelemento_id' ? valor.natureza?.elemento_id : null))
               .filter((c) => l.campo !== 'acao_id' || !valor.campos.programa_id || !c.pai_id || c.pai_id === valor.campos.programa_id.id)
+              .map((c) => { if (l.campo === 'acao_id') paiDaAcao.set(c.id, c.pai_id); return c; })
               .map((c) => ({ valor: c.id, rotulo: `${l.campo === 'subelemento_id' ? `${nat6}${c.codigo.padStart(2, '0')}` : c.codigo} ${c.descricao}` }))} />
         ))}
       </div>
