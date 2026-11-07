@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MailPlus, MoreHorizontal, Plus, Search, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
+import { Mail, MailPlus, MoreHorizontal, Plus, Search, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -8,6 +8,7 @@ import { BuscaSelect } from '@/components/ui/BuscaSelect';
 import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
+import { supabase } from '@/lib/supabase';
 import { TIPOS_UNIDADE, type Papel, type UsuarioListado } from '@/lib/tipos';
 import {
   buscarUnidades, catalogoPermissoes, convidarUsuario, definirAdminPlataforma, definirStatusUsuario, definirStatusVinculo,
@@ -83,15 +84,65 @@ function FormAcesso({ aberto, aoFechar, emailInicial }: { aberto: boolean; aoFec
   );
 }
 
+/** Convite em lote para quem ainda não acessou (ex.: contas migradas): um e-mail por pessoa, um de cada vez */
+function ConviteEmLote({ aberto, aoFechar, pendentes }: { aberto: boolean; aoFechar: () => void; pendentes: UsuarioListado[] }) {
+  const [enviando, setEnviando] = useState(false);
+  const [feitos, setFeitos] = useState(0);
+  const [falhas, setFalhas] = useState<string[]>([]);
+  useEffect(() => { if (aberto) { setFeitos(0); setFalhas([]); } }, [aberto]);
+  const enviar = async () => {
+    setEnviando(true);
+    const erros: string[] = [];
+    for (const [i, u] of pendentes.entries()) {
+      try { await reenviarAcesso(u.id); }
+      catch (e) { erros.push(`${u.email}: ${traduzirErro(e).mensagem}`); }
+      setFeitos(i + 1);
+      await new Promise((r) => setTimeout(r, 1200)); // respeita o limite de envio do servidor de e-mail
+    }
+    setFalhas(erros);
+    setEnviando(false);
+    if (!erros.length) { toast.success(`Convite enviado para ${pendentes.length} pessoa(s).`); aoFechar(); }
+  };
+  return (
+    <Modal aberto={aberto} aoFechar={() => !enviando && aoFechar()} titulo="Enviar convite a quem ainda não acessou"
+      descricao="Cada pessoa recebe um e-mail com o link para criar a senha e entrar. O link vale por 1 hora; depois é só reenviar."
+      rodape={<><Botao variante="secundario" onClick={aoFechar} disabled={enviando}>{falhas.length ? 'Fechar' : 'Cancelar'}</Botao>
+        {!falhas.length && <Botao icone={<Mail className="size-4" />} carregando={enviando} disabled={!pendentes.length} onClick={() => void enviar()}>
+          {enviando ? `Enviando ${feitos} de ${pendentes.length}…` : `Enviar ${pendentes.length} convite(s)`}</Botao>}</>}>
+      {pendentes.length === 0 ? <p className="text-sm text-slate-600">Todas as pessoas desta lista já acessaram o sistema.</p> : (
+        <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 text-sm">
+          {pendentes.map((u, i) => (
+            <li key={u.id} className="flex items-center justify-between gap-2 px-3 py-2">
+              <span className="min-w-0"><span className="block truncate font-medium text-slate-900">{u.nome || '(sem nome)'}</span><span className="block truncate text-xs text-slate-500">{u.email}</span></span>
+              {i < feitos && <Selo tom={falhas.some((f) => f.startsWith(u.email)) ? 'perigo' : 'sucesso'}>{falhas.some((f) => f.startsWith(u.email)) ? 'Falhou' : 'Enviado'}</Selo>}
+            </li>))}
+        </ul>)}
+      {falhas.length > 0 && <div className="mt-3"><CaixaErro mensagem={`Não foi possível enviar para ${falhas.length}: ${falhas.join(' · ')}`} /></div>}
+    </Modal>
+  );
+}
+
 type Acao = { tipo: 'vinculo'; usuario: UsuarioListado; vinculoId: string; ativo: boolean; rotulo: string }
   | { tipo: 'conta'; usuario: UsuarioListado } | { tipo: 'plataforma'; usuario: UsuarioListado };
 
 export function Usuarios() {
-  const { orgao, pode, ehPlataforma, contexto } = useSessao();
+  const { orgao, pode, ehPlataforma, contexto, foco } = useSessao();
   const qc = useQueryClient();
   const [busca, setBusca] = useState('');
   const [buscaAtrasada, setBuscaAtrasada] = useState('');
   const [papel, setPapel] = useState<Papel | ''>('');
+  // coordenação: começa na escolhida no topo (quando houver) e pode ser trocada aqui
+  const [coordenacao, setCoordenacao] = useState(foco?.unidade_id ?? '');
+  useEffect(() => { setCoordenacao(foco?.unidade_id ?? ''); setPagina(0); }, [foco?.unidade_id]);
+  const [emLote, setEmLote] = useState<UsuarioListado[] | null>(null);
+  const coordenacoes = useQuery({
+    queryKey: ['coordenacoes-foco', orgao?.id], enabled: !!orgao, staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('coordenacoes_para_foco', { p_tenant: orgao!.id });
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string; sigla: string | null; diretoria: string | null }>;
+    },
+  });
   const [situacao, setSituacao] = useState<'ATIVOS' | 'INATIVOS' | 'TODOS'>('ATIVOS');
   const [pagina, setPagina] = useState(0);
   const [convidando, setConvidando] = useState<{ email?: string } | null>(null);
@@ -101,8 +152,8 @@ export function Usuarios() {
   useEffect(() => { const t = setTimeout(() => { setBuscaAtrasada(busca); setPagina(0); }, 300); return () => clearTimeout(t); }, [busca]);
 
   const q = useQuery({
-    queryKey: ['usuarios', orgao?.id, buscaAtrasada, papel, situacao, pagina],
-    queryFn: () => listarUsuarios({ tenantId: orgao!.id, busca: buscaAtrasada, papel: papel || null, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
+    queryKey: ['usuarios', orgao?.id, buscaAtrasada, papel, coordenacao, situacao, pagina],
+    queryFn: () => listarUsuarios({ tenantId: orgao!.id, busca: buscaAtrasada, papel: papel || null, unidadeId: coordenacao || null, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
     enabled: !!orgao && pode('usuarios', 'ler'),
     placeholderData: (anterior) => anterior,
   });
@@ -115,19 +166,37 @@ export function Usuarios() {
   if (!orgao) return <SemPermissao texto="Escolha um órgão para ver os usuários." />;
   if (!pode('usuarios', 'ler')) return <SemPermissao />;
   const podeCriar = pode('usuarios', 'criar');
-  const filtrosAtivos = !!(busca || papel || situacao !== 'ATIVOS');
+  const filtrosAtivos = !!(busca || papel || coordenacao || situacao !== 'ATIVOS');
+  const meuId = contexto?.perfil?.id;
+  // pendentes da lista filtrada (até 100 por vez): contas ativas que nunca entraram
+  const abrirEmLote = async () => {
+    try {
+      const r = await listarUsuarios({ tenantId: orgao.id, busca: buscaAtrasada, papel: papel || null, unidadeId: coordenacao || null, situacao: 'ATIVOS', limite: 100, offset: 0 });
+      setEmLote(r.itens.filter((u) => !u.ultimo_acesso && u.ativo && u.id !== meuId));
+    } catch (e) { toast.error(traduzirErro(e).mensagem); }
+  };
 
   return (
     <>
       <CabecalhoPagina titulo="Usuários e acessos" descricao={`Pessoas com vínculo em ${orgao.nome_curto}, conforme o seu escopo.`}
-        acoes={podeCriar && <Botao icone={<UserPlus className="size-4" />} onClick={() => setConvidando({})}>Convidar usuário</Botao>} />
+        acoes={podeCriar && <>
+          <Botao variante="secundario" icone={<Mail className="size-4" />} onClick={() => void abrirEmLote()}>Convidar quem não acessou</Botao>
+          <Botao icone={<UserPlus className="size-4" />} onClick={() => setConvidando({})}>Convidar usuário</Botao>
+        </>} />
       <Cartao>
-        <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_12rem_10rem_auto] sm:items-end">
+        <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_14rem_12rem_10rem_auto] sm:items-end">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm" placeholder="Buscar por nome ou e-mail"
               value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar usuário" />
           </div>
+          {(coordenacoes.data?.length ?? 0) > 1 ? (
+            <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={coordenacao} aria-label="Filtrar por coordenação"
+              onChange={(e) => { setCoordenacao(e.target.value); setPagina(0); }}>
+              <option value="">Todas as coordenações</option>
+              {coordenacoes.data!.map((c) => <option key={c.id} value={c.id}>{[c.diretoria, c.sigla].filter(Boolean).join(' · ') || c.nome}</option>)}
+            </select>
+          ) : <span className="hidden sm:block" />}
           <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={papel} aria-label="Filtrar por papel"
             onChange={(e) => { setPapel(e.target.value as Papel); setPagina(0); }}>
             <option value="">Todos os papéis</option>
@@ -137,7 +206,7 @@ export function Usuarios() {
             onChange={(e) => { setSituacao(e.target.value as typeof situacao); setPagina(0); }}>
             <option value="ATIVOS">Ativos</option><option value="INATIVOS">Suspensos</option><option value="TODOS">Todos</option>
           </select>
-          {filtrosAtivos && <Botao variante="fantasma" onClick={() => { setBusca(''); setPapel(''); setSituacao('ATIVOS'); setPagina(0); }}>Limpar filtros</Botao>}
+          {filtrosAtivos && <Botao variante="fantasma" onClick={() => { setBusca(''); setPapel(''); setCoordenacao(''); setSituacao('ATIVOS'); setPagina(0); }}>Limpar filtros</Botao>}
         </div>
 
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> :
@@ -194,6 +263,7 @@ export function Usuarios() {
       </Cartao>
 
       <FormAcesso aberto={!!convidando} aoFechar={() => setConvidando(null)} emailInicial={convidando?.email} />
+      <ConviteEmLote aberto={!!emLote} aoFechar={() => setEmLote(null)} pendentes={emLote ?? []} />
       <ConfirmarComMotivo aberto={!!acao} aoFechar={() => setAcao(null)}
         perigo={acao?.tipo === 'vinculo' ? acao.ativo : acao?.tipo === 'conta' ? acao.usuario.ativo : !acao?.usuario.is_platform_admin}
         minimo={acao?.tipo === 'plataforma' ? 10 : (acao?.tipo === 'vinculo' ? acao.ativo : acao?.usuario.ativo) ? 5 : 0}
