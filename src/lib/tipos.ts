@@ -306,13 +306,14 @@ export interface Reforco { id: string; empenho_id: string; numero: string | null
 export type StatusPagamento = 'PENDENTE' | 'PARCIAL' | 'PAGO' | 'CANCELADA';
 
 export interface NotaResumo {
-  id: string; tenant_id: string; contrato_id: string; empenho_id: string; unidade_id: string; fornecedor_id: string;
+  id: string; tenant_id: string; contrato_id: string; empenho_id: string | null; unidade_id: string; fornecedor_id: string;
   numero: string; serie: string | null; data_emissao: string; data_inclusao: string; processo_administrativo: string | null;
   valor: Decimal; tipo_servico_id: string | null; periodo_inicio: string | null; periodo_fim: string | null; observacoes: string | null;
   status_atesto: 'PENDENTE' | 'ATESTADA'; status_pagamento: StatusPagamento; excecao_saldo: string | null;
   cancelada_em: string | null; motivo_cancelamento: string | null;
   contrato_numero: string; contrato_objeto: string; fornecedor_nome: string; fornecedor_documento: string;
-  empenho_numero: string; empenho_ano: number; tipo_servico_nome: string | null; pago: Decimal; meses_referencia: string | null; sou_designado: boolean;
+  /** nulos nas notas migradas do sistema anterior sem empenho (completadas depois) */
+  empenho_numero: string | null; empenho_ano: number | null; tipo_servico_nome: string | null; pago: Decimal; meses_referencia: string | null; sou_designado: boolean;
   /** designado no contrato ou quem lançou a nota (se o órgão permitir) */
   posso_atestar: boolean; atestado_em: string | null; retido: Decimal;
 }
@@ -327,7 +328,7 @@ export interface Atesto { id: string; nota_id: string; servidor_id: string; pape
 
 /** Nota atestada aguardando pagamento, na fila da ordem cronológica (por fonte de recurso) */
 export interface ItemFilaPagamento {
-  nota_id: string; numero: string; serie: string | null; fornecedor_nome: string; contrato_numero: string; empenho: string;
+  nota_id: string; numero: string; serie: string | null; fornecedor_nome: string; contrato_numero: string; empenho: string | null;
   valor: Decimal; pago: Decimal; restante: Decimal; status_pagamento: StatusPagamento; atestado_em: string; dias_aguardando: number;
   fonte_id: string; fonte: string; posicao: number; unidade_id: string;
 }

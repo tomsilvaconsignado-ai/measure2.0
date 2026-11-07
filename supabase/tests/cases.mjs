@@ -256,4 +256,5 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
   await (await import('./cases-classificacoes.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-foco.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-fornecedores-coordenacao.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
+  await (await import('./cases-notas-sem-empenho.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
 }

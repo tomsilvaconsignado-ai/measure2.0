@@ -251,7 +251,7 @@ function ListaNotas({ c }: { c: ContratoResumo }) {
       {q.data.itens.map((n) => (
         <li key={n.id} className={cx('flex flex-wrap items-center gap-2 py-2.5 text-sm', n.cancelada_em && 'opacity-50')}>
           <Link to={`/notas?ver=${n.id}`} className="font-medium text-marca-700 hover:underline">NF {n.numero}</Link>
-          <span className="text-slate-500">{formatarData(n.data_emissao)} · Emp. {n.empenho_numero}/{n.empenho_ano} · {n.meses_referencia}</span>
+          <span className="text-slate-500">{formatarData(n.data_emissao)} · {n.empenho_numero ? `Emp. ${n.empenho_numero}/${n.empenho_ano}` : 'Sem empenho'} · {n.meses_referencia}</span>
           <span className="numero ml-auto font-medium">{brl(n.valor)}</span>
           {!n.cancelada_em && <SeloAtesto status={n.status_atesto} />}<SeloPagamento status={n.status_pagamento} />
         </li>

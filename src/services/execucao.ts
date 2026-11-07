@@ -255,6 +255,11 @@ export async function cancelarPagamento(id: string, motivo: string) {
   falhou(await supabase.rpc('cancelar_pagamento', { p_pagamento: id, p_motivo: motivo }));
 }
 
+/** Completa o empenho de nota migrada sem empenho (saldo insuficiente exige justificativa e permissão de aprovar) */
+export async function vincularEmpenhoNota(notaId: string, empenhoId: string, justificativa?: string) {
+  falhou(await supabase.rpc('vincular_empenho_nota', { p_nota: notaId, p_empenho: empenhoId, p_justificativa: justificativa || null }));
+}
+
 export async function cancelarNota(id: string, motivo: string) {
   falhou(await supabase.rpc('cancelar_nota', { p_nota: id, p_motivo: motivo }));
 }

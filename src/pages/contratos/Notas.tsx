@@ -16,7 +16,7 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
+  atestarNota, cancelarNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
@@ -285,6 +285,33 @@ function ResumoContrato({ c }: { c: ContratoResumo }) {
   );
 }
 
+// Nota migrada do sistema anterior sem empenho: escolha o empenho do contrato para completá-la
+function VincularEmpenho({ nota, podeEditar, aoVincular }: { nota: NotaResumo; podeEditar: boolean; aoVincular: () => Promise<void> }) {
+  const [empenho, setEmpenho] = useState<{ id: string; rotulo: string } | null>(null);
+  const [justificativa, setJustificativa] = useState('');
+  const [pedeJustificativa, setPedeJustificativa] = useState(false);
+  const vincular = useMutation({
+    mutationFn: () => vincularEmpenhoNota(nota.id, empenho!.id, justificativa),
+    onSuccess: async () => { await aoVincular(); toast.success(`Empenho ${empenho!.rotulo} vinculado à nota.`); },
+    onError: (e) => { const t = traduzirErro(e); if (t.campo === 'justificativa') setPedeJustificativa(true); toast.error(t.mensagem); },
+  });
+  return (
+    <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+      <p className="font-medium">Nota migrada do sistema anterior sem empenho.</p>
+      {podeEditar ? <>
+        <p className="mt-0.5 text-amber-900">Escolha o empenho do contrato {nota.contrato_numero} para completar o cadastro. Se o empenho ainda não existe, cadastre-o primeiro em Empenhos.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <SeletorEmpenho contratoId={nota.contrato_id} valor={empenho?.id ?? null} rotuloValor={empenho?.rotulo}
+            aoMudar={(v, o) => setEmpenho(v && o ? { id: v, rotulo: o.rotulo } : null)} />
+          <Botao disabled={!empenho} carregando={vincular.isPending} onClick={() => vincular.mutate()}>Vincular empenho</Botao>
+        </div>
+        {pedeJustificativa && <AreaTexto className="mt-2" rotulo="Justificativa da exceção de saldo" value={justificativa} onChange={(e) => setJustificativa(e.target.value)}
+          ajuda="O valor da nota passa do saldo do empenho. Só quem pode aprovar exceções conclui o vínculo." />}
+      </> : <p className="mt-0.5 text-amber-900">Quem administra as notas da coordenação pode completar o empenho.</p>}
+    </div>
+  );
+}
+
 function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void }) {
   const { orgao, pode } = useSessao();
   const qc = useQueryClient();
@@ -318,7 +345,9 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
           <span className="numero text-xl font-semibold">{brl(n.valor)}</span>
           {n.cancelada_em ? <Selo tom="perigo">Cancelada: {n.motivo_cancelamento}</Selo> : <><SeloAtesto status={n.status_atesto} /><SeloPagamento status={n.status_pagamento as StatusPagamento} /></>}
           {n.excecao_saldo && <Selo tom="alerta">Exceção de saldo</Selo>}
+          {!n.empenho_id && <Selo tom="alerta">Sem empenho</Selo>}
         </div>
+        {!n.empenho_id && <VincularEmpenho nota={n} podeEditar={pode('notas_fiscais', 'editar')} aoVincular={invalidar} />}
         {(falta.atesto || falta.pagamento) && aba !== (falta.atesto ? 'atesto' : 'pagamentos') && (
           <button onClick={() => setAba(falta.atesto ? 'atesto' : 'pagamentos')} className="mb-3 flex w-full items-center gap-2 rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-left text-sm text-amber-950 hover:bg-amber-100">
             <AlertTriangle className="size-4 shrink-0" /><span className="flex-1">{falta.atesto ? 'Esta nota aguarda o seu atesto.' : 'Nota atestada aguardando a baixa do pagamento.'}</span><span className="font-medium">{falta.atesto ? 'Atestar →' : 'Dar baixa →'}</span>
@@ -327,7 +356,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
         {aba === 'dados' && <dl className="grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-xs text-slate-500">Data da nota</dt><dd>{formatarData(n.data_emissao)}</dd></div>
           <div><dt className="text-xs text-slate-500">Incluída em</dt><dd>{formatarDataHora(n.data_inclusao)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Empenho</dt><dd>{n.empenho_numero}/{n.empenho_ano}</dd></div>
+          <div><dt className="text-xs text-slate-500">Empenho</dt><dd>{n.empenho_numero ? `${n.empenho_numero}/${n.empenho_ano}` : <span className="font-medium text-amber-700">Sem empenho</span>}</dd></div>
           <div><dt className="text-xs text-slate-500">Processo</dt><dd>{n.processo_administrativo ?? '—'}</dd></div>
           <div><dt className="text-xs text-slate-500">Meses de referência</dt><dd>{n.meses_referencia}</dd></div>
           <div><dt className="text-xs text-slate-500">Período</dt><dd>{n.periodo_inicio ? `${formatarData(n.periodo_inicio)} a ${formatarData(n.periodo_fim)}` : '—'}</dd></div>
@@ -437,7 +466,7 @@ export function Notas() {
           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">NF {n.numero}{n.serie ? `-${n.serie}` : ''}<span className="font-normal text-slate-500">· {n.fornecedor_nome}</span>
             {n.posso_atestar && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="alerta">Aguardando o seu atesto</Selo>}
             {podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO' && !n.cancelada_em && <Selo tom="alerta">Aguardando baixa</Selo>}</span>
-          <span className="block truncate text-sm text-slate-600">Contrato {n.contrato_numero} · Empenho {n.empenho_numero}/{n.empenho_ano} · Ref. {n.meses_referencia}</span>
+          <span className="block truncate text-sm text-slate-600">Contrato {n.contrato_numero} · {n.empenho_numero ? `Empenho ${n.empenho_numero}/${n.empenho_ano}` : <span className="font-medium text-amber-700">Sem empenho</span>} · Ref. {n.meses_referencia}</span>
           <span className="block text-xs text-slate-500">Emitida em {formatarData(n.data_emissao)}{n.processo_administrativo ? ` · Proc. ${n.processo_administrativo}` : ''}</span>
         </span>
         <span className="flex flex-wrap items-center gap-2 sm:justify-end">

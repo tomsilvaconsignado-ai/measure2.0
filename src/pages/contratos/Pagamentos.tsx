@@ -67,7 +67,7 @@ function Fila() {
                   <tr key={r.nota_id}>
                     <td className="px-2 py-2"><span className={r.posicao === 1 ? 'inline-flex size-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white' : 'inline-flex size-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700'}>{r.posicao}º</span></td>
                     <td className="px-2 py-2"><Link to={`/notas?ver=${r.nota_id}`} className="font-medium text-marca-700 hover:underline">{rotuloNota(r)}</Link>
-                      <span className="block text-xs text-slate-500">Empenho {r.empenho}</span></td>
+                      <span className="block text-xs text-slate-500">{r.empenho ? `Empenho ${r.empenho}` : 'Sem empenho'}</span></td>
                     <td className="px-2 py-2">{r.fornecedor_nome}<span className="block text-xs text-slate-500">Contrato {r.contrato_numero}</span></td>
                     <td className="px-2 py-2">{r.atestado_em ? <>{formatarData(r.atestado_em)}
                       <span className="block text-xs text-slate-500">{r.dias_aguardando} dia(s) aguardando{r.status_pagamento === 'PARCIAL' && ' · parcial'}</span></>
