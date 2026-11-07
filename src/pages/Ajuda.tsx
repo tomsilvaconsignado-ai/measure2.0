@@ -8,6 +8,15 @@ import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
 interface Topico { id: string; titulo: string; grupo: string; link?: string; passos: string[]; dicas?: string[] }
 
 const TOPICOS: Topico[] = [
+  { id: 'fluxo', grupo: 'Primeiros passos', titulo: 'Fluxo de trabalho: do contrato ao pagamento', link: '/', passos: [
+    '1. Contrato: em Contratos → Novo contrato, escolha o fornecedor e informe vigência e valor. A ficha do contrato abre com as "Etapas do contrato" mostrando o que falta.',
+    '2. Responsáveis e dotação: na ficha, designe gestor, fiscal e suplente e, na aba Dotação, clique em "Adicionar dotação" e escolha as classificações (o contrato pode ter várias).',
+    '3. Empenho: o botão "Lançar empenho" da etapa já abre o empenho com o contrato escolhido; preencha como na nota de empenho.',
+    '4. Nota fiscal: depois de salvar o empenho, use "Lançar nota fiscal": contrato e empenho já vêm escolhidos.',
+    '5. Atesto: o gestor, o fiscal ou o suplente (ou quem lançou, se o órgão permitir) vê a nota em destaque e atesta.',
+    '6. Pagamento: a nota atestada entra na fila de Pagamentos; dê baixa com as retenções e a data.',
+    '7. Documentos: emita o checklist da nota, os extratos e os relatórios quando precisar.',
+  ], dicas: ['O Início mostra este fluxo com as pendências de cada passo. Os botões e menus em amarelo indicam o que depende de você.'] },
   { id: 'acesso', grupo: 'Primeiros passos', titulo: 'Entrar, trocar de órgão e editar o perfil', passos: [
     'Entre com o e-mail institucional e a senha. No primeiro acesso, use o link do convite recebido por e-mail para definir a senha.',
     'Esqueceu a senha? Na tela de entrada, clique em "Esqueci minha senha" e siga o link enviado.',

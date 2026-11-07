@@ -16,7 +16,7 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
+  atestarNota, cancelarNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
@@ -59,7 +59,7 @@ function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
   );
 }
 
-function NovaNota({ aberto, aoFechar, contratoInicial, aoSalvar }: { aberto: boolean; aoFechar: () => void; contratoInicial?: string | null; aoSalvar: (id: string) => void }) {
+function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar }: { aberto: boolean; aoFechar: () => void; contratoInicial?: string | null; empenhoInicial?: string | null; aoSalvar: (id: string) => void }) {
   const { orgao, pode } = useSessao();
   const qc = useQueryClient();
   const [etapa, setEtapa] = useState<'contrato' | 'dados' | 'referencia' | 'atesto'>('contrato');
@@ -74,10 +74,24 @@ function NovaNota({ aberto, aoFechar, contratoInicial, aoSalvar }: { aberto: boo
   const [erros, setErros] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!aberto) return;
-    setEtapa('contrato'); setErros({}); setEmpenho(null); setValor(null); setMeses([]); setUnidades([]); setRatear(false);
+    // vindo do contrato ou do empenho, já começa nos dados da nota
+    setEtapa(contratoInicial ? 'dados' : 'contrato'); setErros({}); setEmpenho(empenhoInicial ? { id: empenhoInicial, rotulo: 'Empenho selecionado' } : null);
+    setValor(null); setMeses([]); setUnidades([]); setRatear(false);
     setContrato(contratoInicial ? { id: contratoInicial, rotulo: 'Contrato selecionado' } : null);
     setF({ numero: '', serie: '', data_emissao: hoje(), processo_administrativo: '', tipo_servico_id: '', periodo_inicio: '', periodo_fim: '', observacoes: '', excecao_saldo: '' });
-  }, [aberto, contratoInicial]);
+  }, [aberto, contratoInicial, empenhoInicial]);
+  // contrato com um só empenho ativo: ele já vem escolhido (e o rótulo do empenho vindo por atalho é completado)
+  const empenhosDoContrato = useQuery({
+    queryKey: ['empenhos-opcoes', orgao?.id, contrato?.id, 'auto'], enabled: aberto && !!contrato && !!orgao,
+    queryFn: () => listarEmpenhos({ tenantId: orgao!.id, contratoId: contrato!.id, situacao: 'ATIVOS', limite: 30, offset: 0 }),
+  });
+  useEffect(() => {
+    const lista = empenhosDoContrato.data?.itens ?? [];
+    if (empenho && empenho.rotulo === 'Empenho selecionado') {
+      const x = lista.find((i) => i.id === empenho.id);
+      if (x) setEmpenho({ id: x.id, rotulo: `${x.numero}/${x.ano}` });
+    } else if (!empenho && lista.length === 1) setEmpenho({ id: lista[0]!.id, rotulo: `${lista[0]!.numero}/${lista[0]!.ano}` });
+  }, [empenhosDoContrato.data, empenho]);
   const ct = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: !!contrato });
   useEffect(() => { if (ct.data && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: ct.data.id, rotulo: `${ct.data.numero} – ${ct.data.fornecedor_nome}` }); }, [ct.data, contrato]);
   useEffect(() => { if (ct.data?.processo_administrativo && !f.processo_administrativo) setF((x) => ({ ...x, processo_administrativo: ct.data!.processo_administrativo! })); }, [ct.data]); // eslint-disable-line
@@ -388,6 +402,16 @@ export function Notas() {
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(params.get('contrato') ? { id: params.get('contrato')!, rotulo: 'Contrato selecionado' } : null);
   const [pagina, setPagina] = useState(0);
   const [nova, setNova] = useState(false);
+  const [empenhoAtalho, setEmpenhoAtalho] = useState<string | null>(null);
+  // atalho vindo do contrato ou do empenho: /notas?nova=1&contrato=…&empenho=…
+  useEffect(() => {
+    if (params.get('nova') !== '1') return;
+    setEmpenhoAtalho(params.get('empenho'));
+    setNova(true);
+    setParams((p) => { const n = new URLSearchParams(p); n.delete('nova'); n.delete('empenho'); return n; }, { replace: true });
+  }, [params, setParams]);
+  const contratoAtalho = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: contrato?.rotulo === 'Contrato selecionado' });
+  useEffect(() => { const c = contratoAtalho.data; if (c && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: c.id, rotulo: `${c.numero} – ${c.fornecedor_nome}` }); }, [contratoAtalho.data, contrato]);
   const vendo = params.get('ver');
   useEffect(() => setPagina(0), [termo, filtro, contrato]);
   const filtros = { TODAS: {}, ATESTO: { atesto: 'PENDENTE' as const }, PAGAMENTO: { atesto: 'ATESTADA' as const, pagamento: 'PENDENTE' as const }, PAGAS: { pagamento: 'PAGO' as const }, CANCELADAS: { pagamento: 'CANCELADA' as const } }[filtro];
@@ -433,7 +457,7 @@ export function Notas() {
           !q.data!.itens.length ? <Vazio titulo="Nenhuma nota encontrada" /> : <ul className={cx('divide-y divide-slate-100', q.isFetching && 'opacity-70')}>{q.data!.itens.map(linha)}</ul>}
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
       </Cartao>
-      <NovaNota aberto={nova} aoFechar={() => setNova(false)} contratoInicial={contrato?.id} aoSalvar={(id) => ver(id)} />
+      <NovaNota aberto={nova} aoFechar={() => { setNova(false); setEmpenhoAtalho(null); }} contratoInicial={contrato?.id} empenhoInicial={empenhoAtalho} aoSalvar={(id) => ver(id)} />
       <DetalheNota id={vendo} aoFechar={() => ver(null)} />
     </>
   );

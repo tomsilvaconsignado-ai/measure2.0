@@ -20,6 +20,7 @@ import {
 import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
 import { FormContrato } from './Contratos';
 import { DotacoesContrato } from './DotacoesContrato';
+import { EtapasContrato } from './EtapasContrato';
 
 type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
@@ -310,6 +311,7 @@ export function ContratoDetalhe() {
           {pode('contratos', 'excluir') && <Botao variante="fantasma" icone={<Power className="size-4" />} onClick={() => setInativando(true)}>{c.ativo ? 'Inativar' : 'Reativar'}</Botao>}
         </>} />
       <div className="mb-4"><AvisoVencido c={c} /></div>
+      <EtapasContrato c={c} abaAtual={aba} irParaAba={setAba} />
       <Cartao>
         <Abas abas={[{ id: 'resumo', rotulo: 'Resumo' }, { id: 'responsaveis', rotulo: 'Responsáveis e portarias' }, { id: 'dotacao', rotulo: 'Dotação' },
           { id: 'aditivos', rotulo: `Aditivos${c.aditivos_aprovados ? ` (${c.aditivos_aprovados})` : ''}` }, { id: 'empenhos', rotulo: 'Empenhos' }, { id: 'notas', rotulo: 'Notas fiscais' },

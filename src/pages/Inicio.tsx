@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
 import { usePendencias } from '@/components/Pendencias';
+import { FluxoTrabalho } from '@/components/FluxoTrabalho';
 import { formatarDataHora } from '@/lib/formatacao';
 import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
@@ -72,6 +73,7 @@ export function Inicio() {
           <span className="font-medium">Dar baixa →</span>
         </Link>
       )}
+      <FluxoTrabalho />
       {orgao && resumo.data && (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Indicador rotulo="Unidades ativas na estrutura" valor={resumo.data.unidades} icone={<FolderTree className="size-5" />} para="/estrutura" />

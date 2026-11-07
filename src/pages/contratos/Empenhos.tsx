@@ -37,8 +37,9 @@ function Bloco({ titulo, children, className }: { titulo: string; children: Reac
 // Cadastro no formato da nota de empenho: cabeçalho, fornecedor (do contrato), classificação campo a campo,
 // licitação/processo, contrato/SD/tipo/valor e histórico.
 function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: boolean; aoFechar: () => void; empenho: EmpenhoResumo | null; contratoInicial?: string | null }) {
-  const { orgao } = useSessao();
+  const { orgao, pode } = useSessao();
   const qc = useQueryClient();
+  const navegar = useNavigate();
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(null);
   const [f, setF] = useState({ numero: '', ano: String(new Date().getFullYear()), tipo: 'ORDINARIO', data_empenho: hoje(), vigencia_fim: '', processo: '', sd: '', licitacao: '', observacoes: '' });
   const [valor, setValor] = useState<number | null>(null);
@@ -73,9 +74,12 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
         processo: f.processo.trim() || null, sd: f.sd.trim() || null, licitacao: f.licitacao.trim() || null, observacoes: f.observacoes.trim() || null,
       }, unidades.map((u) => u.id));
     },
-    onSuccess: async () => {
+    onSuccess: async (e) => {
       await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); await qc.invalidateQueries({ queryKey: ['contrato-dotacoes'] });
-      toast.success(empenho ? 'Empenho atualizado.' : 'Empenho cadastrado.'); aoFechar();
+      if (empenho) toast.success('Empenho atualizado.');
+      // próximo passo do fluxo: lançar a nota fiscal deste empenho sem escolher tudo de novo
+      else toast.success('Empenho cadastrado.', { duration: 10000, action: pode('notas_fiscais', 'criar') ? { label: 'Lançar nota fiscal', onClick: () => navegar(`/notas?nova=1&contrato=${e.contrato_id}&empenho=${e.id}`) } : undefined });
+      aoFechar();
     },
     onError: (e) => {
       const msg = (e as Error).message ?? '';
@@ -252,8 +256,16 @@ export function Empenhos() {
   const [pagina, setPagina] = useState(0);
   const [editando, setEditando] = useState<EmpenhoResumo | null | 'novo'>(null);
   const [alternando, setAlternando] = useState<EmpenhoResumo | null>(null);
+  const contratoAtalho = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: contrato?.rotulo === 'Contrato selecionado' });
+  useEffect(() => { const c = contratoAtalho.data; if (c && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: c.id, rotulo: `${c.numero} – ${c.fornecedor_nome}` }); }, [contratoAtalho.data, contrato]);
   const vendo = params.get('ver');
   useEffect(() => setPagina(0), [termo, contrato, ano, situacao]);
+  // atalho vindo do contrato: /empenhos?novo=1&contrato=…
+  useEffect(() => {
+    if (params.get('novo') !== '1') return;
+    setEditando('novo');
+    setParams((p) => { const n = new URLSearchParams(p); n.delete('novo'); return n; }, { replace: true });
+  }, [params, setParams]);
   const q = useQuery({
     queryKey: ['empenhos', orgao?.id, termo, contrato?.id, ano, situacao, pagina],
     queryFn: () => listarEmpenhos({ tenantId: orgao!.id, busca: termo, contratoId: contrato?.id, ano: /^\d{4}$/.test(ano) ? Number(ano) : null, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
