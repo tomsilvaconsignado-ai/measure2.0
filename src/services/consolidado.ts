@@ -1,5 +1,6 @@
 // Frequência mensal, consolidado de servidores, checklist da nota, cópia de segurança e registro de erros.
 import { supabase } from '@/lib/supabase';
+import { itensDeLinhas, type ItemChecklist } from '@/lib/checklist';
 import type { DocumentoEmitido } from '@/lib/tipos';
 
 function falhou<T>(r: { data: T; error: unknown }): T {
@@ -49,8 +50,22 @@ export async function listarConsolidados(tenantId: string, unidadeId: string | n
   return falhou(await q) as Array<Pick<DocumentoEmitido, 'id' | 'titulo' | 'emitido_em'> & { referencia: number }>;
 }
 
-export async function emitirChecklist(notaId: string) {
-  return falhou(await supabase.rpc('emitir_checklist_nota', { p_nota: notaId })) as string;
+export interface OpcoesChecklist { itens: ItemChecklist[]; funcionarios: string | null; nota_pendente: boolean; designacao_id: string | null }
+
+export async function emitirChecklist(notaId: string, opcoes?: OpcoesChecklist) {
+  if (!opcoes) return falhou(await supabase.rpc('emitir_checklist_nota', { p_nota: notaId })) as string;
+  return falhou(await supabase.rpc('emitir_checklist_nota', { p_nota: notaId, p_opcoes: opcoes })) as string;
+}
+
+/** Itens do checklist: os configurados pelo órgão ou o modelo padrão (com a marcação inicial) */
+export async function itensChecklist(tenantId: string) {
+  const [cfg, padrao] = await Promise.all([
+    supabase.from('tenant_configuracoes').select('textos').eq('tenant_id', tenantId).single(),
+    supabase.rpc('checklist_itens_padrao'),
+  ]);
+  const proprios = (cfg.data?.textos as Record<string, unknown> | undefined)?.checklist_modelo_itens;
+  const doOrgao = Array.isArray(proprios) ? itensDeLinhas(proprios as string[]) : [];
+  return { itens: doOrgao.length ? doOrgao : (falhou(padrao) as ItemChecklist[]), personalizados: doOrgao.length > 0 };
 }
 
 export async function exportarBackup(tenantId: string) {

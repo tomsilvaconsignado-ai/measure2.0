@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { itensDeLinhas, linhasDeItens } from './checklist';
 import { inteiroPorExtenso, mesesDeReferencia, montarAtesto, textoDecretoRenovacao, textoEncaminhamentoAtesto, valorPorExtenso } from './atesto';
 
 describe('valor por extenso', () => {
@@ -56,5 +57,14 @@ describe('textos copiáveis da nota', () => {
     expect(t).toContain('Decreto nº ________ encontra-se');
     expect(t).toContain('processo nº ________.');
     expect(t).not.toMatch(/undefined|null|\{/);
+  });
+});
+
+describe('checklist da nota', () => {
+  it('lê os itens das Configurações com a marcação inicial', () => {
+    expect(itensDeLinhas(['[X] NOTA FISCAL', 'NOTA DE EMPENHO', '  ', '[ ] FOLHA DE PONTO'])).toEqual([
+      { descricao: 'NOTA FISCAL', marca: 'SIM' }, { descricao: 'NOTA DE EMPENHO', marca: null }, { descricao: 'FOLHA DE PONTO', marca: null },
+    ]);
+    expect(linhasDeItens([{ descricao: 'NOTA FISCAL', marca: 'SIM' }, { descricao: 'GPS', marca: null }])).toEqual(['[X] NOTA FISCAL', 'GPS']);
   });
 });

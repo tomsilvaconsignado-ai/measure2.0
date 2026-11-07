@@ -87,7 +87,7 @@ const TOPICOS: Topico[] = [
     'Se o valor passar do saldo do empenho, o sistema avisa. A exceção exige justificativa e permissão.',
     'O gestor, fiscal ou suplente designado abre a nota (selo "Aguardando o seu atesto") e clica em "Atestar nota" na aba Atesto.',
     'Depois do atesto, a administração dá baixa em Pagamentos: valor bruto, retenções (ISS, IRRF, INSS, PIS/COFINS/CSLL, outras), data e OB. O líquido é calculado na hora. A fila segue a ordem cronológica por fonte de recurso; pagar fora da ordem exige justificativa. Pagamento menor que o valor deixa a nota como "Parcial".',
-    'Na aba Documentos, clique em "Emitir checklist" para gerar a conferência da nota em PDF e anexe os comprovantes.',
+    'Na aba Documentos, clique em "Emitir checklist": o formulário de análise dos documentos da nota (modelo da SMS) já vem com contrato, unidade, contratada, contato, serviço, período, nota, valor e mês de referência. Confira os itens SIM/NÃO (já marcados como no modelo), a declaração de nota pendente e quem assina (fiscal por padrão; troque para gestor ou suplente se precisar). Depois imprima ou salve em PDF e anexe os comprovantes.',
     'Na aba Atesto, em "Textos para copiar": depois do atesto, use "Copiar texto do atesto" para encaminhar a nota ao financeiro; e, escolhendo um decreto do órgão, copie o texto "Decreto em renovação" já com o número do processo do contrato.',
   ] },
   { id: 'os', grupo: 'Contratos e execução', titulo: 'Ordens de serviço', link: '/ordens-servico', passos: [

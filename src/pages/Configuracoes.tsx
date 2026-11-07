@@ -8,7 +8,8 @@ import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarCep, formatarCnpj, formatarTelefone } from '@/lib/formatacao';
 import { enviarLogoOrgao, obterConfiguracoes, obterOrgao, salvarConfiguracoes, urlArquivo } from '@/services/api';
 import { VARIAVEIS_ATESTO } from '@/lib/atesto';
-import { exportarBackup } from '@/services/consolidado';
+import { exportarBackup, itensChecklist } from '@/services/consolidado';
+import { linhasDeItens } from '@/lib/checklist';
 import { FormOrgao } from './plataforma/Orgaos';
 
 const texto = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
@@ -51,7 +52,7 @@ export function Configuracoes() {
     setConsolidadoTitulo(texto(cfg.data.textos?.consolidado_titulo));
     setAssinaturas(lista(cfg.data.textos?.consolidado_assinaturas));
     setChecklistTitulo(texto(cfg.data.textos?.checklist_titulo));
-    setChecklistItens(lista(cfg.data.textos?.checklist_itens));
+    setChecklistItens(lista(cfg.data.textos?.checklist_modelo_itens));
   }, [cfg.data]);
 
   const enviarLogo = useMutation({
@@ -85,7 +86,7 @@ export function Configuracoes() {
           ...(cfg.data?.textos ?? {}), atesto: textoAtesto.trim(), decreto: decreto.trim(),
           consolidado_titulo: consolidadoTitulo.trim(), checklist_titulo: checklistTitulo.trim(),
           // listas vazias voltam ao padrão do sistema
-          consolidado_assinaturas: linhas(assinaturas).length ? linhas(assinaturas) : '', checklist_itens: linhas(checklistItens).length ? linhas(checklistItens) : '',
+          consolidado_assinaturas: linhas(assinaturas).length ? linhas(assinaturas) : '', checklist_modelo_itens: linhas(checklistItens).length ? linhas(checklistItens) : '',
         }).filter(([, v]) => v !== '')),
       });
     },
@@ -166,10 +167,15 @@ export function Configuracoes() {
             <AreaTexto rotulo="Assinaturas do consolidado" value={assinaturas} onChange={(e) => setAssinaturas(e.target.value)} disabled={!podeEditar} rows={2}
               placeholder={'Chefe Imediato\nCoordenador(a)'} ajuda="Uma assinatura por linha." />
             <Campo rotulo="Título do checklist da nota fiscal" value={checklistTitulo} onChange={(e) => setChecklistTitulo(e.target.value)} disabled={!podeEditar}
-              maxLength={150} placeholder="CHECKLIST DE NOTA FISCAL" />
-            <AreaTexto rotulo="Itens de conferência documental do checklist" value={checklistItens} onChange={(e) => setChecklistItens(e.target.value)} disabled={!podeEditar} rows={4}
-              placeholder={'Nota fiscal emitida com os dados do órgão contratante\nCertidões de regularidade fiscal e trabalhista válidas\n...'}
-              ajuda="Um item por linha, para marcação Sim/Não. As conferências automáticas (vigência, saldo, atesto, pagamento) entram sempre." />
+              maxLength={150} placeholder="FORMULÁRIO PARA ANÁLISE DOS DOCUMENTOS QUE DEVEM ACOMPANHAR NOTA FISCAL DE PRESTAÇÃO DE SERVIÇOS CONTINUADOS"
+              ajuda="Vazio = título do modelo da SMS (formulário de serviços continuados)." />
+            <div>
+              <AreaTexto rotulo="Itens do checklist da nota fiscal" value={checklistItens} onChange={(e) => setChecklistItens(e.target.value)} disabled={!podeEditar} rows={8}
+                placeholder="Vazio = os 20 itens do modelo da SMS (solicitação de pagamento, nota fiscal, GPS, GRF, certidões, RANFS…)"
+                ajuda='Um item por linha, na ordem do formulário. Comece a linha com "[X] " para o item já vir marcado SIM; na emissão dá para mudar.' />
+              {podeEditar && <Botao pequeno variante="secundario" className="mt-1" onClick={() => void itensChecklist(orgao!.id).then((r) => setChecklistItens(linhasDeItens(r.itens).join('\n')))}>
+                Carregar os itens atuais para editar</Botao>}
+            </div>
             {erros.geral && <CaixaErro mensagem={erros.geral} />}
             {podeEditar && <div><Botao type="submit" carregando={salvar.isPending}>Salvar configurações</Botao></div>}
           </form>

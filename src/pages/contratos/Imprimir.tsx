@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ImagemPrivada } from '@/components/ImagemPrivada';
 import { Botao, CaixaErro, Carregando } from '@/components/ui/basicos';
 import { traduzirErro } from '@/lib/erros';
-import { brl, formatarCnpj, formatarCpf, formatarData, formatarDataHora } from '@/lib/formatacao';
+import { brl, formatarCnpj, formatarCpf, formatarData, formatarDataHora, formatarTelefone } from '@/lib/formatacao';
 import { obterEmitido } from '@/services/execucao';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -161,6 +161,61 @@ function Assinaturas({ nomes }: { nomes: string[] }) {
 }
 
 // Checklist da nota fiscal: conferências do sistema (no momento da emissão) e itens para marcação manual
+// Formulário de análise dos documentos da nota (modelo da SMS: serviços continuados)
+function ChecklistServicos({ d }: { d: D }) {
+  const n = d.nota; const f = d.fornecedor; const r = d.responsavel;
+  const c = 'border border-slate-700 px-1.5 py-1 align-top';
+  const cab = `${c} bg-sky-100`;
+  const contato = [f.contato, f.telefone ? formatarTelefone(f.telefone) : null, f.email].filter(Boolean).join(' · ');
+  const marca = (m: string | null, v: string) => (m === v ? 'X' : '-');
+  const periodo = d.periodo_inicio ? `${formatarData(d.periodo_inicio)} A ${formatarData(d.periodo_fim)}` : '';
+  return <>
+    <table className="w-full table-fixed border-collapse text-[10.5px] leading-snug">
+      <colgroup><col style={{ width: '22%' }} /><col style={{ width: '28%' }} /><col style={{ width: '22%' }} /><col style={{ width: '28%' }} /></colgroup>
+      <tbody>
+        <tr><td colSpan={4} className={`${c} bg-[#1f3864] py-1.5 text-center text-[11.5px] font-bold uppercase text-white`}>{d.titulo}</td></tr>
+        <tr><td colSpan={2} className={cab}><b>CONTRATO Nº:</b> {d.contrato.numero}</td><td colSpan={2} className={cab}><b>UNIDADE:</b> {d.unidade ?? ''}</td></tr>
+        <tr><td colSpan={2} className={c}><b>CONTRATADA:</b> {f.nome}</td><td colSpan={2} className={c}><b>CONTATO:</b> {contato}</td></tr>
+        <tr><td colSpan={4} className={c}><b>SERVIÇOS:</b> {d.contrato.objeto}</td></tr>
+        <tr><td colSpan={2} className={c}><b>FUNCIONÁRIOS Nº:</b> {d.funcionarios ?? ''}</td><td colSpan={2} className={c}><b>PERÍODO DE EXECUÇÃO DO SERVIÇO:</b> {periodo}</td></tr>
+        <tr>
+          <td className={c}><b>NOTA FISCAL Nº:</b> {n.numero}{n.serie ? `-${n.serie}` : ''}</td>
+          <td className={c}><b>DATA DA APRESENTAÇÃO DA NF:</b> {formatarData(n.apresentacao)}</td>
+          <td colSpan={2} className={c}><b>VALOR BRUTO DEVIDO:</b> {brl(n.valor)}</td>
+        </tr>
+        <tr><td colSpan={2} className={c}><b>MÊS DE REFERÊNCIA:</b> {d.meses ?? ''}</td><td colSpan={2} className={c}><b>VALOR BRUTO FATURADO:</b> {brl(n.valor)}</td></tr>
+      </tbody>
+    </table>
+    <table className="w-full table-fixed border-collapse text-[10.5px] leading-snug">
+      <colgroup><col style={{ width: '7%' }} /><col style={{ width: '79%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} /></colgroup>
+      <thead className="table-header-group"><tr className="bg-sky-100 font-bold">
+        <th className={`${c} text-center`}>ORD.</th><th className={`${c} text-center`}>ITENS</th><th className={`${c} text-center`}>SIM</th><th className={`${c} text-center`}>NÃO</th>
+      </tr></thead>
+      <tbody>
+        {(d.itens as D[]).map((i, k) => (
+          <tr key={k} className="break-inside-avoid">
+            <td className={`${c} text-center`}>{k + 1}</td><td className={c}>{i.descricao}</td>
+            <td className={`${c} text-center font-bold`}>{marca(i.marca, 'SIM')}</td><td className={`${c} text-center font-bold`}>{marca(i.marca, 'NAO')}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <table className="mt-4 w-full table-fixed break-inside-avoid border-collapse text-[10.5px] leading-snug">
+      <colgroup><col style={{ width: '60%' }} /><col style={{ width: '40%' }} /></colgroup>
+      <tbody>
+        <tr><td colSpan={2} className={c}><b>OBSERVAÇÕES: Declaro que ({d.nota_pendente ? ' ' : 'X'}) não existe ({d.nota_pendente ? 'X' : ' '}) existe posterior nota fiscal pendente de faturamento ou entrega relacionada ao mês de referência.</b></td></tr>
+        <tr>
+          <td className={c}><b>{(PAPEL_CHECKLIST[r?.papel] ?? 'FISCAL DO CONTRATO')}:</b> {r?.nome ?? ''}</td>
+          <td className={c}><b>MATRÍCULA:</b> {r?.matricula ?? ''}</td>
+        </tr>
+        <tr><td className={`${c} h-10`}><b>ASSINATURA {r?.papel === 'GESTOR' ? 'DO GESTOR' : r?.papel === 'SUPLENTE' ? 'DO SUPLENTE' : 'DO FISCAL'}:</b></td><td className={c}><b>DATA:</b></td></tr>
+      </tbody>
+    </table>
+  </>;
+}
+
+const PAPEL_CHECKLIST: Record<string, string> = { FISCAL: 'FISCAL DO CONTRATO', GESTOR: 'GESTOR DO CONTRATO', SUPLENTE: 'SUPLENTE DE FISCAL DO CONTRATO' };
+
 function ChecklistNota({ d }: { d: D }) {
   const n = d.nota; const f = d.fornecedor;
   return <>
@@ -217,11 +272,11 @@ export function Imprimir() {
           </div>
           <span className="h-16 w-16" />
         </header>
-        <h1 className="mb-4 text-center text-[14px] font-bold tracking-wide">{titulo}</h1>
+        {d.modelo !== 'SERVICOS_CONTINUADOS' && <h1 className="mb-4 text-center text-[14px] font-bold tracking-wide">{titulo}</h1>}
         {doc.tipo === 'EXTRATO_CONTRATO' && <ExtratoContrato d={d} />}
         {doc.tipo === 'EXTRATO_EMPENHO' && <ExtratoEmpenho d={d} />}
         {doc.tipo === 'CONSOLIDADO_MENSAL' && <ConsolidadoMensal d={d} />}
-        {doc.tipo === 'CHECKLIST_NOTA' && <ChecklistNota d={d} />}
+        {doc.tipo === 'CHECKLIST_NOTA' && (d.modelo === 'SERVICOS_CONTINUADOS' ? <ChecklistServicos d={d} /> : <ChecklistNota d={d} />)}
         {doc.tipo === 'ATESTO' && <p className="whitespace-pre-line text-[12px] leading-relaxed">{d.texto}</p>}
         <footer className="mt-6 border-t border-slate-300 pt-2 text-[9.5px] text-slate-600">
           {d.orgao?.rodape && <p>{d.orgao.rodape}</p>}

@@ -19,9 +19,9 @@ import {
   atestarNota, cancelarNota, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
-import { emitirChecklist } from '@/services/consolidado';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextosNota } from './TextosNota';
+import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
@@ -32,22 +32,19 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null }
 
 // Checklist (emitido na hora, com as conferências do sistema) e documentos já emitidos da nota
-function DocumentosEmitidosNota({ notaId }: { notaId: string }) {
+function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
   const navegar = useNavigate();
+  const notaId = nota.id;
   const q = useQuery({ queryKey: ['emitidos', notaId], queryFn: () => listarEmitidos(notaId) });
   const qc = useQueryClient();
-  const checklist = useMutation({
-    mutationFn: () => emitirChecklist(notaId),
-    onSuccess: async (id) => { await qc.invalidateQueries({ queryKey: ['emitidos', notaId] }); navegar(`/imprimir/${id}`); },
-    onError: (e) => toast.error(mensagemDeErro(e)),
-  });
+  const [emitindo, setEmitindo] = useState(false);
   return (
     <div className="mb-5 rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-slate-900">Documentos emitidos</p>
-        <Botao pequeno variante="secundario" icone={<ClipboardCheck className="size-4" />} carregando={checklist.isPending} onClick={() => checklist.mutate()}>Emitir checklist</Botao>
+        {!nota.cancelada_em && <Botao pequeno variante="secundario" icone={<ClipboardCheck className="size-4" />} onClick={() => setEmitindo(true)}>Emitir checklist</Botao>}
       </div>
-      {q.isLoading ? <Carregando /> : !q.data?.length ? <p className="text-xs text-slate-500">Nenhum documento emitido. O checklist registra as conferências do sistema na data da emissão.</p> : (
+      {q.isLoading ? <Carregando /> : !q.data?.length ? <p className="text-xs text-slate-500">Nenhum documento emitido. O checklist sai no formulário de análise dos documentos da nota (modelo da SMS), com os dados do sistema na data da emissão.</p> : (
         <ul className="divide-y divide-slate-100">
           {q.data.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
@@ -57,6 +54,7 @@ function DocumentosEmitidosNota({ notaId }: { notaId: string }) {
           ))}
         </ul>
       )}
+      <EmitirChecklist nota={nota} aberto={emitindo} aoFechar={() => setEmitindo(false)} aoEmitir={() => qc.invalidateQueries({ queryKey: ['emitidos', notaId] })} />
     </div>
   );
 }
@@ -365,7 +363,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
               </li>))}
           </ul>}
         </div>}
-        {aba === 'documentos' && <DocumentosEmitidosNota notaId={n.id} />}
+        {aba === 'documentos' && <DocumentosEmitidosNota nota={n} />}
         {aba === 'documentos' && <Anexos recurso="notas_fiscais" registroId={n.id} unidadeId={n.unidade_id} titulo="Nota fiscal e comprovantes" />}
       </>}
       <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={invalidar} />

@@ -72,8 +72,7 @@ export default async function ({ db, as, check, expectOk, expectFail, one, u, A,
   const nota = (await one(`SELECT id FROM notas_fiscais WHERE tenant_id = $1 AND numero = '5501'`, [A])).id;
   const ck = (await val(u.adminCoinfra, `SELECT emitir_checklist_nota($1) id`, [nota])).id;
   const dk = (await one(`SELECT dados, tipo FROM documentos_emitidos WHERE id = $1`, [ck]));
-  check(dk.tipo === 'CHECKLIST_NOTA' && dk.dados.verificacoes.length === 6 && dk.dados.itens_manuais.length === 4, 'checklist com conferências automáticas e itens manuais');
-  check(dk.dados.verificacoes[1].ok === true && dk.dados.verificacoes[4].ok === true, 'dotação vinculada e atesto conferidos');
+  check(dk.tipo === 'CHECKLIST_NOTA' && dk.dados.modelo === 'SERVICOS_CONTINUADOS' && dk.dados.itens.length === 20, 'checklist no modelo de serviços continuados (20 itens)');
   await expectFail('outro órgão não emite checklist da nota', adminC, `SELECT emitir_checklist_nota($1)`, [nota], /não encontrada/);
 
   console.log('Cópia de segurança (JSON)');
