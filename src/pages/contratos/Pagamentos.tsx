@@ -1,14 +1,14 @@
 // Pagamentos da administração: fila das notas atestadas (ordem cronológica por fonte de recurso, art. 141)
 // com a baixa (retenções e data) e a consulta dos pagamentos realizados, com exportação para Excel.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, FileSpreadsheet, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Banknote, FileSpreadsheet } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, SemPermissao, Selo, Vazio } from '@/components/ui/basicos';
+import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, PontoPendente, SemPermissao, Selo, Vazio, cx } from '@/components/ui/basicos';
 import { mensagemDeErro } from '@/lib/erros';
 import { brl, centavos, formatarCentavos, formatarData, formatarDataHora } from '@/lib/formatacao';
 import { baixarExcel } from '@/lib/planilhas';
@@ -69,15 +69,14 @@ function Fila() {
                     <td className="px-2 py-2"><Link to={`/notas?ver=${r.nota_id}`} className="font-medium text-marca-700 hover:underline">{rotuloNota(r)}</Link>
                       <span className="block text-xs text-slate-500">Empenho {r.empenho}</span></td>
                     <td className="px-2 py-2">{r.fornecedor_nome}<span className="block text-xs text-slate-500">Contrato {r.contrato_numero}</span></td>
-                    <td className="px-2 py-2">{formatarData(r.atestado_em)}
-                      <span className="block text-xs text-slate-500">{r.dias_aguardando} dia(s) aguardando{r.status_pagamento === 'PARCIAL' && ' · parcial'}</span></td>
-                    <td className="numero px-2 py-2 text-right">{brl(r.valor)}</td>
-                    <td className="numero px-2 py-2 text-right font-medium">{brl(r.restante)}</td>
+                    <td className="px-2 py-2">{r.atestado_em ? <>{formatarData(r.atestado_em)}
+                      <span className="block text-xs text-slate-500">{r.dias_aguardando} dia(s) aguardando{r.status_pagamento === 'PARCIAL' && ' · parcial'}</span></>
+                      : <span className="text-xs text-slate-500">Atestada no sistema anterior</span>}</td>
+                    <td className="numero whitespace-nowrap px-2 py-2 text-right">{brl(r.valor)}</td>
+                    <td className="numero whitespace-nowrap px-2 py-2 text-right font-medium">{brl(r.restante)}</td>
                     <td className="px-2 py-2 text-right">
-                      <Botao pequeno destaque={r.posicao === 1} variante={r.posicao === 1 ? 'primario' : 'secundario'} icone={<Wallet className="size-4" />}
-                        onClick={() => setBaixando({ id: r.nota_id, rotulo: rotuloNota(r), fornecedor: r.fornecedor_nome, restanteCentavos: centavos(r.restante), posicao: r.posicao })}>
-                        Dar baixa
-                      </Botao>
+                      <BotaoBaixa primeiro={r.posicao === 1} rotulo={rotuloNota(r)}
+                        aoClicar={() => setBaixando({ id: r.nota_id, rotulo: rotuloNota(r), fornecedor: r.fornecedor_nome, restanteCentavos: centavos(r.restante), posicao: r.posicao })} />
                     </td>
                   </tr>))}
               </tbody>
@@ -90,7 +89,23 @@ function Fila() {
   );
 }
 
-const RET: Array<[keyof PagamentoRealizado, string]> = [['retencao_iss', 'ISS'], ['retencao_irrf', 'IRRF'], ['retencao_inss', 'INSS'], ['retencao_federais', 'PIS/COFINS/CSLL'], ['retencao_outras', 'Outras']];
+// Botão da fila: o 1º da vez em destaque (verde, com o ponto de ação pendente); os demais discretos.
+function BotaoBaixa({ primeiro, rotulo, aoClicar }: { primeiro: boolean; rotulo: string; aoClicar: () => void }) {
+  return (
+    <button type="button" onClick={aoClicar} aria-label={`Dar baixa na nota ${rotulo}`}
+      className={cx('group relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600',
+        primeiro
+          ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-600/25 hover:-translate-y-px hover:from-emerald-700 hover:to-emerald-600 hover:shadow-lg'
+          : 'border border-emerald-200 bg-white text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50')}>
+      <Banknote className="size-4" aria-hidden />
+      Dar baixa
+      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      {primeiro && <PontoPendente className="absolute -right-1 -top-1" rotulo="Próxima da fila" />}
+    </button>
+  );
+}
+
+const RET: Array<[keyof PagamentoRealizado, string]> =[['retencao_iss', 'ISS'], ['retencao_irrf', 'IRRF'], ['retencao_inss', 'INSS'], ['retencao_federais', 'PIS/COFINS/CSLL'], ['retencao_outras', 'Outras']];
 
 function Realizados() {
   const { orgao } = useSessao();
