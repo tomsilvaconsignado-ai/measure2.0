@@ -12,6 +12,7 @@ import { mensagemDeErro } from '@/lib/erros';
 import { encerrarSuporte, urlArquivo } from '@/services/api';
 import { Avatar, Botao, Carregando, ContadorPendente, cx } from '../ui/basicos';
 import { usePendencias } from '../Pendencias';
+import { FocoCoordenacao } from './FocoCoordenacao';
 import { Marca } from './Marca';
 import { Notificacoes } from './Notificacoes';
 import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
@@ -197,6 +198,7 @@ export function AppLayout() {
             }}>Encerrar</Botao>
           </div>
         )}
+        {orgao && <FocoCoordenacao />}
         {ehPlataforma && orgao && !suporte && vinculosDoOrgao.length === 0 && (
           <div className="flex items-center gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600 sm:px-6">
             <ShieldCheck className="size-4" aria-hidden />

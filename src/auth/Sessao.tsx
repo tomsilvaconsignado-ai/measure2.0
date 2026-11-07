@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Acao, MeuContexto, Recurso, SessaoSuporte, VinculoContexto } from '@/lib/tipos';
+import type { Acao, FocoUnidade, MeuContexto, Recurso, SessaoSuporte, VinculoContexto } from '@/lib/tipos';
 
 const CHAVE_TENANT = 'measure.tenant_atual';
 // Recursos que a plataforma administra sem sessão de suporte (espelha recursos.livre_para_plataforma)
@@ -26,6 +26,9 @@ interface ValorSessao {
   vinculosDoOrgao: VinculoContexto[];
   orgao: OrgaoAtual | null;
   suporte: SessaoSuporte | null;
+  /** coordenação em foco no órgão em uso (o banco limita os dados a ela) */
+  foco: FocoUnidade | null;
+  definirFoco: (unidadeId: string | null) => Promise<void>;
   escolherOrgao: (orgao: OrgaoAtual | null) => void;
   /** a interface deve oferecer a ação? (o banco decide de verdade) */
   pode: (recurso: Recurso, acao: Acao) => boolean;
@@ -89,6 +92,16 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     [contexto, orgao],
   );
 
+  const foco = useMemo(() => contexto?.focos?.find((f) => f.tenant_id === orgao?.id) ?? null, [contexto, orgao]);
+  const definirFoco = useCallback(async (unidadeId: string | null) => {
+    if (!orgao) return;
+    const { error } = await supabase.rpc('definir_foco', { p_tenant: orgao.id, p_unidade: unidadeId });
+    if (error) throw error;
+    await q.refetch();
+    // todas as telas passam a mostrar só a coordenação escolhida
+    await qc.invalidateQueries({ predicate: (query) => query.queryKey[0] !== 'meu_contexto' });
+  }, [orgao, q, qc]);
+
   const pode = useCallback((recurso: Recurso, acao: Acao) => {
     if (!orgao) return false;
     if (ehPlataforma && (LIVRES_PLATAFORMA.includes(recurso) || suporte)) return true;
@@ -108,7 +121,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
 
   const valor: ValorSessao = {
     sessao, carregando: iniciando || (!!uid && q.isLoading), contexto, ehPlataforma,
-    vinculosDoOrgao, orgao, suporte, escolherOrgao, pode, recarregar: q.refetch, sair,
+    vinculosDoOrgao, orgao, suporte, foco, definirFoco, escolherOrgao, pode, recarregar: q.refetch, sair,
   };
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

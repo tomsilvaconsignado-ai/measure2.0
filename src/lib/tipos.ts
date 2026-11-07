@@ -42,10 +42,14 @@ export interface VinculoContexto {
 
 export interface SessaoSuporte { id: string; tenant_id: string; expira_em: string }
 
+/** coordenação escolhida para visualizar, quando a pessoa enxerga várias */
+export interface FocoUnidade { tenant_id: string; unidade_id: string; nome: string; sigla: string | null }
+
 export interface MeuContexto {
   perfil: Perfil | null;
   vinculos: VinculoContexto[];
   suportes: SessaoSuporte[];
+  focos?: FocoUnidade[];
 }
 
 export interface Tenant {
