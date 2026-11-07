@@ -109,11 +109,12 @@ export function ClassificacaoEmpenho({ valor, aoMudar, dotacaoInicial, dotacoesC
             buscar={async (t) => (await naturezasDoOrgao(orgao!.id, t)).map((n) => { naturezas.current.set(chaveNatureza(n), n); return { valor: chaveNatureza(n), rotulo: `${n.codigo} ${n.descricao}` }; })} />
         ) : (
           <BuscaSelect key={l.campo} rotulo={l.rotulo} obrigatorio={l.obrigatorio} valor={valor.campos[l.campo]?.id ?? null} rotuloValor={valor.campos[l.campo]?.rotulo ?? null}
-            chave={['classificadores-opcoes', orgao?.id, l.tipo, l.campo === 'subelemento_id' ? valor.natureza?.elemento_id : null]}
+            chave={['classificadores-opcoes', orgao?.id, l.tipo, l.campo === 'subelemento_id' ? valor.natureza?.elemento_id : l.campo === 'acao_id' ? valor.campos.programa_id?.id : null]}
             desabilitado={l.campo === 'subelemento_id' && !valor.natureza}
             placeholder={l.campo === 'subelemento_id' && !valor.natureza ? 'Escolha antes a natureza da despesa' : 'Código ou descrição'}
             aoMudar={(v, o) => muda(l.campo as CampoClassificacao, v && o ? { id: v, rotulo: o.rotulo } : null)}
             buscar={async (t) => (await buscarClassificadoresOrgao(orgao!.id, l.tipo!, t, l.campo === 'subelemento_id' ? valor.natureza?.elemento_id : null))
+              .filter((c) => l.campo !== 'acao_id' || !valor.campos.programa_id || !c.pai_id || c.pai_id === valor.campos.programa_id.id)
               .map((c) => ({ valor: c.id, rotulo: `${l.campo === 'subelemento_id' ? `${nat6}${c.codigo.padStart(2, '0')}` : c.codigo} ${c.descricao}` }))} />
         ))}
       </div>

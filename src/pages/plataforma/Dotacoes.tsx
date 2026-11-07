@@ -19,6 +19,7 @@ import {
   listarDotacoesEnte, listarEntes, obterClassificadores, orgaosDasUos, salvarClassificador, salvarEnte, tiposClassificador, vincularOrgaoAoEnte,
   type CampoEmpenho, type CamposEmpenho, type ResultadoImportacaoDotacoes,
 } from '@/services/cadastros';
+import { NaturezasDespesa } from './NaturezasDespesa';
 
 const POR_PAGINA = 25;
 const NATUREZAS = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Operação especial' } as const;
@@ -422,6 +423,8 @@ function FormClassificador({ ente, tipo, tipos, item, orgaosDoEnte, aoFechar }: 
   const atual = item === 'novo' ? null : item;
   const tipoPai = tipos.find((t) => t.codigo === tipo.pai_tipo);
   const ehUo = tipo.codigo === 'UNIDADE_ORCAMENTARIA';
+  // subelemento: digita os 8 dígitos (33903914); o elemento (39) e o código (14) saem deles
+  const ehSub = tipo.codigo === 'SUBELEMENTO';
   const paiAtual = useQuery({ queryKey: ['classificador', atual?.pai_id], queryFn: () => obterClassificadores([atual!.pai_id!]), enabled: !!atual?.pai_id });
   const mapa = useQuery({ queryKey: ['uo-orgaos', [atual?.id]], queryFn: () => orgaosDasUos([atual!.id]), enabled: ehUo && !!atual });
   useEffect(() => {
@@ -433,8 +436,16 @@ function FormClassificador({ ente, tipo, tipos, item, orgaosDoEnte, aoFechar }: 
 
   const salvar = useMutation({
     mutationFn: async () => {
+      let cod = codigo.trim(); let paiId = pai?.id ?? null;
+      if (ehSub && !atual) {
+        const d = digitos(cod);
+        if (d.length !== 8) throw { erro: 'Informe o subelemento com 8 dígitos (ex.: 33903914).', campo: 'codigo' };
+        const el = (await listarClassificadores({ enteId: ente.id, tipo: 'ELEMENTO', busca: d.slice(4, 6), limite: 30 })).itens.find((c) => c.codigo === d.slice(4, 6) && !c.pai_id);
+        if (!el) throw { erro: `Cadastre antes a natureza ${d.slice(0, 6)}00 (elemento ${d.slice(4, 6)}).`, campo: 'codigo' };
+        cod = d.slice(6); paiId = el.id;
+      }
       const c = await salvarClassificador(atual?.id ?? null, {
-        ente_id: ente.id, tipo: tipo.codigo, codigo: codigo.trim(), descricao: descricao.trim(), pai_id: pai?.id ?? null,
+        ente_id: ente.id, tipo: tipo.codigo, codigo: cod, descricao: descricao.trim(), pai_id: paiId,
         natureza_acao: tipo.codigo === 'ACAO' && natureza ? natureza as Classificador['natureza_acao'] : null,
       });
       if (ehUo) await definirOrgaosDaUo(c.id, (mapa.data ?? []).map((m) => m.tenant_id), orgaos);
@@ -450,11 +461,12 @@ function FormClassificador({ ente, tipo, tipos, item, orgaosDoEnte, aoFechar }: 
     <Modal aberto={aberto} aoFechar={aoFechar} titulo={`${atual ? 'Editar' : 'Novo'}: ${tipo.nome}`}
       descricao={atual ? 'Alterar a descrição atualiza todas as dotações que usam este código.' : undefined}
       rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao>
-        <Botao carregando={salvar.isPending} disabled={!codigo.trim() || descricao.trim().length < 2 || (tipo.pai_obrigatorio && !pai)} onClick={() => salvar.mutate()}>Salvar</Botao></>}>
+        <Botao carregando={salvar.isPending} disabled={!codigo.trim() || descricao.trim().length < 2 || (tipo.pai_obrigatorio && !pai && !ehSub)} onClick={() => salvar.mutate()}>Salvar</Botao></>}>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Campo rotulo="Código" obrigatorio value={codigo} onChange={(e) => setCodigo(e.target.value)} erro={erros.codigo} maxLength={30} disabled={!!atual} />
+        <Campo rotulo={ehSub && !atual ? 'Código (8 dígitos)' : 'Código'} obrigatorio value={codigo} onChange={(e) => setCodigo(e.target.value)} erro={erros.codigo} maxLength={30} disabled={!!atual}
+          placeholder={ehSub ? '33903914' : undefined} ajuda={ehSub && !atual ? 'Natureza + subelemento, como na nota de empenho.' : undefined} />
         <Campo className="sm:col-span-2" rotulo="Descrição" obrigatorio value={descricao} onChange={(e) => setDescricao(e.target.value)} erro={erros.descricao} maxLength={300} />
-        {tipoPai && !atual && (
+        {tipoPai && !atual && !ehSub && (
           <div className="sm:col-span-3">
             <BuscaSelect rotulo={tipoPai.nome} obrigatorio={tipo.pai_obrigatorio} valor={pai?.id ?? null} rotuloValor={pai?.rotulo} erro={erros.pai_id}
               aoMudar={(v, o) => setPai(v && o ? { id: v, rotulo: o.rotulo } : null)} chave={['classificadores-opcoes', ente.id, tipoPai.codigo]}
@@ -489,10 +501,23 @@ function FormClassificador({ ente, tipo, tipos, item, orgaosDoEnte, aoFechar }: 
   );
 }
 
+// Tipos na ordem do quadro CLASSIFICAÇÃO da nota de empenho; categoria, grupo, modalidade e elemento
+// vêm da natureza (8 dígitos) e não aparecem soltos
+const OCULTOS: TipoClassificador[] = ['CATEGORIA_ECONOMICA', 'GND', 'MODALIDADE', 'ELEMENTO'];
+function menuTipos(tipos: ClassificadorTipo[]): Array<{ codigo: TipoClassificador | 'NATUREZA'; nome: string }> {
+  const lista: Array<{ codigo: TipoClassificador | 'NATUREZA'; nome: string }> = [];
+  for (const t of tipos) {
+    if (OCULTOS.includes(t.codigo)) continue;
+    if (t.codigo === 'SUBELEMENTO') lista.push({ codigo: 'NATUREZA', nome: 'Natureza da Despesa' });
+    lista.push({ codigo: t.codigo, nome: t.codigo === 'SUBELEMENTO' ? 'SubElemento' : t.nome });
+  }
+  return lista;
+}
+
 function ClassificadoresDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tenant[] }) {
   const qc = useQueryClient();
   const tipos = useTipos();
-  const [tipo, setTipo] = useState<TipoClassificador>('UNIDADE_ORCAMENTARIA');
+  const [tipo, setTipo] = useState<TipoClassificador | 'NATUREZA'>('UNIDADE_ORCAMENTARIA');
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
   const [pagina, setPagina] = useState(0);
@@ -500,29 +525,29 @@ function ClassificadoresDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnt
   const [alternando, setAlternando] = useState<Classificador | null>(null);
   useEffect(() => setPagina(0), [tipo, termo, ente.id]);
   const q = useQuery({
-    queryKey: ['classificadores-ente', ente.id, tipo, termo, pagina],
-    queryFn: () => listarClassificadores({ enteId: ente.id, tipo, busca: termo, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
+    queryKey: ['classificadores-ente', ente.id, tipo, termo, pagina], enabled: tipo !== 'NATUREZA',
+    queryFn: () => listarClassificadores({ enteId: ente.id, tipo: tipo as TipoClassificador, busca: termo, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
     placeholderData: (a) => a,
   });
   const paiIds = [...new Set((q.data?.itens ?? []).map((c) => c.pai_id).filter(Boolean))] as string[];
   const pais = useQuery({ queryKey: ['classificadores-pais', paiIds], queryFn: () => obterClassificadores(paiIds), enabled: paiIds.length > 0 });
-  const tipoAtual = tipos.data?.find((t) => t.codigo === tipo);
+  const tipoAtual = tipo === 'NATUREZA' ? undefined : tipos.data?.find((t) => t.codigo === tipo);
   if (!tipos.data) return <Carregando />;
   return (
     <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
       <nav className="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Tipos de classificador">
-        {tipos.data.map((t) => (
+        {menuTipos(tipos.data).map((t) => (
           <button key={t.codigo} onClick={() => setTipo(t.codigo)} aria-current={t.codigo === tipo}
             className={cx('whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm', t.codigo === tipo ? 'bg-marca-50 font-medium text-marca-800' : 'text-slate-600 hover:bg-slate-50')}>{t.nome}</button>
         ))}
       </nav>
-      <div className="min-w-0">
+      {tipo === 'NATUREZA' ? <div className="min-w-0"><NaturezasDespesa ente={ente} /></div> : <div className="min-w-0">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="min-w-60 flex-1"><CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código ou descrição" rotulo="Buscar classificador" /></div>
           <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('novo')}>Novo</Botao>
         </div>
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> :
-          !q.data!.itens.length ? <Vazio titulo={`Nenhum registro em ${tipoAtual?.nome}`} descricao="Os códigos também são criados automaticamente ao cadastrar uma dotação." /> : (
+          !q.data!.itens.length ? <Vazio titulo={`Nenhum registro em ${tipoAtual?.nome}`} descricao="Cadastre os códigos usados pelo município. Os órgãos escolhem entre eles para formar as dotações dos contratos e empenhos." /> : (
             <table className="w-full text-sm">
               <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500">
                 <th className="py-2 pr-3 font-medium">Código</th><th className="py-2 pr-3 font-medium">Descrição</th>
@@ -532,7 +557,7 @@ function ClassificadoresDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnt
               <tbody>
                 {q.data!.itens.map((c) => (
                   <tr key={c.id} className={cx('border-b border-slate-100', !c.ativo && 'opacity-60')}>
-                    <td className="numero py-2 pr-3 font-medium text-slate-900">{c.codigo}</td>
+                    <td className="numero py-2 pr-3 font-medium text-slate-900">{tipo === 'SUBELEMENTO' ? `${pais.data?.find((x) => x.id === c.pai_id)?.codigo ?? '..'}.${c.codigo}` : c.codigo}</td>
                     <td className="py-2 pr-3">{c.descricao} {c.natureza_acao && <Selo>{NATUREZAS[c.natureza_acao]}</Selo>} {!c.ativo && <Selo tom="perigo">Inativo</Selo>}</td>
                     {tipoAtual?.pai_tipo && <td className="hidden py-2 pr-3 text-slate-600 sm:table-cell">{pais.data?.find((x) => x.id === c.pai_id)?.codigo ?? '—'}</td>}
                     <td className="whitespace-nowrap py-2 text-right">
@@ -545,7 +570,7 @@ function ClassificadoresDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnt
             </table>
           )}
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
-      </div>
+      </div>}
       {tipoAtual && <FormClassificador ente={ente} tipo={tipoAtual} tipos={tipos.data} item={editando} orgaosDoEnte={orgaosDoEnte} aoFechar={() => setEditando(null)} />}
       <ConfirmarComMotivo aberto={!!alternando} aoFechar={() => setAlternando(null)} perigo={!!alternando?.ativo}
         titulo={alternando?.ativo ? `Inativar ${alternando.codigo}?` : `Reativar ${alternando?.codigo}?`}
@@ -623,7 +648,7 @@ export function Dotacoes() {
   const orgaos = useQuery({ queryKey: ['orgaos', ''], queryFn: () => listarOrgaos(''), enabled: ehPlataforma });
   const [enteId, setEnteId] = useState<string | null>(null);
   const [novoEnte, setNovoEnte] = useState(false);
-  const [aba, setAba] = useState<'dotacoes' | 'classificadores' | 'orgaos'>('dotacoes');
+  const [aba, setAba] = useState<'dotacoes' | 'classificadores' | 'orgaos'>('classificadores');
   useEffect(() => { if (!enteId && entes.data?.length) setEnteId(entes.data[0]!.id); }, [entes.data, enteId]);
   if (!ehPlataforma) return <SemPermissao />;
   const ente = entes.data?.find((e) => e.id === enteId) ?? null;
@@ -631,8 +656,8 @@ export function Dotacoes() {
 
   return (
     <>
-      <CabecalhoPagina titulo="Dotações orçamentárias"
-        descricao="Módulo do desenvolvedor. O catálogo é do município (ente) e é usado por todos os órgãos dele em contratos, empenhos e relatórios. Os órgãos só consultam."
+      <CabecalhoPagina titulo="Classificações orçamentárias"
+        descricao="Módulo do desenvolvedor. Cadastre aqui cada classificação do município (UO, função, programa, ação, natureza, subelemento, fonte…). O administrador do órgão forma as dotações nos contratos e empenhos escolhendo entre elas."
         acoes={<Botao variante="secundario" icone={<Landmark className="size-4" />} onClick={() => setNovoEnte(true)}>Novo ente</Botao>} />
       {entes.isLoading || orgaos.isLoading ? <Carregando /> : !entes.data?.length ? (
         <Cartao><Vazio titulo="Nenhum ente cadastrado" descricao="Cadastre o município (ex.: Município de Aracaju) e vincule a ele a Prefeitura, a SMS e os demais órgãos."
@@ -649,7 +674,7 @@ export function Dotacoes() {
           </Cartao>
           {ente && (
             <Cartao>
-              <Abas abas={[{ id: 'dotacoes', rotulo: 'Dotações' }, { id: 'classificadores', rotulo: 'Classificadores (códigos)' }, { id: 'orgaos', rotulo: 'Órgãos do ente' }]} ativa={aba} aoMudar={setAba} />
+              <Abas abas={[{ id: 'classificadores', rotulo: 'Classificações orçamentárias' }, { id: 'dotacoes', rotulo: 'Dotações formadas' }, { id: 'orgaos', rotulo: 'Órgãos do ente' }]} ativa={aba} aoMudar={setAba} />
               {aba === 'dotacoes' && <DotacoesDoEnte ente={ente} orgaosDoEnte={orgaosDoEnte} />}
               {aba === 'classificadores' && <ClassificadoresDoEnte ente={ente} orgaosDoEnte={orgaosDoEnte} />}
               {aba === 'orgaos' && <OrgaosDoEnte ente={ente} entes={entes.data} orgaos={orgaos.data ?? []} />}

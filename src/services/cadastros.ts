@@ -400,3 +400,30 @@ export async function classificacaoDaDotacao(id: string) {
 export async function dotacaoDoEmpenho(p: Record<string, string | number | null>) {
   return falhou(await supabase.rpc('dotacao_do_empenho', { p })) as string;
 }
+
+// ---------------------------------------------------------------- naturezas da despesa (Desenvolvedor) e dotações do contrato
+
+export interface NaturezaDespesa { id: string; ente_id: string; codigo: string; descricao: string; elemento_id: string; ativo: boolean }
+
+export async function listarNaturezas(p: { enteId: string; busca?: string; limite: number; offset: number }) {
+  let q = supabase.from('naturezas_despesa').select('*', { count: 'exact' }).eq('ente_id', p.enteId).order('codigo').range(p.offset, p.offset + p.limite - 1);
+  const t = termo(p.busca ?? '');
+  if (t) q = /^\d+$/.test(t) ? q.like('codigo', `${t}%`) : q.ilike('descricao', `%${t}%`);
+  const r = await q;
+  if (r.error) throw r.error;
+  return { itens: (r.data ?? []) as NaturezaDespesa[], total: r.count ?? 0 };
+}
+
+/** Plataforma: natureza de 8 dígitos (desmembra categoria, grupo, modalidade e elemento); repetir corrige a descrição */
+export async function cadastrarNatureza(enteId: string, codigo: string, descricao: string) {
+  return falhou(await supabase.rpc('cadastrar_natureza', { p_ente: enteId, p_codigo: codigo, p_descricao: descricao })) as string;
+}
+
+export async function definirStatusNatureza(id: string, ativo: boolean) {
+  falhou(await supabase.from('naturezas_despesa').update({ ativo }).eq('id', id).select('id').single());
+}
+
+/** Administrador: forma uma dotação do contrato escolhendo as classificações (o contrato pode ter várias) */
+export async function adicionarDotacaoContrato(p: Record<string, string | number | null>) {
+  return falhou(await supabase.rpc('adicionar_dotacao_contrato', { p })) as string;
+}

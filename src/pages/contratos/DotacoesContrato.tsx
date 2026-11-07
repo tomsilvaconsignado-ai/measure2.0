@@ -7,12 +7,13 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { CampoBusca } from '@/components/ui/Abas';
-import { Botao, CaixaErro, Carregando, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Botao, CaixaErro, Carregando, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
 import { Modal } from '@/components/ui/Modal';
-import { mensagemDeErro } from '@/lib/erros';
+import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { brl } from '@/lib/formatacao';
 import type { ContratoResumo, DotacaoDetalhada, DotacaoDoContrato } from '@/lib/tipos';
-import { listarClassificacoes } from '@/services/cadastros';
+import { adicionarDotacaoContrato, listarClassificacoes } from '@/services/cadastros';
+import { ClassificacaoEmpenho, classificacaoVazia, faltandoNaClassificacao, idsDaClassificacao, type ValorClassificacao } from './ClassificacaoEmpenho';
 import { desvincularDotacao, listarDotacoesContrato, vincularDotacoes } from '@/services/execucao';
 
 const NATUREZA_ACAO = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Op. especial' } as const;
@@ -64,7 +65,7 @@ function SelecionarDotacoes({ contrato, jaVinculadas, aberto, aoFechar }: { cont
   const itens = (q.data?.itens ?? []).filter((d) => !jaVinculadas.includes(d.id));
   const alternar = (id: string) => setMarcadas((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
   return (
-    <Modal aberto={aberto} aoFechar={aoFechar} titulo="Vincular dotações ao contrato" largura="lg"
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo="Reaproveitar dotações já formadas" largura="lg"
       descricao="Marque uma ou várias. Cada dotação mantém as suas classificações (ação, fonte, natureza, exercício)."
       rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao>
         <Botao disabled={!marcadas.length} carregando={vincular.isPending} onClick={() => vincular.mutate()}>Vincular {marcadas.length || ''} dotação(ões)</Botao></>}>
@@ -105,11 +106,56 @@ function SelecionarDotacoes({ contrato, jaVinculadas, aberto, aoFechar }: { cont
   );
 }
 
+// Nova dotação do contrato: escolhe cada classificação (como no quadro da nota de empenho) e o exercício
+function AdicionarDotacao({ contrato, aberto, aoFechar }: { contrato: ContratoResumo; aberto: boolean; aoFechar: () => void }) {
+  const qc = useQueryClient();
+  const [valor, setValor] = useState<ValorClassificacao>(classificacaoVazia);
+  const [exercicio, setExercicio] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  useEffect(() => { if (aberto) { setValor(classificacaoVazia); setExercicio(''); setErro(null); } }, [aberto]);
+  const anos = useMemo(() => {
+    const ini = Number(contrato.data_inicio.slice(0, 4)); const fim = Number(contrato.data_fim_atual.slice(0, 4));
+    return Array.from({ length: Math.max(1, Math.min(10, fim - ini + 1)) }, (_, i) => ini + i);
+  }, [contrato]);
+  const salvar = useMutation({
+    mutationFn: async (outra: boolean) => {
+      const faltam = faltandoNaClassificacao(valor);
+      if (faltam.length) throw { erro: `Escolha na classificação: ${faltam.join(', ')}.` };
+      await adicionarDotacaoContrato({ contrato_id: contrato.id, exercicio: exercicio ? Number(exercicio) : null, ...idsDaClassificacao(valor) });
+      return outra;
+    },
+    onSuccess: async (outra) => {
+      await qc.invalidateQueries({ queryKey: ['contrato-dotacoes', contrato.id] });
+      toast.success('Dotação incluída no contrato.');
+      if (outra) { setValor(classificacaoVazia); setErro(null); } else aoFechar();
+    },
+    onError: (e) => setErro(traduzirErro(e).mensagem),
+  });
+  return (
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo="Adicionar dotação ao contrato" largura="lg"
+      descricao="Escolha cada classificação entre as cadastradas no módulo Desenvolvedor. O contrato pode ter quantas dotações precisar."
+      rodape={<><Botao variante="secundario" onClick={aoFechar}>Fechar</Botao>
+        <Botao variante="secundario" carregando={salvar.isPending && salvar.variables === true} onClick={() => salvar.mutate(true)}>Salvar e adicionar outra</Botao>
+        <Botao carregando={salvar.isPending && salvar.variables === false} onClick={() => salvar.mutate(false)}>Salvar</Botao></>}>
+      <div className="flex flex-col gap-4">
+        <Selecao rotulo="Exercício" value={exercicio} onChange={(e) => setExercicio(e.target.value)} className="max-w-xs"
+          ajuda="Em branco: a dotação vale para todos os anos do contrato.">
+          <option value="">Todos os exercícios do contrato</option>
+          {anos.map((a) => <option key={a} value={a}>{a}</option>)}
+        </Selecao>
+        <ClassificacaoEmpenho valor={valor} aoMudar={setValor} />
+        {erro && <CaixaErro mensagem={erro} />}
+      </div>
+    </Modal>
+  );
+}
+
 export function DotacoesContrato({ c }: { c: ContratoResumo }) {
   const { pode } = useSessao();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['contrato-dotacoes', c.id], queryFn: () => listarDotacoesContrato(c.id) });
   const [selecionando, setSelecionando] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
   const remover = useMutation({
     mutationFn: (id: string) => desvincularDotacao(c.id, id),
@@ -123,11 +169,14 @@ export function DotacoesContrato({ c }: { c: ContratoResumo }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">As dotações vêm do catálogo cadastrado no módulo Desenvolvedor (nada é digitado aqui). Cada empenho escolhe uma delas.</p>
-        {podeEditar && <Botao icone={<Plus className="size-4" />} onClick={() => setSelecionando(true)}>Vincular dotações</Botao>}
+        <p className="text-sm text-slate-600">Cada dotação é formada escolhendo as classificações cadastradas no módulo Desenvolvedor. O contrato pode ter várias (ações, fontes e naturezas diferentes).</p>
+        {podeEditar && <div className="flex flex-wrap gap-2">
+          <Botao variante="secundario" onClick={() => setSelecionando(true)}>Reaproveitar dotação já formada</Botao>
+          <Botao icone={<Plus className="size-4" />} onClick={() => setAdicionando(true)}>Adicionar dotação</Botao>
+        </div>}
       </div>
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={mensagemDeErro(q.error)} tentarDeNovo={() => void q.refetch()} /> : !lista.length
-        ? <Vazio titulo="Nenhuma dotação vinculada" descricao="Vincule ao menos uma dotação para poder empenhar." /> : <>
+        ? <Vazio titulo="Nenhuma dotação no contrato" descricao="Clique em “Adicionar dotação” e escolha as classificações. O empenho também inclui a dotação dele aqui automaticamente." /> : <>
           <p className="text-xs text-slate-500">{lista.length} dotação(ões) · {acoes} ação(ões) · {fontes} fonte(s) de recurso</p>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-sm">
@@ -157,6 +206,7 @@ export function DotacoesContrato({ c }: { c: ContratoResumo }) {
           </div>
           <p className="text-xs text-slate-500">Clique numa linha para ver todas as classificações. Dotação já usada por empenho não pode ser desvinculada.</p>
         </>}
+      <AdicionarDotacao contrato={c} aberto={adicionando} aoFechar={() => setAdicionando(false)} />
       <SelecionarDotacoes contrato={c} jaVinculadas={lista.map((d) => d.id)} aberto={selecionando} aoFechar={() => setSelecionando(false)} />
     </div>
   );

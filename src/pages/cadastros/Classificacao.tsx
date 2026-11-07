@@ -48,7 +48,7 @@ export function Classificacao() {
   return (
     <>
       <CabecalhoPagina titulo="Classificação orçamentária"
-        descricao="Dotações do município disponíveis para este órgão. Contratos, empenhos e relatórios usam este catálogo, cadastrado pela equipe da plataforma." />
+        descricao="Dotações já formadas que este órgão pode usar. As classificações são cadastradas pela equipe da plataforma; a dotação é formada no contrato e no empenho, escolhendo cada classificação." />
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_11rem_10rem] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código, fonte, ação, elemento, unidade ou descrição" rotulo="Buscar dotação" />
