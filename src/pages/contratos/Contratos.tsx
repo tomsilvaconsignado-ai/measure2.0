@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
 import { brl, centavos, decimalDeCentavos, formatarData } from '@/lib/formatacao';
 import type { ContratoResumo } from '@/lib/tipos';
-import { contarSituacoes, listarContratos, modalidades, salvarContrato, type FiltroSituacao } from '@/services/execucao';
+import { contarSituacoes, listarContratos, listarDesignacoes, listarDotacoesContrato, modalidades, obterContrato, salvarContrato, type FiltroSituacao } from '@/services/execucao';
 import { SeletorFornecedor, SeloSituacao } from './comum';
 
 const POR_PAGINA = 20;
@@ -111,6 +111,13 @@ export function FormContrato({ aberto, aoFechar, contrato }: { aberto: boolean; 
 export function Contratos() {
   const { orgao, pode } = useSessao();
   const navegar = useNavigate();
+  const qc = useQueryClient();
+  // a ficha começa a carregar ao passar o mouse: no clique os dados já estão chegando (ficam 30 s no cache)
+  const adiantar = (id: string) => {
+    void qc.prefetchQuery({ queryKey: ['contrato', id], queryFn: () => obterContrato(id) });
+    void qc.prefetchQuery({ queryKey: ['designacoes', id], queryFn: () => listarDesignacoes(id) });
+    void qc.prefetchQuery({ queryKey: ['contrato-dotacoes', id], queryFn: () => listarDotacoesContrato(id) });
+  };
   const [aba, setAba] = useState<FiltroSituacao>('VIGENTES');
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
@@ -150,7 +157,8 @@ export function Contratos() {
                 const total = centavos(ct.valor_atual);
                 return (
                   <li key={ct.id}>
-                    <button className="grid w-full gap-2 py-3 text-left sm:grid-cols-[1fr_16rem] sm:items-center" onClick={() => navegar(`/contratos/${ct.id}`)}>
+                    <button className="grid w-full gap-2 py-3 text-left sm:grid-cols-[1fr_16rem] sm:items-center" onClick={() => navegar(`/contratos/${ct.id}`)}
+                      onMouseEnter={() => adiantar(ct.id)} onFocus={() => adiantar(ct.id)}>
                       <div className="min-w-0">
                         <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
                           {ct.fornecedor_nome}<span className="font-normal text-slate-500">· Contrato {ct.numero}</span>

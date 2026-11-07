@@ -394,7 +394,10 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
 
 export function Notas() {
   const { orgao, pode } = useSessao();
+  const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
+  // o detalhe da nota começa a carregar ao passar o mouse
+  const adiantarNota = (id: string) => { void qc.prefetchQuery({ queryKey: ['nota', id], queryFn: () => obterNota(id) }); };
   const [busca, setBusca] = useState('');
   const termo = useBuscaAtrasada(busca);
   type Filtro = 'TODAS' | 'ATESTO' | 'PAGAMENTO' | 'PAGAS' | 'CANCELADAS';
@@ -428,7 +431,8 @@ export function Notas() {
     const minhaVez = !n.cancelada_em && ((n.posso_atestar && n.status_atesto === 'PENDENTE') || (podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO'));
     return (
     <li key={n.id} className={cx(minhaVez && '-mx-2 border-l-4 border-amber-400 bg-amber-50/50 px-2')}>
-      <button className={cx('grid w-full gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}>
+      <button className={cx('grid w-full gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}
+        onMouseEnter={() => adiantarNota(n.id)} onFocus={() => adiantarNota(n.id)}>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">NF {n.numero}{n.serie ? `-${n.serie}` : ''}<span className="font-normal text-slate-500">· {n.fornecedor_nome}</span>
             {n.posso_atestar && n.status_atesto === 'PENDENTE' && !n.cancelada_em && <Selo tom="alerta">Aguardando o seu atesto</Selo>}

@@ -1,5 +1,5 @@
 import { Loader2, ShieldOff } from 'lucide-react';
-import { lazy, Suspense, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -9,9 +9,27 @@ import { precisaDefinirSenha } from '@/lib/supabase';
 import { DefinirSenha, Entrar, EsqueciSenha } from '@/pages/Acesso';
 import { Inicio } from '@/pages/Inicio';
 
-// Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve)
-const pagina = <T extends string>(carregar: () => Promise<Record<T, ComponentType>>, nome: T) =>
-  lazy(() => carregar().then((m) => ({ default: m[nome] })));
+// Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve) e, depois do login,
+// baixado em segundo plano quando o navegador está ocioso: a primeira abertura de cada tela fica instantânea.
+const carregadores: Array<() => Promise<unknown>> = [];
+const pagina = <T extends string>(carregar: () => Promise<Record<T, ComponentType>>, nome: T) => {
+  carregadores.push(carregar);
+  return lazy(() => carregar().then((m) => ({ default: m[nome] })));
+};
+
+/** Baixa o código das telas em segundo plano, uma de cada vez, sem disputar com o que a pessoa está fazendo */
+let preCarregado = false;
+export function preCarregarTelas() {
+  if (preCarregado) return;
+  preCarregado = true;
+  return preCarregarTodas();
+}
+function preCarregarTodas() {
+  const ocioso = (fn: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1500));
+  const fila = [...carregadores];
+  const proxima = () => { const c = fila.shift(); if (c) ocioso(() => { void c().catch(() => undefined).finally(proxima); }); };
+  proxima();
+}
 const Auditoria = pagina(() => import('@/pages/Auditoria'), 'Auditoria');
 const Configuracoes = pagina(() => import('@/pages/Configuracoes'), 'Configuracoes');
 const Estrutura = pagina(() => import('@/pages/Estrutura'), 'Estrutura');
@@ -46,6 +64,8 @@ function TelaCheia({ children }: { children: React.ReactNode }) {
 
 export function App() {
   const { sessao, carregando, contexto, sair } = useSessao();
+  const logado = !!sessao && !!contexto?.perfil?.ativo;
+  useEffect(() => { if (logado) preCarregarTelas(); }, [logado]);
 
   if (carregando) {
     return <TelaCheia><Marca /><Loader2 className="size-6 animate-spin text-marca-600" aria-label="Carregando" /></TelaCheia>;
