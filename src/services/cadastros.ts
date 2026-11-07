@@ -46,6 +46,11 @@ export async function salvarFornecedor(id: string | null, dados: Partial<DadosFo
   return falhou(await supabase.from('fornecedores').insert(dados).select().single()) as Fornecedor;
 }
 
+/** Empresa já cadastrada no órgão por outra coordenação: vincula à coordenação de quem pede */
+export async function vincularFornecedor(tenantId: string, documento: string) {
+  return falhou(await supabase.rpc('vincular_fornecedor', { p_tenant: tenantId, p_documento: documento })) as { id: string; razao_social: string };
+}
+
 export async function definirStatusFornecedor(id: string, ativo: boolean, motivo: string) {
   falhou(await supabase.from('fornecedores').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
 }

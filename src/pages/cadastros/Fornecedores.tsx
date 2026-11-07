@@ -14,7 +14,7 @@ import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { cnpjValido, cpfValido, formatarCep, formatarCnpj, formatarCpf, formatarDataHora, formatarTelefone, somenteDigitos } from '@/lib/formatacao';
 import type { ContaBancaria, Fornecedor } from '@/lib/tipos';
 import {
-  definirStatusFornecedor, enviarLogoFornecedor, listarContas, listarFornecedores, removerConta, salvarConta, salvarFornecedor,
+  definirStatusFornecedor, enviarLogoFornecedor, vincularFornecedor, listarContas, listarFornecedores, removerConta, salvarConta, salvarFornecedor,
 } from '@/services/cadastros';
 import { consultarCnpj } from '@/services/consultasPublicas';
 
@@ -83,9 +83,23 @@ function FormFornecedor({ aberto, aoFechar, fornecedor, aoSalvar }: { aberto: bo
     },
     onError: (e) => {
       const t = traduzirErro(e);
-      if (/fornecedores_documento_unico/.test((e as Error).message ?? '')) setErros({ documento: `Já existe um fornecedor com este ${f.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'} neste órgão. Use a busca para encontrá-lo.` });
-      else setErros(t.campo ? { [t.campo]: t.mensagem } : { geral: t.mensagem });
+      if (/fornecedores_documento_unico/.test((e as Error).message ?? '')) {
+        setErros({ documento: `Este ${f.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'} já está cadastrado no órgão.` });
+        setJaCadastrado(true);
+      } else setErros(t.campo ? { [t.campo]: t.mensagem } : { geral: t.mensagem });
     },
+  });
+  // a empresa já foi cadastrada por outra coordenação: vincula à sua, sem duplicar o cadastro
+  const [jaCadastrado, setJaCadastrado] = useState(false);
+  useEffect(() => { setJaCadastrado(false); }, [f.documento, aberto]);
+  const vincular = useMutation({
+    mutationFn: () => vincularFornecedor(orgao!.id, somenteDigitos(f.documento)),
+    onSuccess: async (r) => {
+      await qc.invalidateQueries({ queryKey: ['fornecedores'] });
+      toast.success(`${r.razao_social} vinculado à sua coordenação.`);
+      aoFechar();
+    },
+    onError: (e) => setErros({ geral: traduzirErro(e).mensagem }),
   });
 
   const enviar = (e: FormEvent) => {
@@ -120,6 +134,12 @@ function FormFornecedor({ aberto, aoFechar, fornecedor, aoSalvar }: { aberto: bo
               {f.tipo_pessoa === 'PJ' && <Botao variante="secundario" className="mt-6" icone={<Search className="size-4" />} carregando={consultando} onClick={() => void consultar()}>Consultar</Botao>}
             </div>
           </div>
+          {jaCadastrado && !fornecedor && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 sm:col-span-6" role="status">
+              <span className="flex-1">A empresa já existe no cadastro do órgão (outra coordenação). Se ela não aparece na sua lista, vincule-a à sua coordenação: os dados da empresa são os mesmos, sem duplicar.</span>
+              <Botao pequeno carregando={vincular.isPending} onClick={() => vincular.mutate()}>Vincular à minha coordenação</Botao>
+            </div>
+          )}
           {aviso && <p className="rounded-lg bg-sky-50 p-2 text-sm text-sky-900 sm:col-span-6">{aviso}</p>}
           <Campo className="sm:col-span-6" rotulo={f.tipo_pessoa === 'PJ' ? 'Razão social' : 'Nome completo'} obrigatorio value={f.razao_social} onChange={set('razao_social')} erro={erros.razao_social} maxLength={250} />
           {f.tipo_pessoa === 'PJ' && <Campo className="sm:col-span-6" rotulo="Nome fantasia" value={f.nome_fantasia} onChange={set('nome_fantasia')} maxLength={250} />}
