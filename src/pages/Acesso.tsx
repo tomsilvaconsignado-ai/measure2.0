@@ -14,16 +14,18 @@ function Moldura({ titulo, subtitulo, children }: { titulo: string; subtitulo?: 
       <aside className="relative hidden overflow-hidden bg-marca-900 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="absolute -right-32 -top-32 size-[28rem] rounded-full bg-marca-800/60" aria-hidden />
         <div className="absolute -bottom-40 -left-24 size-[26rem] rounded-full bg-marca-950/60" aria-hidden />
-        <div className="relative"><LogoCompleto clara className="h-36 w-auto" /></div>
-        <div className="relative max-w-lg">
-          <h2 className="text-3xl font-semibold leading-tight text-white">Gestão de contratos e despesas públicas com rastreabilidade de ponta a ponta.</h2>
-          <p className="mt-4 text-marca-200">Contratos, empenhos, notas fiscais, atesto e relatórios orçamentários em um só lugar, com dados isolados por órgão e auditoria de cada operação.</p>
+        <div aria-hidden />
+        {/* logotipo centralizado na área azul, logo acima do texto, com entrada suave */}
+        <div className="relative mx-auto flex max-w-lg flex-col items-center text-center">
+          <LogoCompleto clara className="logo-entrada mb-10 h-44 w-auto drop-shadow-[0_8px_24px_rgba(0,0,0,0.15)]" />
+          <h2 className="texto-entrada text-3xl font-semibold leading-tight text-white">Gestão de contratos e despesas públicas com rastreabilidade de ponta a ponta.</h2>
+          <p className="texto-entrada mt-4 text-marca-200 [animation-delay:250ms]">Contratos, empenhos, notas fiscais, atesto e relatórios orçamentários em um só lugar, com dados isolados por órgão e auditoria de cada operação.</p>
         </div>
-        <p className="relative flex items-center gap-2 text-sm text-marca-300"><ShieldCheck className="size-4" /> Acesso restrito a usuários cadastrados pelo órgão.</p>
+        <p className="relative flex items-center justify-center gap-2 text-sm text-marca-300"><ShieldCheck className="size-4" /> Acesso restrito a usuários cadastrados pelo órgão.</p>
       </aside>
       <main className="flex items-center justify-center bg-white px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex justify-center lg:hidden"><LogoCompleto className="h-28 w-auto" /></div>
+          <div className="mb-8 flex justify-center lg:hidden"><LogoCompleto className="logo-entrada h-28 w-auto" /></div>
           <h1 className="text-2xl font-semibold text-slate-900">{titulo}</h1>
           {subtitulo && <p className="mt-1 text-sm text-slate-600">{subtitulo}</p>}
           <div className="mt-6">{children}</div>
