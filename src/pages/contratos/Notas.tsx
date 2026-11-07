@@ -94,7 +94,6 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
   }, [empenhosDoContrato.data, empenho]);
   const ct = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: !!contrato });
   useEffect(() => { if (ct.data && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: ct.data.id, rotulo: `${ct.data.numero} – ${ct.data.fornecedor_nome}` }); }, [ct.data, contrato]);
-  useEffect(() => { if (ct.data?.processo_administrativo && !f.processo_administrativo) setF((x) => ({ ...x, processo_administrativo: ct.data!.processo_administrativo! })); }, [ct.data]); // eslint-disable-line
   const saldo = useQuery({ queryKey: ['saldo-empenho', empenho?.id], queryFn: () => saldoEmpenho(empenho!.id), enabled: !!empenho });
   const tipos = useQuery({ queryKey: ['tipos-servico', orgao?.id], queryFn: () => listarTiposServico(orgao!.id), enabled: !!orgao });
   const atesto = useQuery({ queryKey: ['modelo-atesto', orgao?.id], queryFn: () => modeloAtesto(orgao!.id), enabled: !!orgao });
@@ -203,7 +202,8 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
         <Campo className="sm:col-span-1" rotulo="Série" value={f.serie} onChange={set('serie')} maxLength={10} />
         <Campo className="sm:col-span-3" rotulo="Data da nota" type="date" obrigatorio value={f.data_emissao} onChange={set('data_emissao')} erro={erros.data_emissao} />
         <CampoMoeda className="sm:col-span-3" rotulo="Valor da nota" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} />
-        <Campo className="sm:col-span-3" rotulo="Processo administrativo" value={f.processo_administrativo} onChange={set('processo_administrativo')} maxLength={60} placeholder="000.000/0000" />
+        <Campo className="sm:col-span-3" rotulo="Processo administrativo da nota" value={f.processo_administrativo} onChange={set('processo_administrativo')} maxLength={60} placeholder="000.000/0000"
+          ajuda="Processo aberto para esta nota (não é o processo do contrato)." />
         {excede && <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 sm:col-span-6">
           <p className="flex items-start gap-2 text-sm text-amber-900"><AlertTriangle className="mt-0.5 size-4 shrink-0" />O valor ultrapassa o saldo do empenho em {formatarCentavos(valor! - saldoC!)}. Faça um reforço no empenho ou registre a exceção.</p>
           {pode('notas_fiscais', 'aprovar')
