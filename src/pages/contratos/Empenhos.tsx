@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileDown, Pencil, Plus, Power, X } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -13,28 +13,38 @@ import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { brl, centavos, decimalDeCentavos, formatarData } from '@/lib/formatacao';
 import type { EmpenhoResumo } from '@/lib/tipos';
-import { listarUnidadesAtendidas } from '@/services/cadastros';
+import { dotacaoDoEmpenho, listarUnidadesAtendidas } from '@/services/cadastros';
 import {
   cancelarReforco, criarReforco, definirStatusEmpenho, emitirExtrato, listarDotacoesContrato, listarEmpenhos, listarNotas, listarReforcos,
-  obterContrato, obterEmpenho, salvarEmpenho, unidadesDoEmpenho, vincularDotacao,
+  obterContrato, obterEmpenho, salvarEmpenho, unidadesDoEmpenho,
 } from '@/services/execucao';
-import { AvisoVencido, SeletorContrato, SeletorDotacao, SeloAtesto, SeloPagamento } from './comum';
-import { ClassificacoesDaDotacao } from './DotacoesContrato';
+import { ClassificacaoEmpenho, classificacaoVazia, faltandoNaClassificacao, idsDaClassificacao, type ValorClassificacao } from './ClassificacaoEmpenho';
+import { AvisoVencido, SeletorContrato, SeloAtesto, SeloPagamento, documentoFornecedor } from './comum';
 
 const POR_PAGINA = 25;
 const TIPOS = { ORDINARIO: 'Ordinário', ESTIMATIVO: 'Estimativo', GLOBAL: 'Global' } as const;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 
+function Bloco({ titulo, children, className }: { titulo: string; children: ReactNode; className?: string }) {
+  return (
+    <fieldset className={cx('rounded-xl border border-slate-300 p-3', className)}>
+      <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-slate-800">{titulo}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
+// Cadastro no formato da nota de empenho: cabeçalho, fornecedor (do contrato), classificação campo a campo,
+// licitação/processo, contrato/SD/tipo/valor e histórico.
 function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: boolean; aoFechar: () => void; empenho: EmpenhoResumo | null; contratoInicial?: string | null }) {
-  const { orgao, pode } = useSessao();
+  const { orgao } = useSessao();
   const qc = useQueryClient();
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(null);
-  const [f, setF] = useState({ numero: '', ano: String(new Date().getFullYear()), tipo: 'ORDINARIO', data_empenho: hoje(), vigencia_fim: '', classificacao_id: '', processo: '', sd: '', licitacao: '', observacoes: '' });
+  const [f, setF] = useState({ numero: '', ano: String(new Date().getFullYear()), tipo: 'ORDINARIO', data_empenho: hoje(), vigencia_fim: '', processo: '', sd: '', licitacao: '', observacoes: '' });
   const [valor, setValor] = useState<number | null>(null);
+  const [classificacao, setClassificacao] = useState<ValorClassificacao>(classificacaoVazia);
   const [unidades, setUnidades] = useState<Array<{ id: string; nome: string }>>([]);
   const [erros, setErros] = useState<Record<string, string>>({});
-  // dotação do órgão que ainda não está no contrato: é vinculada ao contrato ao salvar
-  const [outra, setOutra] = useState<{ id: string; rotulo: string } | null>(null);
   const ct = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: !!contrato });
   const dots = useQuery({ queryKey: ['contrato-dotacoes', contrato?.id], queryFn: () => listarDotacoesContrato(contrato!.id), enabled: !!contrato });
   const unidAtuais = useQuery({ queryKey: ['empenho-unidades', empenho?.id], queryFn: () => unidadesDoEmpenho(empenho!.id), enabled: aberto && !!empenho });
@@ -44,33 +54,33 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
     const e = empenho;
     setContrato(e ? { id: e.contrato_id, rotulo: `${e.contrato_numero} – ${e.fornecedor_nome}` } : contratoInicial ? { id: contratoInicial, rotulo: 'Contrato selecionado' } : null);
     setF({ numero: e?.numero ?? '', ano: String(e?.ano ?? new Date().getFullYear()), tipo: e?.tipo ?? 'ORDINARIO', data_empenho: e?.data_empenho ?? hoje(),
-      vigencia_fim: e?.vigencia_fim ?? '', classificacao_id: e?.classificacao_id ?? '', processo: e?.processo ?? '', sd: e?.sd ?? '', licitacao: e?.licitacao ?? '', observacoes: e?.observacoes ?? '' });
+      vigencia_fim: e?.vigencia_fim ?? '', processo: e?.processo ?? '', sd: e?.sd ?? '', licitacao: e?.licitacao ?? '', observacoes: e?.observacoes ?? '' });
     setValor(e ? centavos(e.valor) : null);
+    setClassificacao(classificacaoVazia);
     setUnidades([]);
-    setOutra(null);
   }, [aberto, empenho, contratoInicial]);
   useEffect(() => { if (unidAtuais.data) setUnidades(unidAtuais.data.map((u) => ({ id: u.id, nome: u.nome }))); }, [unidAtuais.data]);
   useEffect(() => { if (ct.data && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: ct.data.id, rotulo: `${ct.data.numero} – ${ct.data.fornecedor_nome}` }); }, [ct.data, contrato]);
-  // dotações do contrato que servem para o exercício do empenho (as sem exercício valem para qualquer ano)
-  const doAno = (dots.data ?? []).filter((d) => !d.exercicio || String(d.exercicio) === f.ano);
-  useEffect(() => { if (doAno.length === 1 && !f.classificacao_id && !outra) setF((x) => ({ ...x, classificacao_id: doAno[0]!.id })); }, [doAno, f.classificacao_id, outra]);
-  const escolhida = dots.data?.find((d) => d.id === f.classificacao_id) ?? null;
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
 
   const salvar = useMutation({
     mutationFn: async () => {
-      if (outra) await vincularDotacao(contrato!.id, outra.id);
+      // a classificação escolhida campo a campo vira (ou reaproveita) a dotação, já vinculada ao contrato
+      const classificacaoId = await dotacaoDoEmpenho({ contrato_id: contrato!.id, exercicio: Number(f.ano), ...idsDaClassificacao(classificacao) });
       return salvarEmpenho(empenho?.id ?? null, {
-      tenant_id: orgao!.id, contrato_id: contrato!.id, numero: f.numero.trim(), ano: Number(f.ano), tipo: f.tipo as EmpenhoResumo['tipo'],
-      data_empenho: f.data_empenho, vigencia_fim: f.vigencia_fim || null, valor: decimalDeCentavos(valor!), classificacao_id: outra?.id ?? f.classificacao_id,
-      processo: f.processo.trim() || null, sd: f.sd.trim() || null, licitacao: f.licitacao.trim() || null, observacoes: f.observacoes.trim() || null,
-    }, unidades.map((u) => u.id));
+        tenant_id: orgao!.id, contrato_id: contrato!.id, numero: f.numero.trim(), ano: Number(f.ano), tipo: f.tipo as EmpenhoResumo['tipo'],
+        data_empenho: f.data_empenho, vigencia_fim: f.vigencia_fim || null, valor: decimalDeCentavos(valor!), classificacao_id: classificacaoId,
+        processo: f.processo.trim() || null, sd: f.sd.trim() || null, licitacao: f.licitacao.trim() || null, observacoes: f.observacoes.trim() || null,
+      }, unidades.map((u) => u.id));
     },
-    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); await qc.invalidateQueries({ queryKey: ['contrato-dotacoes'] }); toast.success(empenho ? 'Empenho atualizado.' : 'Empenho cadastrado.'); aoFechar(); },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); await qc.invalidateQueries({ queryKey: ['contrato-dotacoes'] });
+      toast.success(empenho ? 'Empenho atualizado.' : 'Empenho cadastrado.'); aoFechar();
+    },
     onError: (e) => {
       const msg = (e as Error).message ?? '';
       if (/empenhos_numero_unico/.test(msg)) setErros({ numero: `Já existe o empenho ${f.numero}/${f.ano} neste órgão.` });
-      else { const t = traduzirErro(e); setErros(t.campo ? { [t.campo]: t.mensagem } : { geral: t.mensagem }); }
+      else { const t = traduzirErro(e); setErros(t.campo && !t.campo.endsWith('_id') ? { [t.campo]: t.mensagem } : t.campo && t.campo !== 'contrato_id' ? { classificacao: t.mensagem } : { geral: t.mensagem }); }
     },
   });
   const enviar = (e: FormEvent) => {
@@ -79,56 +89,56 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
     if (!contrato) n.contrato_id = 'Escolha o contrato.';
     if (!f.numero.trim()) n.numero = 'Informe o número do empenho.';
     if (!/^\d{4}$/.test(f.ano)) n.ano = 'Ano inválido.';
-    if (!f.classificacao_id && !outra) n.classificacao_id = 'Escolha a dotação usada pelo empenho.';
-    else if (escolhida?.exercicio && String(escolhida.exercicio) !== f.ano) n.classificacao_id = `Esta dotação é do exercício ${escolhida.exercicio}; o empenho é de ${f.ano}. Escolha uma dotação do exercício ${f.ano}.`;
+    const faltam = faltandoNaClassificacao(classificacao);
+    if (faltam.length) n.classificacao = `Escolha na classificação: ${faltam.join(', ')}.`;
     if (!valor || valor <= 0) n.valor = 'Informe o valor.';
     setErros(n);
     if (!Object.keys(n).length) salvar.mutate();
   };
+  const c = ct.data;
 
   return (
-    <Modal aberto={aberto} aoFechar={aoFechar} titulo={empenho ? `Editar empenho ${empenho.numero}/${empenho.ano}` : 'Novo empenho'} largura="lg"
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo={empenho ? `Editar nota de empenho ${empenho.numero}/${empenho.ano}` : 'Nova nota de empenho'} largura="lg"
+      descricao="Preencha como na nota de empenho. A classificação é escolhida campo a campo entre os códigos cadastrados."
       rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao><Botao type="submit" form="form-empenho" carregando={salvar.isPending}>Salvar</Botao></>}>
-      <form id="form-empenho" onSubmit={enviar} className="grid gap-4 sm:grid-cols-6" noValidate>
-        <div className="sm:col-span-6"><SeletorContrato obrigatorio valor={contrato?.id ?? null} rotuloValor={contrato?.rotulo} erro={erros.contrato_id} desabilitado={!!empenho}
-          aoMudar={(v, o) => { setContrato(v && o ? { id: v, rotulo: o.rotulo } : null); setF((x) => ({ ...x, classificacao_id: '' })); }} /></div>
-        {ct.data && <div className="sm:col-span-6 flex flex-col gap-2">
-          <AvisoVencido c={ct.data} />
-          <p className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600">{ct.data.objeto.slice(0, 220)} · Vigência até {formatarData(ct.data.data_fim_atual)} · Saldo do contrato {brl(ct.data.saldo)} · Empenhado {brl(ct.data.empenhado)}</p>
-        </div>}
-        <Campo className="sm:col-span-2" rotulo="Número" obrigatorio value={f.numero} onChange={set('numero')} erro={erros.numero} maxLength={40} />
-        <Campo className="sm:col-span-1" rotulo="Ano" obrigatorio inputMode="numeric" value={f.ano} onChange={set('ano')} erro={erros.ano} maxLength={4} />
-        <Selecao className="sm:col-span-3" rotulo="Tipo" value={f.tipo} onChange={set('tipo')}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
-        {!outra ? <Selecao className="sm:col-span-6" rotulo="Dotação (classificação usada)" obrigatorio value={f.classificacao_id} onChange={set('classificacao_id')} erro={erros.classificacao_id}
-          disabled={!contrato} ajuda={contrato && dots.data && !dots.data.length ? 'O contrato ainda não tem dotação vinculada: vincule na aba Dotação do contrato.'
-            : `Dotações do contrato para o exercício ${f.ano}. As de outros exercícios aparecem desabilitadas.`}>
-          <option value="">{contrato ? 'Escolha…' : 'Escolha antes o contrato'}</option>
-          {dots.data?.map((d) => {
-            const outroAno = !!d.exercicio && String(d.exercicio) !== f.ano;
-            return <option key={d.id} value={d.id} disabled={outroAno && d.id !== f.classificacao_id}>
-              {d.exercicio ? `[${d.exercicio}] ` : ''}{d.codigo_completo} · {d.acao_descricao} · Fonte {d.fonte_codigo}{outroAno ? ' (outro exercício)' : ''}</option>;
-          })}
-        </Selecao> : (
-          <div className="sm:col-span-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-            <p>Dotação escolhida fora do contrato: <span className="numero font-mono">{outra.rotulo}</span>. Ela será <b>vinculada ao contrato</b> ao salvar o empenho.</p>
-            <Botao pequeno variante="secundario" className="mt-2" onClick={() => setOutra(null)}>Voltar às dotações do contrato</Botao>
-          </div>
-        )}
-        {!outra && escolhida && <div className="sm:col-span-6"><ClassificacoesDaDotacao d={escolhida} /></div>}
-        {contrato && !outra && !empenho && pode('contratos', 'editar') && (
-          <div className="sm:col-span-6">
-            <SeletorDotacao rotulo="Ou use outra dotação do órgão (exercício do empenho)" valor={null} exercicio={/^\d{4}$/.test(f.ano) ? Number(f.ano) : null}
-              excluir={dots.data?.map((d) => d.id)} ajuda="Só quando a dotação certa ainda não está no contrato. Ela passa a fazer parte das dotações do contrato."
-              aoMudar={(v, o) => { if (v && o) { setOutra({ id: v, rotulo: o.rotulo }); setF((x) => ({ ...x, classificacao_id: '' })); } }} />
-          </div>
-        )}
-        <CampoMoeda className="sm:col-span-2" rotulo="Valor do empenho" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} />
-        <Campo className="sm:col-span-2" rotulo="Data do empenho" type="date" obrigatorio value={f.data_empenho} onChange={set('data_empenho')} />
-        <Campo className="sm:col-span-2" rotulo="Vigência" type="date" value={f.vigencia_fim} onChange={set('vigencia_fim')} />
-        <Campo className="sm:col-span-2" rotulo="Processo de empenho" value={f.processo} onChange={set('processo')} maxLength={60} />
-        <Campo className="sm:col-span-2" rotulo="SD / ano" value={f.sd} onChange={set('sd')} maxLength={40} />
-        <Campo className="sm:col-span-2" rotulo="Licitação / pregão" value={f.licitacao} onChange={set('licitacao')} maxLength={60} />
-        <div className="sm:col-span-6">
+      <form id="form-empenho" onSubmit={enviar} className="flex flex-col gap-4" noValidate>
+        <SeletorContrato obrigatorio valor={contrato?.id ?? null} rotuloValor={contrato?.rotulo} erro={erros.contrato_id} desabilitado={!!empenho}
+          aoMudar={(v, o) => setContrato(v && o ? { id: v, rotulo: o.rotulo } : null)} />
+        {c && <AvisoVencido c={c} />}
+
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Campo rotulo="Nota de Empenho nº" obrigatorio value={f.numero} onChange={set('numero')} erro={erros.numero} maxLength={40} placeholder="Ex.: 10230012" />
+          <Selecao rotulo="Tipo" value={f.tipo} onChange={set('tipo')}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
+          <Campo rotulo="Data" type="date" obrigatorio value={f.data_empenho} onChange={set('data_empenho')} />
+          <Campo rotulo="Exercício (ano)" obrigatorio inputMode="numeric" value={f.ano} onChange={set('ano')} erro={erros.ano} maxLength={4} />
+        </div>
+
+        <Bloco titulo="Fornecedor">
+          {!c ? <p className="text-sm text-slate-500">Vem do contrato escolhido.</p> : (
+            <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-slate-500">Nome</dt><dd>{c.fornecedor_nome}</dd></div>
+              <div><dt className="text-xs text-slate-500">CNPJ/CPF</dt><dd>{documentoFornecedor(c)}</dd></div>
+            </dl>
+          )}
+        </Bloco>
+
+        <ClassificacaoEmpenho valor={classificacao} aoMudar={setClassificacao} dotacaoInicial={empenho?.classificacao_id ?? null}
+          dotacoesContrato={dots.data} erro={erros.classificacao} desabilitado={!contrato} />
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Campo rotulo="Licitação" value={f.licitacao} onChange={set('licitacao')} maxLength={60} placeholder="Ex.: Nº 0081/2025 - Pregão Eletrônico" />
+          <Campo rotulo="Processo" value={f.processo} onChange={set('processo')} maxLength={60} />
+          <Campo rotulo="Vigência até" type="date" value={f.vigencia_fim} onChange={set('vigencia_fim')} />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Campo rotulo="Contrato / ano" value={c?.numero ?? ''} disabled readOnly />
+          <Campo rotulo="SD / ano" value={f.sd} onChange={set('sd')} maxLength={40} placeholder="Ex.: 1889/2026" />
+          <CampoMoeda rotulo="Valor do empenho" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} />
+        </div>
+        {c && <p className="-mt-2 text-xs text-slate-500">Contrato: saldo {brl(c.saldo)} · já empenhado {brl(c.empenhado)} · vigência até {formatarData(c.data_fim_atual)}</p>}
+
+        <div>
           <BuscaSelect rotulo="Unidades atendidas" valor={null} chave={['ua-opcoes', orgao?.id, unidades.length]} ajuda="Escolha uma ou várias."
             aoMudar={(v, o) => { if (v && o && !unidades.some((u) => u.id === v)) setUnidades((x) => [...x, { id: v, nome: o.rotulo }]); }}
             buscar={async (t) => (await listarUnidadesAtendidas({ tenantId: orgao!.id, busca: t, situacao: 'ATIVOS', limite: 20, offset: 0 })).itens
@@ -138,8 +148,10 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
               {u.nome}<button type="button" className="rounded p-0.5 hover:bg-marca-100" aria-label={`Tirar ${u.nome}`} onClick={() => setUnidades((x) => x.filter((y) => y.id !== u.id))}><X className="size-3.5" /></button>
             </li>))}</ul>}
         </div>
-        <AreaTexto className="sm:col-span-6" rotulo="Observações" value={f.observacoes} onChange={set('observacoes')} maxLength={2000} />
-        {erros.geral && <div className="sm:col-span-6"><CaixaErro mensagem={erros.geral} /></div>}
+
+        <AreaTexto rotulo="Histórico" value={f.observacoes} onChange={set('observacoes')} maxLength={2000} rows={4}
+          placeholder="Ex.: Memo, pregão, ata de registro de preço, ordem de fornecimento e descrição do objeto" />
+        {erros.geral && <CaixaErro mensagem={erros.geral} />}
       </form>
     </Modal>
   );

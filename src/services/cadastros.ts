@@ -379,3 +379,24 @@ export async function salvarFerias(id: string | null, dados: DadosFerias) {
 export async function cancelarFerias(id: string, motivo: string) {
   falhou(await supabase.from('servidor_ferias').update({ cancelada_em: new Date().toISOString(), motivo_cancelamento: motivo }).eq('id', id).select('id').single());
 }
+
+// ---------------------------------------------------------------- classificação do empenho (campo a campo)
+
+export interface NaturezaDoCatalogo { categoria_id: string; gnd_id: string; modalidade_id: string; elemento_id: string; codigo: string; descricao: string }
+
+/** Naturezas da despesa (8 dígitos) já usadas no catálogo do município */
+export async function naturezasDoOrgao(tenantId: string, busca: string) {
+  return falhou(await supabase.rpc('naturezas_do_orgao', { p_tenant: tenantId, p_busca: busca || null })) as NaturezaDoCatalogo[];
+}
+
+/** Dotação gravada e os seus classificadores (para preencher o quadro de classificação) */
+export async function classificacaoDaDotacao(id: string) {
+  const dotacao = falhou(await supabase.from('classificacoes_orcamentarias').select('*').eq('id', id).single()) as ClassificacaoOrcamentaria;
+  const ids = Object.entries(dotacao).filter(([k, v]) => k.endsWith('_id') && k !== 'ente_id' && typeof v === 'string').map(([, v]) => v as string);
+  return { dotacao, classificadores: await obterClassificadores(ids) };
+}
+
+/** Acha (ou monta, só com códigos já cadastrados) a dotação da classificação escolhida e a vincula ao contrato */
+export async function dotacaoDoEmpenho(p: Record<string, string | number | null>) {
+  return falhou(await supabase.rpc('dotacao_do_empenho', { p })) as string;
+}

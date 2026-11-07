@@ -76,9 +76,10 @@ const TOPICOS: Topico[] = [
     'Em "Documentos e extratos", emita o extrato do contrato para impressão.',
   ] },
   { id: 'empenhos', grupo: 'Contratos e execução', titulo: 'Empenhos e reforços', link: '/empenhos', passos: [
-    'Clique em "Novo empenho", escolha o contrato e a dotação efetivamente usada. Aparecem as dotações do contrato; as de outro exercício ficam desabilitadas, e as classificações da escolhida são mostradas automaticamente (nada é digitado).',
-    'Se a dotação certa ainda não está no contrato, use "Ou use outra dotação do órgão": ela é vinculada ao contrato ao salvar (exige permissão de editar contratos).',
-    'O empenho só aceita dotação do mesmo exercício do empenho (ano). O sistema recusa a combinação e explica o motivo.',
+    'Clique em "Novo empenho" e preencha como na nota de empenho: contrato, nº, tipo, data e exercício. O fornecedor vem do contrato.',
+    'No quadro CLASSIFICAÇÃO, escolha cada campo um a um (Unidade Orçamentária, Função, SubFunção, Programa, Ação, Natureza Despesa, SubElemento, Fonte, CO, IdUso, IDoc, Ind. Result. Prim. e SubFonte) entre os códigos cadastrados no módulo Desenvolvedor. Ação, natureza e fonte são obrigatórias.',
+    'Atalho: "Preencher com uma dotação do contrato" completa todos os campos de uma vez; depois dá para trocar qualquer um.',
+    'Ao salvar, o sistema reaproveita a dotação com essa classificação no exercício do empenho ou a monta com os códigos escolhidos (nenhum código novo é criado) e a inclui nas dotações do contrato.',
     'Para aumentar o valor, registre um reforço. Cancelamentos exigem motivo e ficam no histórico.',
     'A barra mostra o quanto do empenho já foi usado em notas fiscais.',
   ] },
