@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Botao, CaixaErro, Campo } from '@/components/ui/basicos';
-import { Marca, Simbolo } from '@/components/layout/Marca';
+import { LogoCompleto } from '@/components/layout/Marca';
 import { mensagemDeErro } from '@/lib/erros';
 import { erroDoLink, senhaDefinida, supabase, urlDoApp } from '@/lib/supabase';
 
@@ -14,9 +14,8 @@ function Moldura({ titulo, subtitulo, children }: { titulo: string; subtitulo?: 
       <aside className="relative hidden overflow-hidden bg-marca-900 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="absolute -right-32 -top-32 size-[28rem] rounded-full bg-marca-800/60" aria-hidden />
         <div className="absolute -bottom-40 -left-24 size-[26rem] rounded-full bg-marca-950/60" aria-hidden />
-        <div className="relative"><Marca clara /></div>
+        <div className="relative"><LogoCompleto clara className="h-36 w-auto" /></div>
         <div className="relative max-w-lg">
-          <Simbolo className="mb-8 size-20" />
           <h2 className="text-3xl font-semibold leading-tight text-white">Gestão de contratos e despesas públicas com rastreabilidade de ponta a ponta.</h2>
           <p className="mt-4 text-marca-200">Contratos, empenhos, notas fiscais, atesto e relatórios orçamentários em um só lugar, com dados isolados por órgão e auditoria de cada operação.</p>
         </div>
@@ -24,7 +23,7 @@ function Moldura({ titulo, subtitulo, children }: { titulo: string; subtitulo?: 
       </aside>
       <main className="flex items-center justify-center bg-white px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden"><Marca /></div>
+          <div className="mb-8 flex justify-center lg:hidden"><LogoCompleto className="h-28 w-auto" /></div>
           <h1 className="text-2xl font-semibold text-slate-900">{titulo}</h1>
           {subtitulo && <p className="mt-1 text-sm text-slate-600">{subtitulo}</p>}
           <div className="mt-6">{children}</div>
