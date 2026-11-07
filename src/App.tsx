@@ -1,5 +1,5 @@
 import { Loader2, ShieldOff } from 'lucide-react';
-import { lazy, Suspense, useEffect, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,9 +12,17 @@ import { Inicio } from '@/pages/Inicio';
 // Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve) e, depois do login,
 // baixado em segundo plano quando o navegador está ocioso: a primeira abertura de cada tela fica instantânea.
 const carregadores: Array<() => Promise<unknown>> = [];
+// Tela já baixada é desenhada direto, sem suspender: o React segura por 300 ms a troca de uma tela suspensa
 const pagina = <T extends string>(carregar: () => Promise<Record<T, ComponentType>>, nome: T) => {
-  carregadores.push(carregar);
-  return lazy(() => carregar().then((m) => ({ default: m[nome] })));
+  let pronta: ComponentType | null = null;
+  const baixar = () => carregar().then((m) => { pronta = m[nome]; return m; });
+  carregadores.push(baixar);
+  const Preguicosa = lazy(() => baixar().then((m) => ({ default: m[nome] as ComponentType })));
+  return function Pagina() {
+    // decidido uma vez ao abrir a tela: trocar de componente depois recriaria a tela e perderia o que foi preenchido
+    const [Tela] = useState(() => pronta ?? Preguicosa);
+    return <Tela />;
+  };
 };
 
 /** Baixa o código das telas em segundo plano, uma de cada vez, sem disputar com o que a pessoa está fazendo */
