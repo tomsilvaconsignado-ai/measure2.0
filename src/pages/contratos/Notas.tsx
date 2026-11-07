@@ -20,7 +20,7 @@ import {
 } from '@/services/execucao';
 import { montarAtesto } from '@/lib/atesto';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
-import { TextosNota } from './TextosNota';
+import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
 import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
@@ -263,6 +263,7 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
         <p className="text-sm text-slate-600">Prévia do texto que o gestor/fiscal vai atestar (modelo configurável pelo órgão). Depois de registrada, a nota aparece para o responsável atestar.</p>
         <div className="whitespace-pre-line rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">{textoAtesto}</div>
         <Botao variante="secundario" icone={<ClipboardCopy className="size-4" />} className="self-start" onClick={() => { void navigator.clipboard.writeText(textoAtesto); toast.success('Texto copiado.'); }}>Copiar texto</Botao>
+        {orgao && <TextoDecreto tenantId={orgao.id} processoContrato={ct.data?.processo_administrativo ?? null} />}
         {erros.geral && <CaixaErro mensagem={erros.geral} />}
       </div>}
     </Modal>
@@ -336,6 +337,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
           {n.observacoes && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Observações</dt><dd>{n.observacoes}</dd></div>}
         </dl>}
         {aba === 'atesto' && <div className="flex flex-col gap-3">
+          {!n.cancelada_em && <TextoDecreto tenantId={n.tenant_id} processoContrato={ct.data?.processo_administrativo ?? null} />}
           {q.data!.atestos.map((a) => (
             <div key={a.id} className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
               <p className="mb-1 flex items-center gap-2 font-medium text-emerald-900"><BadgeCheck className="size-4" />Atestada por {a.servidor_nome} ({PAPEL_ATESTO[a.papel] ?? a.papel.toLowerCase()}) em {formatarDataHora(a.atestado_em)}</p>
@@ -355,7 +357,7 @@ function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void
             </div>
           </>}
           {!n.cancelada_em && <div className="mt-2 border-t border-slate-200 pt-4">
-            <TextosNota tenantId={n.tenant_id} numeroNota={n.serie ? `${n.numero}-${n.serie}` : n.numero} atestada={n.status_atesto === 'ATESTADA'} processoContrato={ct.data?.processo_administrativo ?? null} />
+            <TextoEncaminhamento numeroNota={n.serie ? `${n.numero}-${n.serie}` : n.numero} atestada={n.status_atesto === 'ATESTADA'} />
           </div>}
         </div>}
         {aba === 'pagamentos' && <div className="flex flex-col gap-3">

@@ -96,7 +96,7 @@ const TOPICOS: Topico[] = [
     'O gestor, fiscal ou suplente designado abre a nota (selo "Aguardando o seu atesto") e clica em "Atestar nota" na aba Atesto.',
     'Depois do atesto, a administração dá baixa em Pagamentos: valor bruto, retenções (ISS, IRRF, INSS, PIS/COFINS/CSLL, outras), data e OB. O líquido é calculado na hora. A fila segue a ordem cronológica por fonte de recurso; pagar fora da ordem exige justificativa. Pagamento menor que o valor deixa a nota como "Parcial".',
     'Na aba Documentos, clique em "Emitir checklist": o formulário de análise dos documentos da nota (modelo da SMS) já vem com contrato, unidade, contratada, contato, serviço, período, nota, valor e mês de referência. Confira os itens SIM/NÃO (já marcados como no modelo), a declaração de nota pendente e quem assina (fiscal por padrão; troque para gestor ou suplente se precisar). Depois imprima ou salve em PDF e anexe os comprovantes.',
-    'Na aba Atesto, em "Textos para copiar": depois do atesto, use "Copiar texto do atesto" para encaminhar a nota ao financeiro; e, escolhendo um decreto do órgão, copie o texto "Decreto em renovação" já com o número do processo do contrato.',
+    'Texto do decreto em renovação: aparece ao lançar a nota (passo 4) e no topo da aba Atesto, antes do atesto do fiscal. Escolha o decreto do órgão e copie: o número do processo do contrato já vem preenchido. Depois do atesto, a aba Atesto também oferece "Copiar texto do atesto" para encaminhar ao financeiro.',
   ] },
   { id: 'os', grupo: 'Contratos e execução', titulo: 'Ordens de serviço', link: '/ordens-servico', passos: [
     'Clique em "Nova ordem de serviço". O número (NNNN/ANO) é gerado automaticamente.',
