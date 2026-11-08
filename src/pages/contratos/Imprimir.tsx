@@ -9,6 +9,7 @@ import { Botao, CaixaErro, Carregando } from '@/components/ui/basicos';
 import { traduzirErro } from '@/lib/erros';
 import { brl, formatarCnpj, formatarCpf, formatarData, formatarDataHora, formatarTelefone } from '@/lib/formatacao';
 import { obterEmitido } from '@/services/execucao';
+import { ImprimirExtratoNotas } from './ImprimirExtratoNotas';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type D = Record<string, any>;
@@ -254,16 +255,22 @@ export function Imprimir() {
   if (q.isError) return <div className="p-6"><CaixaErro mensagem={traduzirErro(q.error).mensagem} /></div>;
   const doc = q.data!;
   const d = doc.dados as D;
+  const barra = (largura: string) => (
+    <div className={`nao-imprimir mx-auto mb-4 flex ${largura} flex-wrap items-center justify-between gap-2 px-4`}>
+      <Botao variante="secundario" icone={<ArrowLeft className="size-4" />} onClick={() => navegar(-1)}>Voltar</Botao>
+      <p className="text-xs text-slate-600">Documento emitido em {formatarDataHora(doc.emitido_em)}: os dados são os daquele momento.</p>
+      <Botao icone={<Printer className="size-4" />} onClick={() => window.print()}>Imprimir / salvar PDF</Botao>
+    </div>
+  );
+  if (doc.tipo === 'EXTRATO_NOTAS' || doc.tipo === 'EXTRATO_UNIDADES' || doc.tipo === 'EXTRATO_RATEIO') {
+    return <div className="min-h-dvh bg-slate-200 py-6 print:bg-white print:py-0">{barra('max-w-[297mm]')}<ImprimirExtratoNotas doc={doc} /></div>;
+  }
   const paisagem = doc.tipo === 'CONSOLIDADO_MENSAL';
   const titulo = doc.tipo === 'CONSOLIDADO_MENSAL' || doc.tipo === 'CHECKLIST_NOTA' ? String(d.titulo) : doc.tipo === 'EXTRATO_CONTRATO' ? `EXTRATO DO CONTRATO Nº ${d.contrato.numero}` : doc.tipo === 'EXTRATO_EMPENHO' ? `EXTRATO DO EMPENHO Nº ${d.empenho.numero}/${d.empenho.ano}` : doc.titulo.toUpperCase();
   return (
     <div className="min-h-dvh bg-slate-200 py-6 print:bg-white print:py-0">
       {paisagem && <style>{'@page { size: A4 landscape; margin: 10mm 10mm 12mm; } @media print { .folha { padding: 0 !important; } }'}</style>}
-      <div className={`nao-imprimir mx-auto mb-4 flex ${paisagem ? 'max-w-[297mm]' : 'max-w-[210mm]'} flex-wrap items-center justify-between gap-2 px-4`}>
-        <Botao variante="secundario" icone={<ArrowLeft className="size-4" />} onClick={() => navegar(-1)}>Voltar</Botao>
-        <p className="text-xs text-slate-600">Documento emitido em {formatarDataHora(doc.emitido_em)}: os dados são os daquele momento.</p>
-        <Botao icone={<Printer className="size-4" />} onClick={() => window.print()}>Imprimir / salvar PDF</Botao>
-      </div>
+      {barra(paisagem ? 'max-w-[297mm]' : 'max-w-[210mm]')}
       <article className="folha mx-auto bg-white px-[14mm] py-[12mm] text-slate-900 shadow-lg print:shadow-none" style={paisagem ? { width: '297mm', minHeight: '210mm' } : { width: '210mm', minHeight: '297mm' }}>
         <header className="mb-4 flex items-center gap-4 border-b-2 border-slate-800 pb-3">
           <ImagemPrivada caminho={d.orgao?.logo_path} alt="Brasão" className="h-16 w-16 object-contain" alternativa={<span className="h-16 w-16" />} />

@@ -340,4 +340,4 @@ export interface PagamentoRealizado {
   registrado_por: string; registrado_em: string;
 }
 
-export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }
+export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA' | 'EXTRATO_NOTAS' | 'EXTRATO_UNIDADES' | 'EXTRATO_RATEIO'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }

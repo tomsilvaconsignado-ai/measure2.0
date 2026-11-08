@@ -23,6 +23,7 @@ import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
+import { ExtratosNotas } from './ExtratosNotas';
 import { AvisoVencido, BotaoAtestar, BotaoBaixa, BotaoVisualizar, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
@@ -409,6 +410,7 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
           </ul>}
         </div>}
         {aba === 'documentos' && <DocumentosEmitidosNota nota={n} />}
+        {aba === 'documentos' && <div className="mb-5"><ExtratosNotas contratoId={n.contrato_id} /></div>}
         {aba === 'documentos' && <Anexos recurso="notas_fiscais" registroId={n.id} unidadeId={n.unidade_id} titulo="Nota fiscal e comprovantes" />}
       </>}
       <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={invalidar} />

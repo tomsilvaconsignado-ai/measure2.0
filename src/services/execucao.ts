@@ -283,6 +283,12 @@ export async function emitirExtrato(tipo: 'contrato' | 'empenho', id: string) {
   return falhou(await supabase.rpc(tipo === 'contrato' ? 'emitir_extrato_contrato' : 'emitir_extrato_empenho', tipo === 'contrato' ? { p_contrato: id } : { p_empenho: id })) as string;
 }
 
+/** Extratos de notas do contrato (modelo do Controle Interno): 1 notas, 2 por unidade, 3 rateio */
+export type ModeloExtratoNotas = 'EXTRATO_NOTAS' | 'EXTRATO_UNIDADES' | 'EXTRATO_RATEIO';
+export async function emitirExtratoNotas(contratoId: string, modelo: ModeloExtratoNotas) {
+  return falhou(await supabase.rpc('emitir_extrato_notas', { p_contrato: contratoId, p_modelo: modelo })) as string;
+}
+
 export async function obterEmitido(id: string) {
   return falhou(await supabase.from('documentos_emitidos').select('*').eq('id', id).single()) as DocumentoEmitido;
 }

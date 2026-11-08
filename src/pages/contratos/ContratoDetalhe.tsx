@@ -21,6 +21,7 @@ import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao,
 import { FormContrato } from './Contratos';
 import { DotacoesContrato } from './DotacoesContrato';
 import { EtapasContrato } from './EtapasContrato';
+import { ExtratosNotas } from './ExtratosNotas';
 
 type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
@@ -272,7 +273,9 @@ function Documentos({ c }: { c: ContratoResumo }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Anexos recurso="contratos" registroId={c.id} unidadeId={c.unidade_id} categoria="GERAL" titulo="Documentos do contrato" />
-      <div>
+      <div className="flex flex-col gap-4">
+        <ExtratosNotas contratoId={c.id} />
+        <div>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Extratos emitidos</h3>
           <Botao pequeno variante="secundario" icone={<FileDown className="size-4" />} carregando={emitir.isPending} onClick={() => emitir.mutate()}>Emitir extrato</Botao>
@@ -284,6 +287,7 @@ function Documentos({ c }: { c: ContratoResumo }) {
             ))}
           </ul>
         )}
+        </div>
       </div>
     </div>
   );
