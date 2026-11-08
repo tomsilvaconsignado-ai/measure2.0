@@ -23,7 +23,7 @@ import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
-import { AvisoVencido, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
+import { AvisoVencido, BotaoAtestar, BotaoBaixa, BotaoVisualizar, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
 const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente', LANCADOR: 'quem lançou a nota' };
@@ -312,13 +312,13 @@ function VincularEmpenho({ nota, podeEditar, aoVincular }: { nota: NotaResumo; p
   );
 }
 
-function DetalheNota({ id, aoFechar }: { id: string | null; aoFechar: () => void }) {
+function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null; aoFechar: () => void; abaInicial?: 'dados' | 'atesto' | 'pagamentos' | 'documentos' }) {
   const { orgao, pode } = useSessao();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['nota', id], queryFn: () => obterNota(id!), enabled: !!id });
   const ct = useQuery({ queryKey: ['contrato', q.data?.nota.contrato_id], queryFn: () => obterContrato(q.data!.nota.contrato_id), enabled: !!q.data });
   const modelo = useQuery({ queryKey: ['modelo-atesto', orgao?.id], queryFn: () => modeloAtesto(orgao!.id), enabled: !!orgao });
-  const [aba, setAba] = useState<'dados' | 'atesto' | 'pagamentos' | 'documentos'>('dados');
+  const [aba, setAba] = useState<'dados' | 'atesto' | 'pagamentos' | 'documentos'>(abaInicial);
   const [texto, setTexto] = useState('');
   const [baixando, setBaixando] = useState<NotaParaBaixa | null>(null);
   const [cancelandoPag, setCancelandoPag] = useState<string | null>(null);
@@ -455,12 +455,20 @@ export function Notas() {
     enabled: !!orgao, placeholderData: (a) => a,
   });
   if (!orgao) return <SemPermissao texto="Escolha um órgão." />;
-  const ver = (id: string | null) => setParams((p) => { const n = new URLSearchParams(p); if (id) n.set('ver', id); else n.delete('ver'); return n; });
+  // ?ver=<nota> abre o detalhe; ?aba= escolhe a aba (ex.: atesto)
+  const abaVendo = (params.get('aba') as 'dados' | 'atesto' | 'pagamentos' | 'documentos' | null) ?? 'dados';
+  const [baixando, setBaixando] = useState<NotaParaBaixa | null>(null);
+  const ver = (id: string | null, aba?: 'atesto' | 'pagamentos') => setParams((p) => {
+    const n = new URLSearchParams(p);
+    if (id) n.set('ver', id); else n.delete('ver');
+    if (id && aba) n.set('aba', aba); else n.delete('aba');
+    return n;
+  });
   const linha = (n: NotaResumo) => {
     const minhaVez = !n.cancelada_em && ((n.posso_atestar && n.status_atesto === 'PENDENTE') || (podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO'));
     return (
-    <li key={n.id} className={cx(minhaVez && '-mx-2 border-l-4 border-amber-400 bg-amber-50/50 px-2')}>
-      <button className={cx('grid w-full gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}
+    <li key={n.id} className={cx('flex flex-wrap items-center gap-x-4 gap-y-2', minhaVez && '-mx-2 border-l-4 border-amber-400 bg-amber-50/50 px-2')}>
+      <button className={cx('grid min-w-0 flex-1 gap-1 py-3 text-left sm:grid-cols-[1fr_auto] sm:items-center', n.cancelada_em && 'opacity-60')} onClick={() => ver(n.id)}
         onMouseEnter={() => adiantarNota(n.id)} onFocus={() => adiantarNota(n.id)}>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">NF {n.numero}{n.serie ? `-${n.serie}` : ''}<span className="font-normal text-slate-500">· {n.fornecedor_nome}</span>
@@ -474,6 +482,14 @@ export function Notas() {
           {!n.cancelada_em && <SeloAtesto status={n.status_atesto} />}<SeloPagamento status={n.status_pagamento} />
         </span>
       </button>
+      {/* ação da vez em destaque; o resto só visualiza */}
+      <span className="pb-3 sm:w-36 sm:pb-0 sm:text-right">
+        {!n.cancelada_em && n.posso_atestar && n.status_atesto === 'PENDENTE'
+          ? <BotaoAtestar rotulo={n.numero} aoClicar={() => ver(n.id, 'atesto')} />
+          : !n.cancelada_em && podePagar && n.status_atesto === 'ATESTADA' && n.status_pagamento !== 'PAGO'
+            ? <BotaoBaixa rotulo={n.numero} aoClicar={() => setBaixando({ id: n.id, rotulo: `${n.numero}${n.serie ? `-${n.serie}` : ''}`, fornecedor: n.fornecedor_nome, restanteCentavos: centavos(n.valor) - centavos(n.pago) })} />
+            : <BotaoVisualizar rotulo={n.numero} aoClicar={() => ver(n.id)} />}
+      </span>
     </li>
     );
   };
@@ -493,7 +509,8 @@ export function Notas() {
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
       </Cartao>
       <NovaNota aberto={nova} aoFechar={() => { setNova(false); setEmpenhoAtalho(null); }} contratoInicial={contrato?.id} empenhoInicial={empenhoAtalho} aoSalvar={(id) => ver(id)} />
-      <DetalheNota id={vendo} aoFechar={() => ver(null)} />
+      <DetalheNota key={vendo ?? ''} id={vendo} abaInicial={abaVendo} aoFechar={() => ver(null)} />
+      <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={async () => { await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['nota'] }); await qc.invalidateQueries({ queryKey: ['fila-pagamentos'] }); }} />
     </>
   );
 }

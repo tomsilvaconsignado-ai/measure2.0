@@ -1,8 +1,8 @@
 // Peças compartilhadas pelas telas de contratos, empenhos e notas.
-import { AlertTriangle, CalendarClock, CheckCircle2, CircleSlash, Clock } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Banknote, BadgeCheck, CalendarClock, CheckCircle2, CircleSlash, Clock, Eye } from 'lucide-react';
 import { useSessao } from '@/auth/Sessao';
 import { BuscaSelect, type Opcao } from '@/components/ui/BuscaSelect';
-import { Selo } from '@/components/ui/basicos';
+import { PontoPendente, Selo, cx } from '@/components/ui/basicos';
 import { brl, formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
 import type { ContratoResumo, SituacaoContrato, StatusPagamento } from '@/lib/tipos';
 import { buscarFornecedoresOpcoes, listarClassificacoes } from '@/services/cadastros';
@@ -81,4 +81,48 @@ export function SeletorEmpenho(p: { contratoId: string | null; valor: string | n
     chave={['empenhos-opcoes', orgao?.id, p.contratoId]} placeholder="Número do empenho"
     buscar={async (t) => (await listarEmpenhos({ tenantId: orgao!.id, contratoId: p.contratoId, busca: t, situacao: 'ATIVOS', limite: 30, offset: 0 })).itens
       .map((e) => ({ valor: e.id, rotulo: `${e.numero}/${e.ano}`, detalhe: `Saldo ${brl(e.saldo)} · ${e.classificacao_codigo}` }))} />;
+}
+
+// ---------------------------------------------------------------- botões de ação da nota
+// Ação que depende de você em destaque; o resto (paga, cancelada, aguardando outra pessoa) é só "Visualizar".
+const baseAcao = 'group relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2';
+
+/** Dar baixa: verde; em destaque (com o ponto de pendente) quando é a próxima a pagar */
+export function BotaoBaixa({ primeiro = true, rotulo, aoClicar }: { primeiro?: boolean; rotulo: string; aoClicar: () => void }) {
+  return (
+    <button type="button" onClick={aoClicar} aria-label={`Dar baixa na nota ${rotulo}`}
+      className={cx(baseAcao, 'focus-visible:outline-emerald-600',
+        primeiro
+          ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-600/25 hover:-translate-y-px hover:from-emerald-700 hover:to-emerald-600 hover:shadow-lg'
+          : 'border border-emerald-200 bg-white text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50')}>
+      <Banknote className="size-4" aria-hidden />
+      Dar baixa
+      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      {primeiro && <PontoPendente className="absolute -right-1 -top-1" rotulo="Ação pendente" />}
+    </button>
+  );
+}
+
+/** Atestar: âmbar, em destaque, quando a nota aguarda o seu atesto */
+export function BotaoAtestar({ rotulo, aoClicar }: { rotulo: string; aoClicar: () => void }) {
+  return (
+    <button type="button" onClick={aoClicar} aria-label={`Atestar a nota ${rotulo}`}
+      className={cx(baseAcao, 'bg-gradient-to-r from-amber-500 to-amber-400 text-amber-950 shadow-md shadow-amber-500/25 hover:-translate-y-px hover:from-amber-600 hover:to-amber-500 hover:shadow-lg focus-visible:outline-amber-600')}>
+      <BadgeCheck className="size-4" aria-hidden />
+      Atestar
+      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      <PontoPendente className="absolute -right-1 -top-1" rotulo="Ação pendente" />
+    </button>
+  );
+}
+
+/** Visualizar: discreto; abre todos os dados da nota (dados, atesto, pagamentos e documentos) */
+export function BotaoVisualizar({ rotulo, aoClicar }: { rotulo: string; aoClicar: () => void }) {
+  return (
+    <button type="button" onClick={aoClicar} aria-label={`Visualizar a nota ${rotulo}`}
+      className={cx(baseAcao, 'border border-slate-200 bg-white text-slate-700 hover:border-marca-300 hover:bg-marca-50 hover:text-marca-800 focus-visible:outline-marca-600')}>
+      <Eye className="size-4" aria-hidden />
+      Visualizar
+    </button>
+  );
 }

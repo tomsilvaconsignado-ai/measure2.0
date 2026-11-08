@@ -1,14 +1,14 @@
 // Pagamentos da administração: fila das notas atestadas (ordem cronológica por fonte de recurso, art. 141)
 // com a baixa (retenções e data) e a consulta dos pagamentos realizados, com exportação para Excel.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, ArrowRight, Banknote, FileSpreadsheet } from 'lucide-react';
+import { AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, PontoPendente, SemPermissao, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, SemPermissao, Selo, Vazio } from '@/components/ui/basicos';
 import { mensagemDeErro } from '@/lib/erros';
 import { brl, centavos, formatarCentavos, formatarData, formatarDataHora } from '@/lib/formatacao';
 import { baixarExcel } from '@/lib/planilhas';
@@ -16,6 +16,7 @@ import type { ItemFilaPagamento, PagamentoRealizado } from '@/lib/tipos';
 import { registrarExportacao } from '@/services/relatorios';
 import { filaPagamentos, pagamentosRealizados } from '@/services/execucao';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
+import { BotaoBaixa, BotaoVisualizar } from './comum';
 
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 const inicioDoMes = () => `${hoje().slice(0, 8)}01`;
@@ -89,25 +90,11 @@ function Fila() {
   );
 }
 
-// Botão da fila: o 1º da vez em destaque (verde, com o ponto de ação pendente); os demais discretos.
-function BotaoBaixa({ primeiro, rotulo, aoClicar }: { primeiro: boolean; rotulo: string; aoClicar: () => void }) {
-  return (
-    <button type="button" onClick={aoClicar} aria-label={`Dar baixa na nota ${rotulo}`}
-      className={cx('group relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600',
-        primeiro
-          ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-600/25 hover:-translate-y-px hover:from-emerald-700 hover:to-emerald-600 hover:shadow-lg'
-          : 'border border-emerald-200 bg-white text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50')}>
-      <Banknote className="size-4" aria-hidden />
-      Dar baixa
-      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
-      {primeiro && <PontoPendente className="absolute -right-1 -top-1" rotulo="Próxima da fila" />}
-    </button>
-  );
-}
 
 const RET: Array<[keyof PagamentoRealizado, string]> =[['retencao_iss', 'ISS'], ['retencao_irrf', 'IRRF'], ['retencao_inss', 'INSS'], ['retencao_federais', 'PIS/COFINS/CSLL'], ['retencao_outras', 'Outras']];
 
 function Realizados() {
+  const navegar = useNavigate();
   const { orgao } = useSessao();
   const [inicio, setInicio] = useState(inicioDoMes());
   const [fim, setFim] = useState(hoje());
@@ -162,6 +149,7 @@ function Realizados() {
                 <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500">
                   <th className="px-3 py-2 font-medium">Data</th><th className="px-3 py-2 font-medium">Nota · fornecedor</th><th className="px-3 py-2 text-right font-medium">Bruto</th>
                   <th className="px-3 py-2 font-medium">Retenções</th><th className="px-3 py-2 text-right font-medium">Líquido</th><th className="px-3 py-2 font-medium">Documento</th>
+                  <th className="px-3 py-2"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {linhas.map((r) => (
@@ -174,6 +162,7 @@ function Realizados() {
                       <td className="px-3 py-2 text-xs text-slate-600">{RET.filter(([k]) => centavos(r[k] as string) > 0).map(([k, t]) => `${t} ${brl(r[k] as string)}`).join(' · ') || '—'}</td>
                       <td className="numero px-3 py-2 text-right font-medium">{brl(r.valor_liquido)}</td>
                       <td className="px-3 py-2">{r.documento ?? '—'}</td>
+                      <td className="px-3 py-2 text-right"><BotaoVisualizar rotulo={r.numero} aoClicar={() => navegar(`/notas?ver=${r.nota_id}`)} /></td>
                     </tr>))}
                 </tbody>
               </table>
