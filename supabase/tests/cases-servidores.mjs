@@ -7,6 +7,9 @@ export default async function ({ db, as, check, expectOk, expectFail, one, u, A,
   const serv = (await one(`SELECT id, atualizado_em FROM servidores WHERE tenant_id = $1 AND matricula = '12345'`, [A]));
   const semCpf = (await one(`SELECT id FROM servidores WHERE tenant_id = $1 AND matricula = '777'`, [A])).id;
   const daCoaf = (await one(`SELECT id FROM servidores WHERE tenant_id = $1 AND matricula = '5001'`, [A])).id;
+  // o consolidado só lista quem tem data de nomeação no cadastro
+  await db.exec('RESET ROLE');
+  await db.query(`UPDATE servidores SET data_nomeacao = '2024-01-02' WHERE id = ANY($1) AND data_nomeacao IS NULL`, [[semCpf, daCoaf]]);
 
   console.log('Consolidado mensal: servidores do mês');
   const fev25 = await cons(u.adminCoinfra, coinfra.id, 2025, 2);
