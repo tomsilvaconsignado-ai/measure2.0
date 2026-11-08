@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote,
+  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft,
 } from 'lucide-react';
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -13,7 +14,7 @@ import { encerrarSuporte, urlArquivo } from '@/services/api';
 import { Avatar, Botao, Carregando, ContadorPendente, cx } from '../ui/basicos';
 import { usePendencias } from '../Pendencias';
 import { FocoCoordenacao } from './FocoCoordenacao';
-import { Marca } from './Marca';
+import { Marca, Simbolo } from './Marca';
 import { Notificacoes } from './Notificacoes';
 import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
 import type { Recurso } from '@/lib/tipos';
@@ -53,24 +54,38 @@ const GESTAO: Item[] = [
   { para: '/relatorios', rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" /> },
 ];
 
-function Link({ item, aoNavegar, pendentes = 0 }: { item: Item; aoNavegar: () => void; pendentes?: number }) {
+// Menu recolhido: só os ícones (o nome aparece ao passar o mouse); os pendentes viram um ponto
+function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean }) {
   return (
     <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores' || item.para === '/ajuda'}
-      className={({ isActive }) => cx('flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+      data-flip={item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
+      className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
-      {item.icone}<span className="flex-1 truncate">{item.rotulo}</span><ContadorPendente n={pendentes} />
+      {item.icone}
+      {!recolhido && <span data-rotulo className="flex-1 truncate">{item.rotulo}</span>}
+      {recolhido
+        ? pendentes > 0 && <span className="absolute right-3 top-1.5 size-2 rounded-full bg-amber-400" aria-hidden />
+        : <ContadorPendente n={pendentes} />}
     </NavLink>
   );
 }
 
-function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Grupo({ titulo, children, recolhido = false }: { titulo: string; children: ReactNode; recolhido?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-marca-300">{titulo}</p>
+    <div className="flex flex-col gap-0.5" role="group" aria-label={titulo}>
+      {recolhido
+        ? <div data-flip={'grupo:' + titulo} className="mx-3 mb-1.5 mt-3.5 h-px bg-white/10" aria-hidden />
+        : <p data-flip={'grupo:' + titulo} data-rotulo className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-marca-300">{titulo}</p>}
       {children}
     </div>
   );
 }
+
+// Animação do menu (técnica FLIP com a animação nativa do navegador): mede antes e depois da troca e anima a diferença
+const ANIMACAO = { duration: 450, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+const LARGURA_RECOLHIDO = 80;
+const CHAVE_MENU = 'measure.menu_recolhido';
+const menosMovimento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function Contagem({ ate }: { ate: string }) {
   const [agora, setAgora] = useState(Date.now());
@@ -83,6 +98,10 @@ export function AppLayout() {
   const { contexto, ehPlataforma, orgao, vinculosDoOrgao, suporte, escolherOrgao, pode, sair, recarregar } = useSessao();
   const [menuAberto, setMenuAberto] = useState(false);
   const [orgaosAbertos, setOrgaosAbertos] = useState(false);
+  const [recolhido, setRecolhido] = useState(() => { try { return localStorage.getItem(CHAVE_MENU) === '1'; } catch { return false; } });
+  const lateralRef = useRef<HTMLElement>(null);
+  const cabecalhoRef = useRef<HTMLElement>(null);
+  const principalRef = useRef<HTMLElement>(null);
   const local = useLocation();
   const navegar = useNavigate();
   useEffect(() => { setMenuAberto(false); setOrgaosAbertos(false); }, [local.pathname]);
@@ -98,53 +117,88 @@ export function AppLayout() {
   const papelAtual = vinculosDoOrgao.map((v) => v.unidade ? `${v.papel_nome} · ${v.unidade.sigla ?? v.unidade.nome}` : v.papel_nome).join(' | ');
 
   const fecharMenu = () => setMenuAberto(false);
+
+  // Recolher/expandir: a borda do menu corre (recorte animado no CSS), o conteúdo e os itens acompanham,
+  // e ao expandir os nomes reaparecem um após o outro
+  const alternarMenu = () => {
+    const novo = !recolhido;
+    try { localStorage.setItem(CHAVE_MENU, novo ? '1' : '0'); } catch { /* sem armazenamento */ }
+    if (menosMovimento()) { setRecolhido(novo); return; }
+    const conteudo = [cabecalhoRef.current, principalRef.current].filter((e): e is HTMLElement => !!e);
+    const antesX = conteudo.map((e) => e.getBoundingClientRect().left);
+    const itens = () => [...(lateralRef.current?.querySelectorAll<HTMLElement>('[data-flip]') ?? [])];
+    const antesY = new Map(itens().map((e) => [e.dataset.flip, e.getBoundingClientRect().top]));
+    flushSync(() => setRecolhido(novo));
+    conteudo.forEach((e, i) => {
+      const dx = antesX[i] - e.getBoundingClientRect().left;
+      if (dx) e.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], ANIMACAO);
+    });
+    for (const e of itens()) {
+      const dy = (antesY.get(e.dataset.flip) ?? e.getBoundingClientRect().top) - e.getBoundingClientRect().top;
+      if (Math.abs(dy) > 0.5) e.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], ANIMACAO);
+    }
+    if (!novo) {
+      lateralRef.current?.querySelectorAll<HTMLElement>('[data-rotulo]').forEach((e, i) =>
+        e.animate([{ opacity: 0, transform: 'translateX(-10px)' }, { opacity: 1, transform: 'none' }],
+          { ...ANIMACAO, delay: ANIMACAO.duration * 0.35 + i * 12, fill: 'backwards' }));
+    }
+  };
   const pendencias = usePendencias();
   const pendentesDe: Record<string, number> = { '/notas': pendencias.atesto, '/pagamentos': pendencias.pagamento };
   const administracao = ADMINISTRACAO.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
   const cadastros = CADASTROS.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
 
-  const lateral = (
+  const menuLateral = (rec: boolean) => (
     <nav className="flex h-full flex-col bg-marca-900 px-3 pb-4 text-white" aria-label="Menu principal">
-      <div className="flex h-16 items-center justify-between px-2">
-        <Marca clara />
+      <div className="flex h-16 items-center justify-between px-2" style={rec ? { width: LARGURA_RECOLHIDO - 24 } : undefined}>
+        {rec ? <Simbolo clara className="h-7 w-auto" /> : <span data-rotulo><Marca clara /></span>}
         <button className="rounded-md p-1 text-marca-200 hover:bg-white/10 lg:hidden" onClick={fecharMenu} aria-label="Fechar menu"><X className="size-5" /></button>
       </div>
-      <div className="-mx-1 flex-1 overflow-y-auto px-1">
-        <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} />
+      <div className="-mx-1 flex-1 overflow-y-auto overflow-x-hidden px-1" style={rec ? { width: LARGURA_RECOLHIDO - 16 } : undefined}>
+        <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
         {orgao && (
-          <Grupo titulo="Gestão">{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Gestão" recolhido={rec}>{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
         {orgao && (
-          <Grupo titulo="Contratos e execução">{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} />)}</Grupo>
+          <Grupo titulo="Contratos e execução" recolhido={rec}>{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} recolhido={rec} />)}</Grupo>
         )}
         {orgao && cadastros.length > 0 && (
-          <Grupo titulo="Cadastros">{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Cadastros" recolhido={rec}>{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
         {orgao && administracao.length > 0 && (
-          <Grupo titulo="Administração">{administracao.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Administração" recolhido={rec}>{administracao.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
         {ehPlataforma && (
-          <Grupo titulo="Plataforma">{PLATAFORMA.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} />)}</Grupo>
+          <Grupo titulo="Plataforma" recolhido={rec}>{PLATAFORMA.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
-        <Grupo titulo="Suporte">
-          <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} />
-          <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} />
+        <Grupo titulo="Suporte" recolhido={rec}>
+          <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
+          <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
         </Grupo>
       </div>
     </nav>
   );
 
   return (
-    <div className="min-h-dvh lg:pl-64">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">{lateral}</aside>
+    <div className={cx('min-h-dvh overflow-x-clip', recolhido ? 'lg:pl-20' : 'lg:pl-64')}>
+      {/* o painel mantém a largura; só a borda corre (recorte animado) */}
+      <aside ref={lateralRef} className="menu-lateral fixed inset-y-0 left-0 z-30 hidden w-64 lg:block"
+        style={{ clipPath: recolhido ? `inset(0 calc(100% - ${LARGURA_RECOLHIDO}px) 0 0)` : 'inset(0 0 0 0)' }}>{menuLateral(recolhido)}</aside>
+      {/* alça na borda do menu: acompanha a borda e a seta gira */}
+      <button type="button" onClick={alternarMenu} aria-expanded={!recolhido} aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'}
+        title={recolhido ? 'Expandir menu' : 'Recolher menu'}
+        className="menu-alca fixed top-[76px] z-40 hidden size-7 items-center justify-center rounded-full border border-marca-700 bg-marca-800 text-marca-100 shadow-md hover:bg-marca-700 hover:text-white lg:flex"
+        style={{ left: (recolhido ? LARGURA_RECOLHIDO : 256) - 14 }}>
+        <ChevronLeft className="menu-seta size-4" style={{ transform: recolhido ? 'rotate(180deg)' : 'none' }} />
+      </button>
       {menuAberto && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-900/50" onClick={fecharMenu} />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw]">{lateral}</aside>
+          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw]">{menuLateral(false)}</aside>
         </div>
       )}
 
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header ref={cabecalhoRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
           <button className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setMenuAberto(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
 
@@ -207,7 +261,7 @@ export function AppLayout() {
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <main ref={principalRef} className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <LimiteDeErro key={local.pathname}><Suspense fallback={<Carregando />}><Outlet /></Suspense></LimiteDeErro>
       </main>
     </div>
