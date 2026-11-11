@@ -1,6 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { itensDeLinhas, linhasDeItens } from './checklist';
-import { inteiroPorExtenso, mesesDeReferencia, montarAtesto, textoDecretoRenovacao, textoEncaminhamentoAtesto, valorPorExtenso } from './atesto';
+import { inteiroPorExtenso, locaisDoAtesto, mesesDeReferencia, montarAtesto, siglaDaUnidade, textoDecretoRenovacao, textoEncaminhamentoAtesto, valorPorExtenso } from './atesto';
+
+describe('unidades rateadas no atesto', () => {
+  const usf = (nome: string, valor: number | null = 100) => ({ nome, tipo: 'USF', sigla: null, valor });
+  it('sigla cadastrada vem primeiro; sem sigla, o tipo; sem tipo útil, o nome', () => {
+    expect(siglaDaUnidade({ nome: 'Unidade de Saúde Centro', sigla: 'USF-C', tipo: 'USF' })).toBe('USF-C');
+    expect(siglaDaUnidade({ nome: 'CAPS III Liberdade', sigla: '', tipo: 'CAPS' })).toBe('CAPS');
+    expect(siglaDaUnidade({ nome: 'Hospital Fernando Franco', tipo: 'Outra' })).toBe('Hospital Fernando Franco');
+    expect(siglaDaUnidade({ nome: 'Galpão', tipo: 'UNIDADE' })).toBe('Galpão');
+  });
+  it('rateio: só as siglas, sem repetir', () => {
+    expect(locaisDoAtesto([usf('USF Augusto Franco'), usf('USF Bairro América'), { nome: 'CAPS David Capistrano', tipo: 'CAPS', valor: '50.00' }]))
+      .toEqual(['USF', 'CAPS']);
+  });
+  it('sem rateio: os nomes continuam como antes', () => {
+    expect(locaisDoAtesto([usf('USF Augusto Franco', null), usf('USF Bairro América', null)])).toEqual(['USF Augusto Franco', 'USF Bairro América']);
+  });
+  it('o valor do atesto não muda, só o local', () => {
+    const modelo = 'NF {NUMERO_NOTA}, {VALOR_NOTA}, na {LOCAL_SERVIÇO}.';
+    const base = { objeto: 'x', contrato: '1', fornecedor: 'y', nota: '10', valorCentavos: 1250075, meses: [] };
+    const t = montarAtesto(modelo, '', { ...base, locais: locaisDoAtesto([usf('USF A', 6250037), usf('USF B', 6250038), { nome: 'CAPS AD', tipo: 'CAPS', valor: 1 }]) });
+    expect(t).toBe('NF 10, R$ 12.500,75, na USF e CAPS.');
+  });
+});
 
 describe('valor por extenso', () => {
   it.each([

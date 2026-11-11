@@ -185,6 +185,8 @@ export interface ServidorListado {
   unidade_id: string; unidade_nome: string; unidade_sigla: string | null;
   email_institucional: string | null; telefone: string | null; foto_path: string | null;
   data_nomeacao: string | null; data_exoneracao: string | null; exonerado: boolean; tem_acesso: boolean; cpf: string | null;
+  /** entra nos consolidados mensais (padrão SIM) */
+  entra_consolidado: boolean;
 }
 
 export interface DadosPessoais {

@@ -202,21 +202,22 @@ export async function obterNota(id: string) {
   const [nota, refs, unidades, atestos, pagamentos] = await Promise.all([
     supabase.from('v_notas').select('*').eq('id', id).single(),
     supabase.from('nota_referencias').select('ano, mes').eq('nota_id', id).order('ano').order('mes'),
-    supabase.from('v_nota_unidades').select('valor, unidade_id, nome, tipo, eh_grupo').eq('nota_id', id).order('nome'),
+    supabase.from('v_nota_unidades').select('valor, unidade_id, nome, tipo, eh_grupo, sigla').eq('nota_id', id).order('nome'),
     supabase.from('nota_atestos').select('*').eq('nota_id', id).order('atestado_em'),
     supabase.from('nota_pagamentos').select('*').eq('nota_id', id).order('data_pagamento'),
   ]);
   return {
     nota: falhou(nota) as NotaResumo,
     referencias: falhou(refs) as Array<{ ano: number; mes: number }>,
-    unidades: falhou(unidades) as Array<{ valor: string | number | null; unidade_id: string; nome: string; tipo: string; eh_grupo: boolean }>,
+    unidades: falhou(unidades) as Array<{ valor: string | number | null; unidade_id: string; nome: string; tipo: string; eh_grupo: boolean; sigla: string | null }>,
     atestos: falhou(atestos) as Atesto[],
     pagamentos: falhou(pagamentos) as Pagamento[],
   };
 }
 
 export interface DadosNota {
-  id?: string; empenho_id: string; numero: string; serie?: string | null; data_emissao: string; processo_administrativo?: string | null;
+  /** null só na edição de nota migrada que continua sem empenho */
+  id?: string; empenho_id: string | null; numero: string; serie?: string | null; data_emissao: string; processo_administrativo?: string | null;
   valor: string; tipo_servico_id?: string | null; periodo_inicio?: string | null; periodo_fim?: string | null; observacoes?: string | null;
   excecao_saldo?: string | null; referencias: Array<{ ano: number; mes: number }>; unidades: Array<{ id: string; valor: string | null }>;
 }
@@ -262,6 +263,16 @@ export async function vincularEmpenhoNota(notaId: string, empenhoId: string, jus
 
 export async function cancelarNota(id: string, motivo: string) {
   falhou(await supabase.rpc('cancelar_nota', { p_nota: id, p_motivo: motivo }));
+}
+
+/** Por que a nota não pode ser excluída (null = pode) */
+export async function impedimentoExclusaoNota(id: string) {
+  return falhou(await supabase.rpc('impedimento_exclusao_nota', { p_nota: id })) as string | null;
+}
+
+/** Exclui a nota (distinto de cancelar): só nota sem atesto, pagamento ou documento emitido; motivo vai para a auditoria */
+export async function excluirNota(id: string, motivo: string) {
+  falhou(await supabase.rpc('excluir_nota', { p_nota: id, p_motivo: motivo }));
 }
 
 export async function saldoEmpenho(empenhoId: string, ignorarNota?: string | null) {

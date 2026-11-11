@@ -85,6 +85,28 @@ export interface DadosAtesto {
 }
 
 /** Monta o texto do atesto a partir do modelo do órgão (variáveis entre chaves) */
+export interface UnidadeDoAtesto { nome: string; sigla?: string | null; tipo?: string | null; valor?: number | string | null }
+
+/** Identificação curta da unidade: a sigla cadastrada; sem sigla, o tipo (USF, CAPS...); sem tipo útil, o nome */
+export function siglaDaUnidade(u: UnidadeDoAtesto) {
+  const sigla = u.sigla?.trim();
+  if (sigla) return sigla;
+  const tipo = u.tipo?.trim() ?? '';
+  // tipo útil é uma sigla em maiúsculas (USF, CAPS, SEDE); "Outra" e o genérico "UNIDADE" não identificam nada
+  if (/^[A-ZÀ-Ú0-9/-]{2,12}$/.test(tipo) && tipo !== 'UNIDADE') return tipo;
+  return u.nome;
+}
+
+/**
+ * Locais do serviço para o texto do atesto. Nota com rateio: só as siglas, sem repetir (12 USFs e 2 CAPS viram
+ * "USF" e "CAPS"). Sem rateio: o nome de cada unidade, como antes. Só muda o texto; os valores ficam como estão.
+ */
+export function locaisDoAtesto(unidades: UnidadeDoAtesto[]) {
+  const rateada = unidades.some((u) => u.valor != null && u.valor !== '');
+  if (!rateada) return unidades.map((u) => u.nome);
+  return [...new Set(unidades.map(siglaDaUnidade))];
+}
+
 export function montarAtesto(modelo: string, decreto: string, d: DadosAtesto) {
   const ord = [...d.meses].sort((a, b) => a.ano - b.ano || a.mes - b.mes);
   const mesesBarra = ord.map((m) => `${MESES_EXTENSO[m.mes - 1]}/${m.ano}`).join(', ');

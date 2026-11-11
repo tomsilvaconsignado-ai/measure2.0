@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, Layers, Plus, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, Layers, Pencil, Plus, Trash2, Wallet, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,9 +16,10 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto, obterContrato, obterNota, saldoEmpenho, salvarNota,
+  atestarNota, cancelarNota, excluirNota, impedimentoExclusaoNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto,
+  obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
-import { montarAtesto } from '@/lib/atesto';
+import { locaisDoAtesto, montarAtesto } from '@/lib/atesto';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
@@ -30,7 +31,7 @@ const POR_PAGINA = 25;
 const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente', LANCADOR: 'quem lançou a nota' };
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null }
+interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null; sigla?: string | null; tipo?: string | null }
 
 // Checklist (emitido na hora, com as conferências do sistema) e documentos já emitidos da nota
 function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
@@ -60,9 +61,19 @@ function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
   );
 }
 
-function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar }: { aberto: boolean; aoFechar: () => void; contratoInicial?: string | null; empenhoInicial?: string | null; aoSalvar: (id: string) => void }) {
+function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar, editarId = null }: {
+  aberto: boolean; aoFechar: () => void; contratoInicial?: string | null; empenhoInicial?: string | null; aoSalvar: (id: string) => void;
+  /** nota a corrigir (edição sem cancelar); sem ele, lançamento de nota nova */
+  editarId?: string | null;
+}) {
   const { orgao, pode } = useSessao();
   const qc = useQueryClient();
+  const edicao = useQuery({ queryKey: ['nota', editarId], queryFn: () => obterNota(editarId!), enabled: aberto && !!editarId });
+  const [preenchida, setPreenchida] = useState<string | null>(null);
+  const notaEditada = editarId ? edicao.data?.nota ?? null : null;
+  // depois de atestada ou paga, valor e empenho ficam travados (o banco confere de novo)
+  const travada = !!notaEditada && (notaEditada.status_atesto === 'ATESTADA' || centavos(notaEditada.pago) > 0);
+  const semEmpenho = !!notaEditada && !notaEditada.empenho_id;
   const [etapa, setEtapa] = useState<'contrato' | 'dados' | 'referencia' | 'atesto'>('contrato');
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(null);
   const [empenho, setEmpenho] = useState<{ id: string; rotulo: string } | null>(null);
@@ -80,7 +91,27 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
     setValor(null); setMeses([]); setUnidades([]); setRatear(false);
     setContrato(contratoInicial ? { id: contratoInicial, rotulo: 'Contrato selecionado' } : null);
     setF({ numero: '', serie: '', data_emissao: hoje(), processo_administrativo: '', tipo_servico_id: '', periodo_inicio: '', periodo_fim: '', observacoes: '', excecao_saldo: '' });
+    setPreenchida(null);
   }, [aberto, contratoInicial, empenhoInicial]);
+  // edição: preenche o formulário com a nota uma vez, quando ela chega
+  useEffect(() => {
+    const d = edicao.data;
+    if (!aberto || !editarId || !d || preenchida === editarId) return;
+    const n = d.nota;
+    setContrato({ id: n.contrato_id, rotulo: `${n.contrato_numero} – ${n.fornecedor_nome}` });
+    setEmpenho(n.empenho_id ? { id: n.empenho_id, rotulo: `${n.empenho_numero}/${n.empenho_ano}` } : null);
+    setF({ numero: n.numero, serie: n.serie ?? '', data_emissao: n.data_emissao, processo_administrativo: n.processo_administrativo ?? '',
+      tipo_servico_id: n.tipo_servico_id ?? '', periodo_inicio: n.periodo_inicio ?? '', periodo_fim: n.periodo_fim ?? '',
+      observacoes: n.observacoes ?? '', excecao_saldo: n.excecao_saldo ?? '' });
+    setValor(centavos(n.valor));
+    setMeses(d.referencias);
+    if (d.referencias.length) setAno(d.referencias[d.referencias.length - 1]!.ano);
+    setUnidades(d.unidades.map((u) => ({ id: u.unidade_id, nome: u.nome, eh_grupo: u.eh_grupo, regra: 'NAO_APLICAVEL', sigla: u.sigla, tipo: u.tipo,
+      valor: u.valor != null ? centavos(u.valor) : null })));
+    setRatear(d.unidades.some((u) => u.valor != null));
+    setEtapa('dados');
+    setPreenchida(editarId);
+  }, [aberto, editarId, edicao.data, preenchida]);
   // contrato com um só empenho ativo: ele já vem escolhido (e o rótulo do empenho vindo por atalho é completado)
   const empenhosDoContrato = useQuery({
     queryKey: ['empenhos-opcoes', orgao?.id, contrato?.id, 'auto'], enabled: aberto && !!contrato && !!orgao,
@@ -91,11 +122,12 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
     if (empenho && empenho.rotulo === 'Empenho selecionado') {
       const x = lista.find((i) => i.id === empenho.id);
       if (x) setEmpenho({ id: x.id, rotulo: `${x.numero}/${x.ano}` });
-    } else if (!empenho && lista.length === 1) setEmpenho({ id: lista[0]!.id, rotulo: `${lista[0]!.numero}/${lista[0]!.ano}` });
+    } else if (!empenho && !editarId && lista.length === 1) setEmpenho({ id: lista[0]!.id, rotulo: `${lista[0]!.numero}/${lista[0]!.ano}` });
   }, [empenhosDoContrato.data, empenho]);
   const ct = useQuery({ queryKey: ['contrato', contrato?.id], queryFn: () => obterContrato(contrato!.id), enabled: !!contrato });
   useEffect(() => { if (ct.data && contrato?.rotulo === 'Contrato selecionado') setContrato({ id: ct.data.id, rotulo: `${ct.data.numero} – ${ct.data.fornecedor_nome}` }); }, [ct.data, contrato]);
-  const saldo = useQuery({ queryKey: ['saldo-empenho', empenho?.id], queryFn: () => saldoEmpenho(empenho!.id), enabled: !!empenho });
+  // na edição, o saldo desconta tudo menos a própria nota
+  const saldo = useQuery({ queryKey: ['saldo-empenho', empenho?.id, editarId], queryFn: () => saldoEmpenho(empenho!.id, editarId), enabled: !!empenho });
   const tipos = useQuery({ queryKey: ['tipos-servico', orgao?.id], queryFn: () => listarTiposServico(orgao!.id), enabled: !!orgao });
   const atesto = useQuery({ queryKey: ['modelo-atesto', orgao?.id], queryFn: () => modeloAtesto(orgao!.id), enabled: !!orgao });
   const saldoC = saldo.data != null ? centavos(saldo.data) : null;
@@ -109,16 +141,16 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
     if (ua.eh_grupo && ua.regra_rateio === 'OBRIGATORIO') {
       // grupo com rateio obrigatório: entra com as unidades componentes
       const membros = await membrosDoGrupo(ua.id);
-      setUnidades((x) => [...x, ...membros.filter((m) => !x.some((y) => y.id === m.id)).map((m) => ({ id: m.id, nome: m.nome, eh_grupo: false, regra: m.regra_rateio, valor: null }))]);
+      setUnidades((x) => [...x, ...membros.filter((m) => !x.some((y) => y.id === m.id)).map((m) => ({ id: m.id, nome: m.nome, eh_grupo: false, regra: m.regra_rateio, valor: null, sigla: m.sigla, tipo: m.tipo }))]);
       setRatear(true);
       toast.info(`"${ua.nome}" exige rateio: incluídas as ${membros.length} unidades do grupo. Distribua o valor.`);
     } else {
-      setUnidades((x) => [...x, { id: ua.id, nome: ua.nome, eh_grupo: ua.eh_grupo, regra: ua.regra_rateio, valor: null }]);
+      setUnidades((x) => [...x, { id: ua.id, nome: ua.nome, eh_grupo: ua.eh_grupo, regra: ua.regra_rateio, valor: null, sigla: ua.sigla, tipo: ua.tipo }]);
     }
   };
   const expandirGrupo = async (g: UnidadeLinha) => {
     const membros = await membrosDoGrupo(g.id);
-    setUnidades((x) => [...x.filter((y) => y.id !== g.id), ...membros.filter((m) => !x.some((y) => y.id === m.id)).map((m) => ({ id: m.id, nome: m.nome, eh_grupo: false, regra: m.regra_rateio, valor: null }))]);
+    setUnidades((x) => [...x.filter((y) => y.id !== g.id), ...membros.filter((m) => !x.some((y) => y.id === m.id)).map((m) => ({ id: m.id, nome: m.nome, eh_grupo: false, regra: m.regra_rateio, valor: null, sigla: m.sigla, tipo: m.tipo }))]);
     setRatear(true);
   };
   const dividirIgual = () => {
@@ -130,7 +162,8 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
   const textoAtesto = ct.data && atesto.data ? montarAtesto(atesto.data.modelo, atesto.data.decreto, {
     objeto: ct.data.objeto, contrato: ct.data.numero, fornecedor: ct.data.fornecedor_nome, nota: f.numero ? (f.serie ? `${f.numero}-${f.serie}` : f.numero) : '', valorCentavos: valor ?? 0,
     meses, periodoInicio: f.periodo_inicio, periodoFim: f.periodo_fim, processo: f.processo_administrativo,
-    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual, locais: unidades.map((u) => u.nome),
+    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual,
+    locais: locaisDoAtesto(unidades.map((u) => ({ nome: u.nome, sigla: u.sigla, tipo: u.tipo, valor: ratear ? u.valor : null }))),
   }) : '';
 
   // Para chegar a uma etapa, valida só as etapas anteriores a ela ('fim' = registrar a nota)
@@ -139,7 +172,7 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
     const n: Record<string, string> = {};
     if (alvo >= 1 && !contrato) n.contrato_id = 'Escolha o contrato.';
     if (alvo >= 2) {
-      if (!empenho) n.empenho_id = 'Escolha o empenho.';
+      if (!empenho && !semEmpenho) n.empenho_id = 'Escolha o empenho.';
       if (!f.numero.trim()) n.numero = 'Informe o número da nota.';
       if (!f.data_emissao) n.data_emissao = 'Informe a data da nota.';
       if (!valor) n.valor = 'Informe o valor da nota.';
@@ -160,7 +193,8 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
 
   const salvar = useMutation({
     mutationFn: () => salvarNota({
-      empenho_id: empenho!.id, numero: f.numero.trim(), serie: f.serie.trim() || null, data_emissao: f.data_emissao,
+      ...(editarId ? { id: editarId } : {}),
+      empenho_id: empenho?.id ?? null, numero: f.numero.trim(), serie: f.serie.trim() || null, data_emissao: f.data_emissao,
       processo_administrativo: f.processo_administrativo.trim() || null, valor: decimalDeCentavos(valor!), tipo_servico_id: f.tipo_servico_id || null,
       periodo_inicio: f.periodo_inicio || null, periodo_fim: f.periodo_fim || null, observacoes: f.observacoes.trim() || null,
       excecao_saldo: excede ? f.excecao_saldo.trim() : null, referencias: meses,
@@ -168,7 +202,8 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
     }),
     onSuccess: async (id) => {
       await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] });
-      toast.success('Nota fiscal registrada. Ela aguarda o atesto do gestor/fiscal.');
+      await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['saldo-empenho'] });
+      toast.success(editarId ? 'Alterações da nota salvas.' : 'Nota fiscal registrada. Ela aguarda o atesto do gestor/fiscal.');
       aoFechar(); aoSalvar(id);
     },
     onError: (e) => {
@@ -183,26 +218,34 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar 
   const ordem = ['contrato', 'dados', 'referencia', 'atesto'] as const;
   const i = ordem.indexOf(etapa);
   return (
-    <Modal aberto={aberto} aoFechar={aoFechar} titulo="Nova nota fiscal" largura="lg"
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo={editarId ? 'Editar nota fiscal' : 'Nova nota fiscal'} largura="lg"
+      descricao={editarId ? 'Corrija os dados e salve. A nota continua ativa (não é cancelada) e a alteração fica na auditoria.' : undefined}
       rodape={<>
-        {i > 0 && <Botao variante="secundario" onClick={() => setEtapa(ordem[i - 1]!)}>Voltar</Botao>}
-        {i < 3 ? <Botao onClick={() => irPara(ordem[i + 1]!)}>Continuar</Botao> : <Botao carregando={salvar.isPending} onClick={() => { if (validar('fim')) salvar.mutate(); }}>Registrar nota</Botao>}
+        {i > (editarId ? 1 : 0) && <Botao variante="secundario" onClick={() => setEtapa(ordem[i - 1]!)}>Voltar</Botao>}
+        {i < 3 ? <Botao disabled={!!editarId && preenchida !== editarId} onClick={() => irPara(ordem[i + 1]!)}>Continuar</Botao>
+          : <Botao carregando={salvar.isPending} disabled={!!editarId && preenchida !== editarId} onClick={() => { if (validar('fim')) salvar.mutate(); }}>{editarId ? 'Salvar alterações' : 'Registrar nota'}</Botao>}
       </>}>
+      {editarId && preenchida !== editarId && <Carregando texto="Carregando a nota..." />}
       <Abas abas={[{ id: 'contrato', rotulo: '1. Contrato' }, { id: 'dados', rotulo: '2. Dados da nota' }, { id: 'referencia', rotulo: '3. Referência' }, { id: 'atesto', rotulo: '4. Texto de atesto' }]}
         ativa={etapa} aoMudar={(e) => (ordem.indexOf(e) < i ? setEtapa(e) : irPara(e))} />
       {etapa === 'contrato' && <div className="flex flex-col gap-4">
-        <SeletorContrato obrigatorio valor={contrato?.id ?? null} rotuloValor={contrato?.rotulo} erro={erros.contrato_id}
+        {editarId && <p className="rounded-lg bg-slate-50 p-2.5 text-sm text-slate-700">O contrato de uma nota já lançada não muda. Se a nota foi lançada no contrato errado, exclua-a (ou cancele) e lance de novo.</p>}
+        <SeletorContrato obrigatorio desabilitado={!!editarId} valor={contrato?.id ?? null} rotuloValor={contrato?.rotulo} erro={erros.contrato_id}
           aoMudar={(v, o) => { setContrato(v && o ? { id: v, rotulo: o.rotulo } : null); setEmpenho(null); }} />
         {ct.data && <ResumoContrato c={ct.data} />}
       </div>}
       {etapa === 'dados' && <div className="grid gap-4 sm:grid-cols-6">
-        <div className="sm:col-span-6"><SeletorEmpenho obrigatorio contratoId={contrato?.id ?? null} valor={empenho?.id ?? null} rotuloValor={empenho?.rotulo} erro={erros.empenho_id}
-          aoMudar={(v, o) => setEmpenho(v && o ? { id: v, rotulo: o.rotulo } : null)} /></div>
+        <div className="sm:col-span-6">{semEmpenho || travada
+          ? <Campo rotulo="Empenho" disabled value={empenho?.rotulo ?? 'Sem empenho'}
+              ajuda={semEmpenho ? 'Nota migrada sem empenho: o vínculo é feito em "Vincular empenho", no detalhe da nota.' : 'A nota já foi atestada ou paga: o empenho não muda.'} />
+          : <SeletorEmpenho obrigatorio contratoId={contrato?.id ?? null} valor={empenho?.id ?? null} rotuloValor={empenho?.rotulo} erro={erros.empenho_id}
+              aoMudar={(v, o) => setEmpenho(v && o ? { id: v, rotulo: o.rotulo } : null)} />}</div>
         {saldoC != null && <p className="rounded-lg bg-slate-50 p-2.5 text-sm text-slate-700 sm:col-span-6">Saldo disponível no empenho: <strong className="numero">{formatarCentavos(saldoC)}</strong></p>}
         <Campo className="sm:col-span-2" rotulo="Número da nota" obrigatorio value={f.numero} onChange={set('numero')} erro={erros.numero} maxLength={40} />
         <Campo className="sm:col-span-1" rotulo="Série" value={f.serie} onChange={set('serie')} maxLength={10} />
         <Campo className="sm:col-span-3" rotulo="Data da nota" type="date" obrigatorio value={f.data_emissao} onChange={set('data_emissao')} erro={erros.data_emissao} />
-        <CampoMoeda className="sm:col-span-3" rotulo="Valor da nota" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} />
+        <CampoMoeda className="sm:col-span-3" rotulo="Valor da nota" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor} disabled={travada}
+          ajuda={travada ? 'A nota já foi atestada ou paga: o valor não muda.' : undefined} />
         <Campo className="sm:col-span-3" rotulo="Processo administrativo da nota" value={f.processo_administrativo} onChange={set('processo_administrativo')} maxLength={60} placeholder="000.000/0000"
           ajuda="Processo aberto para esta nota (não é o processo do contrato)." />
         {excede && <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 sm:col-span-6">
@@ -324,12 +367,23 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
   const [baixando, setBaixando] = useState<NotaParaBaixa | null>(null);
   const [cancelandoPag, setCancelandoPag] = useState<string | null>(null);
   const [cancelandoNota, setCancelandoNota] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+  const [verificando, setVerificando] = useState(false);
   useEffect(() => setAba('dados'), [id]);
+  // antes de pedir o motivo, confere se a nota pode ser excluída (atesto, pagamento, documento emitido)
+  const pedirExclusao = async () => {
+    setVerificando(true);
+    try {
+      const impedimento = await impedimentoExclusaoNota(id!);
+      if (impedimento) toast.error(impedimento); else setExcluindo(true);
+    } catch (e) { toast.error(mensagemDeErro(e)); } finally { setVerificando(false); }
+  };
   const n = q.data?.nota;
   const sugerido = useMemo(() => (n && ct.data && modelo.data ? montarAtesto(modelo.data.modelo, modelo.data.decreto, {
     objeto: ct.data.objeto, contrato: n.contrato_numero, fornecedor: n.fornecedor_nome, nota: n.serie ? `${n.numero}-${n.serie}` : n.numero,
     valorCentavos: centavos(n.valor), meses: q.data!.referencias, periodoInicio: n.periodo_inicio, periodoFim: n.periodo_fim, processo: n.processo_administrativo,
-    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual, locais: q.data!.unidades.map((u) => u.nome),
+    vigenciaInicio: ct.data.data_inicio, vigenciaFim: ct.data.data_fim_atual, locais: locaisDoAtesto(q.data!.unidades),
   }) : ''), [n, ct.data, modelo.data, q.data]);
   useEffect(() => { if (sugerido) setTexto(sugerido); }, [sugerido]);
   const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['emitidos', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
@@ -340,7 +394,11 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
     pagamento: !!n && !n.cancelada_em && n.status_atesto === 'ATESTADA' && restante > 0 && pode('notas_fiscais', 'editar') };
   return (
     <Modal aberto aoFechar={aoFechar} titulo={n ? `Nota fiscal ${n.numero}${n.serie ? `-${n.serie}` : ''}` : 'Nota fiscal'} descricao={n ? `${n.fornecedor_nome} · Contrato ${n.contrato_numero}` : undefined} largura="lg"
-      rodape={n && !n.cancelada_em && pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" icone={<Ban className="size-4" />} onClick={() => setCancelandoNota(true)}>Cancelar nota</Botao>}>
+      rodape={n && !n.cancelada_em && (pode('notas_fiscais', 'editar') || pode('notas_fiscais', 'excluir')) && <>
+        {pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" icone={<Ban className="size-4" />} onClick={() => setCancelandoNota(true)}>Cancelar nota</Botao>}
+        {pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" className="text-red-700" icone={<Trash2 className="size-4" />} carregando={verificando} onClick={() => void pedirExclusao()}>Excluir nota</Botao>}
+        {pode('notas_fiscais', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar nota</Botao>}
+      </>}>
       {!n ? <Carregando /> : <>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="numero text-xl font-semibold">{brl(n.valor)}</span>
@@ -419,6 +477,11 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
       <ConfirmarComMotivo aberto={cancelandoNota} aoFechar={() => setCancelandoNota(false)} titulo="Cancelar esta nota fiscal?"
         descricao="A nota sai do consumo do empenho e do contrato, mas continua registrada com o motivo." rotuloConfirmar="Cancelar nota"
         aoConfirmar={async (m) => { await cancelarNota(id, m); await invalidar(); toast.success('Nota cancelada.'); }} />
+      <ConfirmarComMotivo aberto={excluindo} aoFechar={() => setExcluindo(false)} titulo="Excluir esta nota fiscal?"
+        descricao={<>A nota é <strong>apagada</strong> do sistema (não é o mesmo que cancelar): sai das listas, dos saldos e dos relatórios, e o número fica livre para novo lançamento. Uma cópia completa e o motivo ficam guardados na auditoria. Use para nota lançada por engano.</>}
+        rotuloConfirmar="Excluir nota"
+        aoConfirmar={async (m) => { await excluirNota(id, m); await invalidar(); toast.success('Nota excluída.'); aoFechar(); }} />
+      <NovaNota aberto={editando} aoFechar={() => setEditando(false)} editarId={id} aoSalvar={() => void invalidar()} />
     </Modal>
   );
 }

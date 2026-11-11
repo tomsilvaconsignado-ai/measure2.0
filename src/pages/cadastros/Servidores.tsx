@@ -13,13 +13,43 @@ import { Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { cpfValido, formatarCpf, formatarData, formatarTelefone, iniciais, somenteDigitos } from '@/lib/formatacao';
 import type { DadosPessoais, Escolaridade, Servidor, ServidorListado } from '@/lib/tipos';
-import { aniversariantes, enviarFotoServidor, listarServidores, obterServidor, salvarServidor } from '@/services/cadastros';
+import { aniversariantes, definirEntraConsolidado, enviarFotoServidor, listarServidores, obterServidor, salvarServidor } from '@/services/cadastros';
 import { ESCOLARIDADES, rotuloEscolaridade, ServidorCurriculo } from './ServidorCurriculo';
 import { ServidorFerias } from './ServidorFerias';
 
 const POR_PAGINA = 20;
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const TIPOS_SANGUE = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+/** "Entra nos consolidados?": interruptor SIM/NÃO na lista (sem permissão de editar, só mostra) */
+function EntraConsolidado({ s }: { s: ServidorListado }) {
+  const { pode } = useSessao();
+  const qc = useQueryClient();
+  const mudar = useMutation({
+    mutationFn: (valor: boolean) => definirEntraConsolidado(s.id, valor),
+    onSuccess: async (_r, valor) => {
+      await qc.invalidateQueries({ queryKey: ['servidores'] });
+      toast.success(valor ? `${s.nome} entra nos consolidados.` : `${s.nome} fica fora dos consolidados.`);
+    },
+    onError: (e) => toast.error(mensagemDeErro(e)),
+  });
+  const ligado = mudar.isPending ? !s.entra_consolidado : s.entra_consolidado;
+  const editavel = pode('servidores', 'editar');
+  return (
+    <div className="flex shrink-0 items-center gap-2" title="Entra nos consolidados?">
+      <span className="hidden text-xs text-slate-500 md:inline">Entra nos consolidados?</span>
+      <button type="button" role="switch" aria-checked={ligado} disabled={!editavel || mudar.isPending}
+        aria-label={`Entra nos consolidados? ${s.nome}: ${ligado ? 'sim' : 'não'}`}
+        onClick={() => mudar.mutate(!s.entra_consolidado)}
+        className={cx('inline-flex h-7 items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-xs font-semibold ring-1 ring-inset transition-colors disabled:cursor-default',
+          ligado ? 'bg-emerald-50 text-emerald-800 ring-emerald-300' : 'bg-slate-100 text-slate-600 ring-slate-300',
+          editavel && 'hover:brightness-95')}>
+        <span className={cx('size-6 rounded-full shadow-sm transition-colors', ligado ? 'bg-emerald-600' : 'bg-white ring-1 ring-slate-300')} aria-hidden />
+        {ligado ? 'SIM' : 'NÃO'}
+      </button>
+    </div>
+  );
+}
 
 export function FotoServidor({ caminho, nome, tamanho = 'size-11', exonerado }: { caminho: string | null; nome: string; tamanho?: string; exonerado?: boolean }) {
   return (
@@ -281,6 +311,7 @@ export function Servidores() {
           <span className="block truncate text-xs text-slate-500">{s.unidade_sigla ?? s.unidade_nome}{s.cpf ? ` · CPF ${formatarCpf(s.cpf)}` : ''}{s.exonerado && s.data_exoneracao ? ` · exonerado em ${formatarData(s.data_exoneracao)}` : ''}</span>
         </span>
       </button>
+      <EntraConsolidado s={s} />
       {pode('servidores', 'editar') && <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} aria-label={`Editar ${s.nome}`} onClick={() => setEditando(s.id)} />}
     </li>
   );

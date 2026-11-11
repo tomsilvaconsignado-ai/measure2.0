@@ -90,7 +90,7 @@ export function Consolidado() {
         </div>
       </Cartao>
 
-      {!unidade ? <Cartao><Vazio titulo="Escolha a unidade" descricao="O consolidado lista os servidores ativos no mês, em ordem alfabética, sem repetir ninguém. Só entra quem tem data de nomeação no cadastro." /></Cartao>
+      {!unidade ? <Cartao><Vazio titulo="Escolha a unidade" descricao="O consolidado lista os servidores ativos no mês, em ordem alfabética, sem repetir ninguém. Só entra quem tem data de nomeação no cadastro e está marcado com SIM em “Entra nos consolidados?” (lista de Servidores)." /></Cartao>
         : q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> : (
           <Cartao titulo={`${MESES[mes - 1]} de ${ano} · ${linhas.length} servidor(es)`}
             acoes={<div className="flex flex-wrap gap-2">
@@ -98,7 +98,7 @@ export function Consolidado() {
                 Salvar lançamentos{alterados.length ? ` (${alterados.length})` : ''}</Botao>}
               {pode('servidores', 'exportar') && <Botao icone={<FileCheck2 className="size-4" />} disabled={!linhas.length} carregando={emitir.isPending} onClick={() => emitir.mutate()}>Emitir consolidado</Botao>}
             </div>}>
-            {!linhas.length ? <Vazio titulo="Nenhum servidor ativo neste mês" descricao="Confira a unidade e as datas de nomeação/exoneração no cadastro: servidor sem data de nomeação não entra no consolidado." /> : (
+            {!linhas.length ? <Vazio titulo="Nenhum servidor ativo neste mês" descricao="Confira a unidade e as datas de nomeação/exoneração no cadastro: servidor sem data de nomeação ou marcado com NÃO em “Entra nos consolidados?” não entra no consolidado." /> : (
               <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                 <table className="w-full min-w-[56rem] text-sm">
                   <thead>

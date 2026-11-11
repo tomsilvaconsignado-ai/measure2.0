@@ -84,10 +84,24 @@ export async function removerConta(id: string, motivo: string) {
 // ---------------------------------------------------------------- servidores
 
 export async function listarServidores(p: { tenantId: string; busca?: string; situacao: 'ATIVOS' | 'EXONERADOS' | 'TODOS'; unidadeId?: string | null; limite: number; offset: number }) {
-  return falhou(await supabase.rpc('buscar_servidores', {
+  const r = falhou(await supabase.rpc('buscar_servidores', {
     p_tenant: p.tenantId, p_busca: p.busca || null, p_situacao: p.situacao, p_unidade: p.unidadeId || null,
     p_limite: p.limite, p_offset: p.offset,
-  })) as { total: number; itens: ServidorListado[] };
+  })) as { total: number; itens: Array<Omit<ServidorListado, 'entra_consolidado'>> };
+  // marcação "entra nos consolidados" dos servidores da página (o padrão é SIM)
+  const ids = r.itens.map((s) => s.id);
+  const marcas = ids.length
+    ? falhou(await supabase.from('servidores').select('id, entra_consolidado').in('id', ids)) as Array<{ id: string; entra_consolidado: boolean }>
+    : [];
+  const fora = new Set(marcas.filter((m) => !m.entra_consolidado).map((m) => m.id));
+  return { total: r.total, itens: r.itens.map((s) => ({ ...s, entra_consolidado: !fora.has(s.id) })) as ServidorListado[] };
+}
+
+/** Liga ou desliga o servidor dos consolidados mensais (não altera nenhum outro dado do cadastro) */
+export async function definirEntraConsolidado(id: string, valor: boolean) {
+  const r = await supabase.from('servidores').update({ entra_consolidado: valor }).eq('id', id).select('id');
+  if (r.error) throw r.error;
+  if (!r.data?.length) throw { erro: 'Você não tem permissão para alterar este servidor.' };
 }
 
 export async function obterServidor(id: string) {
