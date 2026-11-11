@@ -68,6 +68,7 @@ const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
 const Capacitacao = pagina(() => import('@/pages/ajuda/Capacitacao'), 'Capacitacao');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
+const Monitoramento = pagina(() => import('@/pages/plataforma/Monitoramento'), 'Monitoramento');
 const Conecta = pagina(() => import('@/pages/conecta/Conecta'), 'Conecta');
 const ConectaAdmin = pagina(() => import('@/pages/conecta/ConectaAdmin'), 'ConectaAdmin');
 const PainelPatrimonio = pagina(() => import('@/pages/patrimonio/Painel'), 'PainelPatrimonio');
@@ -159,6 +160,7 @@ export function App() {
         <Route path="plataforma/permissoes" element={<Permissoes />} />
         <Route path="plataforma/erros" element={<Erros />} />
         <Route path="plataforma/dotacoes" element={<Dotacoes />} />
+        <Route path="plataforma/monitoramento" element={<Monitoramento />} />
         <Route path="conecta" element={<Conecta />} />
         <Route path="conecta/admin" element={<ConectaAdmin />} />
         <Route path="patrimonio" element={<ModuloPatrimonio><PainelPatrimonio /></ModuloPatrimonio>} />

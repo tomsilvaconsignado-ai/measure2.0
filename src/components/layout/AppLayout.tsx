@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -32,6 +32,7 @@ const PLATAFORMA: Item[] = [
   { para: '/plataforma/permissoes', rotulo: 'Matriz de permissões', icone: <KeyRound className="size-4" />, plataforma: true },
   { para: '/plataforma/dotacoes', rotulo: 'Classificações orçamentárias', icone: <Network className="size-4" />, plataforma: true },
   { para: '/plataforma/erros', rotulo: 'Erros do sistema', icone: <Bug className="size-4" />, plataforma: true },
+  { para: '/plataforma/monitoramento', rotulo: 'Monitoramento organizacional', icone: <Radar className="size-4" />, plataforma: true },
 ];
 const CADASTROS: Item[] = [
   { para: '/fornecedores', rotulo: 'Fornecedores', icone: <Truck className="size-4" />, recurso: 'fornecedores' },
@@ -159,7 +160,8 @@ export function AppLayout() {
         {orgao && <Link item={{ para: '/conecta', rotulo: 'CONECTA', icone: <MessagesSquare className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
         {orgao && <Link item={{ para: '/patrimonio', rotulo: 'Gestão patrimonial', icone: <Package className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
         {orgao && (
-          <Grupo titulo="Gestão" recolhido={rec}>{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
+          <Grupo titulo="Gestão" recolhido={rec}>{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}
+            {!ehPlataforma && vinculosDoOrgao.some((v) => v.papel === 'MASTER') && <Link item={{ para: '/plataforma/monitoramento', rotulo: 'Monitoramento organizacional', icone: <Radar className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}</Grupo>
         )}
         {orgao && (
           <Grupo titulo="Contratos e execução" recolhido={rec}>{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} recolhido={rec} />)}</Grupo>
