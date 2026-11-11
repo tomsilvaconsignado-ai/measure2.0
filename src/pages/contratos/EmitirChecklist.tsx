@@ -1,7 +1,7 @@
 // Emissão do checklist da nota no modelo da SMS: os dados da nota e do contrato vêm do sistema; aqui a pessoa
 // confere os itens SIM/NÃO (já vêm como no modelo), a declaração, o nº de funcionários e quem assina.
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { ClipboardCheck } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ClipboardCheck, FolderDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -12,7 +12,10 @@ import { mensagemDeErro } from '@/lib/erros';
 import { brl, formatarData } from '@/lib/formatacao';
 import type { NotaResumo } from '@/lib/tipos';
 import { emitirChecklist, itensChecklist } from '@/services/consolidado';
-import { listarDesignacoes } from '@/services/execucao';
+import { listarDesignacoes, obterEmitido } from '@/services/execucao';
+import { useSalvarEmPasta } from '@/components/SalvarEmPasta';
+import { nomeChecklist } from '@/lib/salvarEmPasta';
+import { pdfDoEmitido } from './pdfEmitidos';
 
 const PAPEL = { FISCAL: 'Fiscal do contrato', GESTOR: 'Gestor do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
 const ORDEM = { FISCAL: 1, GESTOR: 2, SUPLENTE: 3 } as const;
@@ -49,12 +52,28 @@ export function EmitirChecklist({ nota, aberto, aoFechar, aoEmitir }: { nota: No
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
   const escolhido = vigentes.find((d) => d.id === designacao);
+  const qc = useQueryClient();
+  const pasta = useSalvarEmPasta();
+  // SALVAR CHECKLIST: confere o preenchimento, emite com o que está na tela e salva checklist{nº}.pdf na pasta escolhida
+  const salvarNaPasta = async () => {
+    if (!itens.length) { toast.error('O checklist ainda não está disponível para geração.'); return; }
+    const r = await pasta.salvar([nomeChecklist(nota.numero)], async () => {
+      const id = await emitirChecklist(nota.id, { itens, funcionarios: funcionarios.trim() || null, nota_pendente: pendente, designacao_id: designacao || null });
+      const doc = await obterEmitido(id);
+      if (doc.tipo !== 'CHECKLIST_NOTA') throw { erro: 'O checklist não foi gerado corretamente. Nada foi salvo.' };
+      await aoEmitir();
+      return [await pdfDoEmitido(qc, doc)];
+    }, { pasta: 'Checklist salvo com sucesso.', download: 'Checklist salvo com sucesso (pasta de downloads).' });
+    if (r === 'salvo') aoFechar();
+  };
 
   return (
     <Modal aberto={aberto} aoFechar={aoFechar} titulo="Emitir checklist da nota fiscal" largura="lg"
       descricao="Os dados da nota e do contrato são preenchidos pelo sistema. Confira os itens e quem assina."
       rodape={<><Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao>
-        <Botao icone={<ClipboardCheck className="size-4" />} carregando={emitir.isPending} disabled={!itens.length} onClick={() => emitir.mutate()}>Emitir e imprimir</Botao></>}>
+        <Botao variante="secundario" icone={<FolderDown className="size-4" />} carregando={pasta.ocupado} disabled={!itens.length || emitir.isPending}
+          title={`Salva checklist${nota.numero}.pdf na pasta que você escolher`} onClick={() => void salvarNaPasta()}>SALVAR CHECKLIST</Botao>
+        <Botao icone={<ClipboardCheck className="size-4" />} carregando={emitir.isPending} disabled={!itens.length || pasta.ocupado} onClick={() => emitir.mutate()}>Emitir e imprimir</Botao>{pasta.dialogo}</>}>
       {modelo.isLoading || desig.isLoading ? <Carregando /> : modelo.isError ? <CaixaErro mensagem={mensagemDeErro(modelo.error)} /> : (
         <div className="flex flex-col gap-4">
           <dl className="grid gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-2">

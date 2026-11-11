@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, Layers, Pencil, Plus, Trash2, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, FolderDown, Layers, Pencil, Plus, Trash2, Wallet, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,10 +17,13 @@ import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
   atestarNota, cancelarNota, excluirNota, impedimentoExclusaoNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto,
-  obterContrato, obterNota, saldoEmpenho, salvarNota,
+  obterContrato, obterEmitido, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { locaisDoAtesto, montarAtesto } from '@/lib/atesto';
 import { CadastradoPor, useAutoria } from '@/lib/autoria';
+import { nomeChecklist } from '@/lib/salvarEmPasta';
+import { useSalvarEmPasta } from '@/components/SalvarEmPasta';
+import { pdfDoEmitido } from './pdfEmitidos';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
@@ -41,6 +44,10 @@ function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
   const q = useQuery({ queryKey: ['emitidos', notaId], queryFn: () => listarEmitidos(notaId) });
   const qc = useQueryClient();
   const [emitindo, setEmitindo] = useState(false);
+  const pasta = useSalvarEmPasta();
+  // checklist já emitido: salva o mesmo documento (sem emitir outro)
+  const salvarEmitido = (id: string) => void pasta.salvar([nomeChecklist(nota.numero)], async () => [await pdfDoEmitido(qc, await obterEmitido(id))],
+    { pasta: 'Checklist salvo com sucesso.', download: 'Checklist salvo com sucesso (pasta de downloads).' });
   return (
     <div className="mb-5 rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -52,11 +59,15 @@ function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
           {q.data.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
               <span className="min-w-0 truncate">{d.titulo}<span className="block text-xs text-slate-500">{formatarDataHora(d.emitido_em)}</span></span>
-              <Botao pequeno variante="fantasma" onClick={() => navegar(`/imprimir/${d.id}`)}>Abrir</Botao>
+              <span className="flex gap-1">
+                {d.tipo === 'CHECKLIST_NOTA' && <Botao pequeno variante="fantasma" icone={<FolderDown className="size-4" />} carregando={pasta.ocupado} title={`Salvar como checklist${nota.numero}.pdf`} onClick={() => salvarEmitido(d.id)}>Salvar</Botao>}
+                <Botao pequeno variante="fantasma" onClick={() => navegar(`/imprimir/${d.id}`)}>Abrir</Botao>
+              </span>
             </li>
           ))}
         </ul>
       )}
+      {pasta.dialogo}
       <EmitirChecklist nota={nota} aberto={emitindo} aoFechar={() => setEmitindo(false)} aoEmitir={() => qc.invalidateQueries({ queryKey: ['emitidos', notaId] })} />
     </div>
   );
@@ -473,7 +484,7 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
           </ul>}
         </div>}
         {aba === 'documentos' && <DocumentosEmitidosNota nota={n} />}
-        {aba === 'documentos' && <div className="mb-5"><ExtratosNotas contratoId={n.contrato_id} /></div>}
+        {aba === 'documentos' && <div className="mb-5"><ExtratosNotas contratoId={n.contrato_id} numeroNota={n.numero} /></div>}
         {aba === 'documentos' && <Anexos recurso="notas_fiscais" registroId={n.id} unidadeId={n.unidade_id} titulo="Nota fiscal e comprovantes" />}
       </>}
       <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={invalidar} />
