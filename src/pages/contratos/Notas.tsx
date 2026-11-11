@@ -52,7 +52,7 @@ function DocumentosEmitidosNota({ nota }: { nota: NotaResumo }) {
     <div className="mb-5 rounded-xl border border-slate-200 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-slate-900">Documentos emitidos</p>
-        {!nota.cancelada_em && <Botao pequeno variante="secundario" icone={<ClipboardCheck className="size-4" />} onClick={() => setEmitindo(true)}>Emitir checklist</Botao>}
+        {!nota.cancelada_em && <Botao pequeno icone={<ClipboardCheck className="size-4" />} title="Emite o checklist da nota (formulário de análise dos documentos) com os dados do sistema" onClick={() => setEmitindo(true)}>EMITIR CHECKLIST</Botao>}
       </div>
       {q.isLoading ? <Carregando /> : !q.data?.length ? <p className="text-xs text-slate-500">Nenhum documento emitido. O checklist sai no formulário de análise dos documentos da nota (modelo da SMS), com os dados do sistema na data da emissão.</p> : (
         <ul className="divide-y divide-slate-100">
