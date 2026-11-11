@@ -50,7 +50,7 @@ export function PainelPatrimonio() {
   const sit = d?.por_situacao ?? {};
   return (
     <>
-      <CabecalhoPagina titulo="Gestão patrimonial" descricao="Controle dos bens institucionais: onde estão, quem responde por eles e o histórico de cada movimentação."
+      <CabecalhoPagina titulo="Dashboard" descricao="Controle dos bens institucionais: onde estão, quem responde por eles e o histórico de cada movimentação."
         acoes={<div className="w-72"><SeletorSetor rotulo="Recorte por setor" valor={unidade?.id ?? null} rotuloValor={unidade?.rotulo} aoMudar={(v, o) => setUnidade(v && o ? { id: v, rotulo: o.rotulo } : null)} /></div>} />
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> : !d ? null : <div className="flex flex-col gap-5">
         {(d.aguardando_mim > 0 || d.pendencias > 0) && (

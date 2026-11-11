@@ -8,6 +8,7 @@ import { Botao, Carregando } from '@/components/ui/basicos';
 import { precisaDefinirSenha } from '@/lib/supabase';
 import { DefinirSenha, Entrar, EsqueciSenha } from '@/pages/Acesso';
 import { Inicio } from '@/pages/Inicio';
+import { ModuloPatrimonio } from '@/pages/patrimonio/Layout';
 
 // Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve) e, depois do login,
 // baixado em segundo plano quando o navegador está ocioso: a primeira abertura de cada tela fica instantânea.
@@ -157,21 +158,21 @@ export function App() {
         <Route path="plataforma/dotacoes" element={<Dotacoes />} />
         <Route path="conecta" element={<Conecta />} />
         <Route path="conecta/admin" element={<ConectaAdmin />} />
-        <Route path="patrimonio" element={<PainelPatrimonio />} />
-        <Route path="patrimonio/cadastro" element={<CadastroPatrimonio />} />
-        <Route path="patrimonio/bens" element={<BensPatrimonio />} />
-        <Route path="patrimonio/por-coordenacao" element={<PorCoordenacao />} />
-        <Route path="patrimonio/por-unidade" element={<PorUnidade />} />
-        <Route path="patrimonio/responsaveis" element={<Responsaveis />} />
-        <Route path="patrimonio/movimentacoes" element={<MovimentacoesPatrimonio />} />
-        <Route path="patrimonio/transferencias" element={<Transferencias />} />
-        <Route path="patrimonio/trocas" element={<Trocas />} />
-        <Route path="patrimonio/substituicoes" element={<Substituicoes />} />
-        <Route path="patrimonio/inventario" element={<InventarioPatrimonio />} />
-        <Route path="patrimonio/pendencias" element={<PendenciasPatrimonio />} />
-        <Route path="patrimonio/relatorios" element={<RelatoriosPatrimonio />} />
-        <Route path="patrimonio/historico" element={<HistoricoPatrimonio />} />
-        <Route path="patrimonio/configuracoes" element={<ConfiguracoesPatrimonio />} />
+        <Route path="patrimonio" element={<ModuloPatrimonio><PainelPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/cadastro" element={<ModuloPatrimonio><CadastroPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/bens" element={<ModuloPatrimonio><BensPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/por-coordenacao" element={<ModuloPatrimonio><PorCoordenacao /></ModuloPatrimonio>} />
+        <Route path="patrimonio/por-unidade" element={<ModuloPatrimonio><PorUnidade /></ModuloPatrimonio>} />
+        <Route path="patrimonio/responsaveis" element={<ModuloPatrimonio><Responsaveis /></ModuloPatrimonio>} />
+        <Route path="patrimonio/movimentacoes" element={<ModuloPatrimonio><MovimentacoesPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/transferencias" element={<ModuloPatrimonio><Transferencias /></ModuloPatrimonio>} />
+        <Route path="patrimonio/trocas" element={<ModuloPatrimonio><Trocas /></ModuloPatrimonio>} />
+        <Route path="patrimonio/substituicoes" element={<ModuloPatrimonio><Substituicoes /></ModuloPatrimonio>} />
+        <Route path="patrimonio/inventario" element={<ModuloPatrimonio><InventarioPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/pendencias" element={<ModuloPatrimonio><PendenciasPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/relatorios" element={<ModuloPatrimonio><RelatoriosPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/historico" element={<ModuloPatrimonio><HistoricoPatrimonio /></ModuloPatrimonio>} />
+        <Route path="patrimonio/configuracoes" element={<ModuloPatrimonio><ConfiguracoesPatrimonio /></ModuloPatrimonio>} />
         <Route path="entrar" element={<Navigate to="/" replace />} />
         <Route path="*" element={<div className="py-16 text-center text-sm text-slate-600">Página não encontrada.</div>} />
       </Route>
