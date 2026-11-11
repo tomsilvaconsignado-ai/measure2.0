@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft,
+  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, PackagePlus, PackageSearch, Boxes, MapPin,
+  UserCheck, ArrowLeftRight, Repeat, Replace, ClipboardCheck, BellRing, FileDown, History, SlidersHorizontal,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -49,6 +50,26 @@ const EXECUCAO: Item[] = [
   { para: '/pagamentos', rotulo: 'Pagamentos', icone: <Banknote className="size-4" />, recurso: 'notas_fiscais', acao: 'editar' },
   { para: '/ordens-servico', rotulo: 'Ordens de serviço', icone: <ClipboardList className="size-4" />, recurso: 'ordens_servico' },
 ];
+// Gestão patrimonial: o servidor sem acesso ao módulo vê só os bens sob a sua guarda e as pendências
+const PATRIMONIO: Item[] = [
+  { para: '/patrimonio', rotulo: 'Dashboard', icone: <Package className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/cadastro', rotulo: 'Cadastro de patrimônio', icone: <PackagePlus className="size-4" />, recurso: 'patrimonio', acao: 'editar' },
+  { para: '/patrimonio/bens', rotulo: 'Consulta de patrimônio', icone: <PackageSearch className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/por-coordenacao', rotulo: 'Bens por coordenação', icone: <Boxes className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/por-unidade', rotulo: 'Bens por unidade', icone: <MapPin className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/responsaveis', rotulo: 'Responsáveis', icone: <UserCheck className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/movimentacoes', rotulo: 'Movimentações', icone: <ArrowLeftRight className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/transferencias', rotulo: 'Transferências', icone: <Truck className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/trocas', rotulo: 'Trocas de patrimônio', icone: <Repeat className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/substituicoes', rotulo: 'Substituições', icone: <Replace className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/inventario', rotulo: 'Inventário', icone: <ClipboardCheck className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/pendencias', rotulo: 'Pendências e confirmações', icone: <BellRing className="size-4" /> },
+  { para: '/patrimonio/relatorios', rotulo: 'Relatórios', icone: <FileDown className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/historico', rotulo: 'Histórico de patrimônio', icone: <History className="size-4" />, recurso: 'patrimonio' },
+  { para: '/patrimonio/configuracoes', rotulo: 'Configurações', icone: <SlidersHorizontal className="size-4" />, recurso: 'patrimonio' },
+];
+const MEUS_BENS: Item = { para: '/patrimonio/bens?meus=1', rotulo: 'Meus bens patrimoniais', icone: <PackageSearch className="size-4" /> };
+
 const GESTAO: Item[] = [
   { para: '/painel', rotulo: 'Painel gerencial', icone: <BarChart3 className="size-4" /> },
   { para: '/relatorios', rotulo: 'Consulta e relatórios', icone: <FileSpreadsheet className="size-4" /> },
@@ -57,7 +78,7 @@ const GESTAO: Item[] = [
 // Menu recolhido: só os ícones (o nome aparece ao passar o mouse); os pendentes viram um ponto
 function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean }) {
   return (
-    <NavLink to={item.para} onClick={aoNavegar} end={item.para === '/' || item.para === '/servidores' || item.para === '/ajuda'}
+    <NavLink to={item.para} onClick={aoNavegar} end={['/', '/servidores', '/ajuda', '/patrimonio', '/conecta'].includes(item.para)}
       data-flip={item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
       className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
@@ -156,11 +177,18 @@ export function AppLayout() {
       </div>
       <div className="-mx-1 flex-1 overflow-y-auto overflow-x-hidden px-1" style={rec ? { width: LARGURA_RECOLHIDO - 16 } : undefined}>
         <Link item={{ para: '/', rotulo: 'Início', icone: <Home className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
+        {orgao && <Link item={{ para: '/conecta', rotulo: 'CONECTA', icone: <MessagesSquare className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
         {orgao && (
           <Grupo titulo="Gestão" recolhido={rec}>{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
         {orgao && (
           <Grupo titulo="Contratos e execução" recolhido={rec}>{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} recolhido={rec} />)}</Grupo>
+        )}
+        {orgao && (
+          <Grupo titulo="Gestão patrimonial" recolhido={rec}>
+            {(pode('patrimonio', 'ler') ? PATRIMONIO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')) : [MEUS_BENS, PATRIMONIO.find((i) => i.para === '/patrimonio/pendencias')!])
+              .map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}
+          </Grupo>
         )}
         {orgao && cadastros.length > 0 && (
           <Grupo titulo="Cadastros" recolhido={rec}>{cadastros.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>

@@ -1,9 +1,9 @@
-export type Papel = 'MASTER' | 'GESTAO_MUNICIPAL' | 'SECRETARIO' | 'DIRETOR' | 'COORDENADOR' | 'ADMINISTRATIVO' | 'SERVIDOR';
+export type Papel = 'MASTER' | 'GESTAO_MUNICIPAL' | 'SECRETARIO' | 'DIRETOR' | 'COORDENADOR' | 'ADMINISTRATIVO' | 'PATRIMONIAL' | 'SERVIDOR';
 export type TipoUnidade = 'ORGANIZACAO' | 'SECRETARIA' | 'DIRETORIA' | 'COORDENACAO' | 'GERENCIA' | 'DEPARTAMENTO' | 'SETOR' | 'UNIDADE';
 export type Recurso =
   | 'estrutura' | 'usuarios' | 'configuracoes' | 'auditoria'
   | 'fornecedores' | 'servidores' | 'servidores_sensiveis' | 'unidades' | 'classificacoes' | 'tipos_servico'
-  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'decretos' | 'ordens_servico' | 'relatorios';
+  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'decretos' | 'ordens_servico' | 'relatorios' | 'conecta' | 'patrimonio';
 export type Acao = 'ler' | 'criar' | 'editar' | 'excluir' | 'aprovar' | 'atestar' | 'exportar';
 
 export const TIPOS_UNIDADE: Record<TipoUnidade, string> = {

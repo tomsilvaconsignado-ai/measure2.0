@@ -54,3 +54,19 @@ Regras gerais:
   - motivo de pelo menos 10 caracteres;
   - prazo de 5 minutos a 8 horas.
 - A sessão e tudo o que for feito nela aparecem na auditoria do órgão, marcados como "suporte".
+
+## CONECTA
+
+- Publicar, comentar e curtir é participação pessoal (como editar o próprio perfil): vale para qualquer pessoa com acesso ativo no órgão, inclusive os papéis de consulta. Cada um edita e exclui só o que é seu.
+- Moderação (ocultar, destacar, resolver denúncias) é `conecta:aprovar`; categorias, `conecta:editar`. Configuração inicial: Master.
+
+## Gestão patrimonial
+
+| Papel | Patrimônio |
+|---|---|
+| Master, Administrador patrimonial (novo papel, concedido pelo Master) | L C E X A P |
+| Administrativo | L C E P (cadastra e solicita movimentações na sua área) |
+| Gestão Municipal, Secretário, Diretoria, Coordenador | L P |
+| Servidor | bens sob a sua guarda; confirma recebimentos destinados a ele |
+
+Baixa, retificação, confirmação por termo físico e categorias exigem `patrimonio:aprovar`.

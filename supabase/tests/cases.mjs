@@ -260,4 +260,6 @@ export default async function ({ db, as, ok, bad, check, expectOk, expectFail, o
   await (await import('./cases-consolidado-nomeacao.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-extratos-notas.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
   await (await import('./cases-ajustes-08-11.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
+  await (await import('./cases-conecta.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
+  await (await import('./cases-patrimonio.mjs')).default({ db, as, ok, bad, check, expectOk, expectFail, one, u, A, coinfra, coaf, g1 });
 }

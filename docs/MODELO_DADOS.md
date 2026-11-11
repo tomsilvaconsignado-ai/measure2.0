@@ -130,3 +130,29 @@ Funções:
   - reaproveita os códigos existentes e não duplica a dotação.
 - `importar_dotacoes`: importa a LOA em lote, com prévia, tudo ou nada.
 - `dotacoes_do_orgao` e `buscar_classificadores`: consulta pelos órgãos.
+
+## CONECTA – Comunicação institucional (implantado)
+
+| Tabela | Conteúdo |
+|---|---|
+| `notificacoes` | central de notificações internas (CONECTA e Patrimônio), por pessoa e órgão; gravadas só por funções, lidas só pela própria pessoa |
+| `conecta_categorias` | categorias do órgão (ícone, cor, ordem), administráveis |
+| `conecta_publicacoes` | publicação com retrato do autor (servidor, lotação, cargo), destaque com prazo, ocultação pela moderação e exclusão lógica |
+| `conecta_destinatarios` | todos ou unidades (Secretaria, Diretoria, Coordenação, Setor, Unidade de saúde) e pessoas; unidade alcança quem está nela e abaixo dela |
+| `conecta_versoes` | versões anteriores de título e texto (histórico das edições) |
+| `conecta_comentarios`, `conecta_curtidas`, `conecta_anexos`, `conecta_denuncias` | interações; anexos em `<tenant>/conecta/<id>` com a visibilidade da publicação |
+
+A visibilidade é decidida no banco (`conecta_pode_ver`, `conecta_visiveis`); o mural (`conecta_feed`) e o painel lateral só devolvem o que a pessoa pode ver.
+
+## Gestão patrimonial (implantado)
+
+| Tabela | Conteúdo |
+|---|---|
+| `patrimonio_categorias` | categorias e subcategorias (dois níveis), administráveis |
+| `patrimonio_bens` | bem: número único no órgão, identificação, setor responsável (estrutura), unidade de saúde (unidades atendidas), sala, responsável (servidores), conservação, situação, trava de movimentação |
+| `patrimonio_responsabilidades` | cada período de guarda e de localização do bem |
+| `patrimonio_movimentacoes`, `patrimonio_mov_itens` | número NNNN/ANO, tipo, origem e destino por item, confirmações (digital, termo físico, administrativa), rejeição, cancelamento, retificação |
+| `patrimonio_inventarios`, `patrimonio_inventario_itens` | conferência física com avaliação, divergências e bens sem cadastro |
+| `patrimonio_relatorios` | relatórios emitidos: `RELATORIO DE PATRIMONIO - ANO AAAA[ - NNN].pdf`, filtros, quem emitiu; o PDF fica em `documentos` |
+
+Localização, responsável e situação do bem só mudam por `patrimonio_movimentar` e pelas confirmações; a edição direta cobre só dados descritivos e avaliação (privilégio por coluna).

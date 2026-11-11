@@ -18,6 +18,6 @@ O documento-base (item 25) lista regras que dependem do órgão. Para nenhuma de
 | 16 | Nomes completos das diretorias **DITEC, DRMAAC e DVAS** da SMS Aracaju | A estrutura completa (513 unidades) foi carregada com os nomes da lista oficial mais recente: Diretoria Técnica; Diretoria de Regulação, Monitoramento, Auditoria e Avaliação de Contratos; Diretoria de Vigilância e Assistência à Saúde. Esses dois últimos diferem dos nomes informados antes ("…Avaliação de Contratos, Auditoria e Parcerias" e "…Atenção à Saúde"). | confirmar |
 | 12 | **Retenção** de dados e documentos | Nada é apagado fisicamente pelo app. A política formal de retenção e descarte fica a cargo do órgão (ver [SEGURANCA_LGPD.md](SEGURANCA_LGPD.md)). | órgão definir |
 | 17 | **Proteção contra senhas vazadas** (HaveIBeenPwned) | Disponível só no plano Pro do Supabase. Hoje a senha exige 10+ caracteres com maiúscula, minúscula e número. | ao contratar o Pro |
-| 13 | **Patrimônio** e **Comunidade** | Escopo não detalhado. Não serão implementados sem levantamento. | Fase 7 |
+| 13 | **Patrimônio** e **Comunidade** | Implantados a partir dos documentos do usuário: Gestão Patrimonial e CONECTA (fórum institucional). | ✔ |
 | 14 | **Hospedagem na Vercel** | `vercel.json` pronto, com cabeçalhos de segurança e CSP. Falta conectar a conta da Vercel ao repositório. | Quando decidir |
 | 15 | **Logotipo oficial** do MEASURE | Hoje é usado um símbolo provisório (barras com linha de tendência). Basta enviar o oficial para substituir. | Quando enviar |

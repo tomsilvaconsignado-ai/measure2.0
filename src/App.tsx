@@ -65,6 +65,23 @@ const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
 const Capacitacao = pagina(() => import('@/pages/ajuda/Capacitacao'), 'Capacitacao');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
+const Conecta = pagina(() => import('@/pages/conecta/Conecta'), 'Conecta');
+const ConectaAdmin = pagina(() => import('@/pages/conecta/ConectaAdmin'), 'ConectaAdmin');
+const PainelPatrimonio = pagina(() => import('@/pages/patrimonio/Painel'), 'PainelPatrimonio');
+const CadastroPatrimonio = pagina(() => import('@/pages/patrimonio/Bens'), 'CadastroPatrimonio');
+const BensPatrimonio = pagina(() => import('@/pages/patrimonio/Bens'), 'Bens');
+const PorCoordenacao = pagina(() => import('@/pages/patrimonio/Relatorios'), 'PorCoordenacao');
+const PorUnidade = pagina(() => import('@/pages/patrimonio/Relatorios'), 'PorUnidade');
+const Responsaveis = pagina(() => import('@/pages/patrimonio/Relatorios'), 'Responsaveis');
+const MovimentacoesPatrimonio = pagina(() => import('@/pages/patrimonio/Movimentacoes'), 'Movimentacoes');
+const Transferencias = pagina(() => import('@/pages/patrimonio/Movimentacoes'), 'Transferencias');
+const Trocas = pagina(() => import('@/pages/patrimonio/Movimentacoes'), 'Trocas');
+const Substituicoes = pagina(() => import('@/pages/patrimonio/Movimentacoes'), 'Substituicoes');
+const PendenciasPatrimonio = pagina(() => import('@/pages/patrimonio/Movimentacoes'), 'Pendencias');
+const InventarioPatrimonio = pagina(() => import('@/pages/patrimonio/Inventario'), 'Inventario');
+const RelatoriosPatrimonio = pagina(() => import('@/pages/patrimonio/Relatorios'), 'Relatorios');
+const HistoricoPatrimonio = pagina(() => import('@/pages/patrimonio/Relatorios'), 'Historico');
+const ConfiguracoesPatrimonio = pagina(() => import('@/pages/patrimonio/Configuracoes'), 'ConfiguracoesPatrimonio');
 
 function TelaCheia({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white p-6 text-center">{children}</div>;
@@ -138,6 +155,23 @@ export function App() {
         <Route path="plataforma/permissoes" element={<Permissoes />} />
         <Route path="plataforma/erros" element={<Erros />} />
         <Route path="plataforma/dotacoes" element={<Dotacoes />} />
+        <Route path="conecta" element={<Conecta />} />
+        <Route path="conecta/admin" element={<ConectaAdmin />} />
+        <Route path="patrimonio" element={<PainelPatrimonio />} />
+        <Route path="patrimonio/cadastro" element={<CadastroPatrimonio />} />
+        <Route path="patrimonio/bens" element={<BensPatrimonio />} />
+        <Route path="patrimonio/por-coordenacao" element={<PorCoordenacao />} />
+        <Route path="patrimonio/por-unidade" element={<PorUnidade />} />
+        <Route path="patrimonio/responsaveis" element={<Responsaveis />} />
+        <Route path="patrimonio/movimentacoes" element={<MovimentacoesPatrimonio />} />
+        <Route path="patrimonio/transferencias" element={<Transferencias />} />
+        <Route path="patrimonio/trocas" element={<Trocas />} />
+        <Route path="patrimonio/substituicoes" element={<Substituicoes />} />
+        <Route path="patrimonio/inventario" element={<InventarioPatrimonio />} />
+        <Route path="patrimonio/pendencias" element={<PendenciasPatrimonio />} />
+        <Route path="patrimonio/relatorios" element={<RelatoriosPatrimonio />} />
+        <Route path="patrimonio/historico" element={<HistoricoPatrimonio />} />
+        <Route path="patrimonio/configuracoes" element={<ConfiguracoesPatrimonio />} />
         <Route path="entrar" element={<Navigate to="/" replace />} />
         <Route path="*" element={<div className="py-16 text-center text-sm text-slate-600">Página não encontrada.</div>} />
       </Route>
