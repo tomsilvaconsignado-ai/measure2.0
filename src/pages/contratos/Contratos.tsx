@@ -12,8 +12,8 @@ import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando
 import { Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
 import { brl, centavos, decimalDeCentavos, formatarData } from '@/lib/formatacao';
-import type { ContratoResumo } from '@/lib/tipos';
-import { contarSituacoes, listarContratos, listarDesignacoes, listarDotacoesContrato, modalidades, obterContrato, salvarContrato, type FiltroSituacao } from '@/services/execucao';
+import type { Contrato, ContratoResumo } from '@/lib/tipos';
+import { contarSituacoes, listarContratos, listarDesignacoes, listarDotacoesContrato, modalidades, obterContrato, regimeDoContrato, salvarContrato, type FiltroSituacao } from '@/services/execucao';
 import { SeletorFornecedor, SeloSituacao } from './comum';
 
 const POR_PAGINA = 20;
@@ -23,7 +23,8 @@ export function FormContrato({ aberto, aoFechar, contrato }: { aberto: boolean; 
   const qc = useQueryClient();
   const navegar = useNavigate();
   const mods = useQuery({ queryKey: ['modalidades'], queryFn: modalidades, staleTime: Infinity });
-  const [f, setF] = useState({ numero: '', modalidade: '', processo_administrativo: '', numero_licitacao: '', objeto: '', data_inicio: '', data_fim: '', observacoes: '' });
+  const [f, setF] = useState({ numero: '', modalidade: '', processo_administrativo: '', numero_licitacao: '', objeto: '', data_inicio: '', data_fim: '', observacoes: '', regime_juridico: '', data_assinatura: '' });
+  const extra = useQuery({ queryKey: ['contrato-regime', contrato?.id], queryFn: () => regimeDoContrato(contrato!.id), enabled: aberto && !!contrato });
   const [valor, setValor] = useState<number | null>(null);
   const [forn, setForn] = useState<{ id: string; rotulo: string } | null>(null);
   const [unid, setUnid] = useState<{ id: string; rotulo: string } | null>(null);
@@ -33,11 +34,12 @@ export function FormContrato({ aberto, aoFechar, contrato }: { aberto: boolean; 
     setErros({});
     const c = contrato;
     setF({ numero: c?.numero ?? '', modalidade: c?.modalidade ?? '', processo_administrativo: c?.processo_administrativo ?? '', numero_licitacao: c?.numero_licitacao ?? '',
-      objeto: c?.objeto ?? '', data_inicio: c?.data_inicio ?? '', data_fim: c?.data_fim ?? '', observacoes: c?.observacoes ?? '' });
+      objeto: c?.objeto ?? '', data_inicio: c?.data_inicio ?? '', data_fim: c?.data_fim ?? '', observacoes: c?.observacoes ?? '', regime_juridico: '', data_assinatura: '' });
     setValor(c ? centavos(c.valor_global) : null);
     setForn(c ? { id: c.fornecedor_id, rotulo: c.fornecedor_nome } : null);
     setUnid(c ? { id: c.unidade_id, rotulo: `${c.unidade_nome}${c.unidade_sigla ? ` (${c.unidade_sigla})` : ''}` } : null);
   }, [aberto, contrato]);
+  useEffect(() => { if (extra.data) setF((x) => ({ ...x, regime_juridico: extra.data.regime_juridico ?? '', data_assinatura: extra.data.data_assinatura ?? '' })); }, [extra.data]);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   const mod = mods.data?.find((m) => m.codigo === f.modalidade);
 
@@ -46,6 +48,7 @@ export function FormContrato({ aberto, aoFechar, contrato }: { aberto: boolean; 
       tenant_id: orgao!.id, unidade_id: unid!.id, fornecedor_id: forn!.id, numero: f.numero.trim(), modalidade: f.modalidade,
       processo_administrativo: f.processo_administrativo.trim() || null, numero_licitacao: f.numero_licitacao.trim() || null,
       objeto: f.objeto.trim(), data_inicio: f.data_inicio, data_fim: f.data_fim, valor_global: decimalDeCentavos(valor!), observacoes: f.observacoes.trim() || null,
+      regime_juridico: (f.regime_juridico || null) as Contrato['regime_juridico'], data_assinatura: f.data_assinatura || null,
     }),
     onSuccess: async (c) => {
       await qc.invalidateQueries({ queryKey: ['contratos'] });
@@ -101,6 +104,10 @@ export function FormContrato({ aberto, aoFechar, contrato }: { aberto: boolean; 
           ajuda={contrato?.aditivos_aprovados ? 'Prorrogações por aditivo ficam no aditivo; este é o prazo original.' : undefined} />
         <CampoMoeda rotulo="Valor global" obrigatorio centavos={valor} aoMudar={setValor} erro={erros.valor_global}
           ajuda={contrato?.aditivos_aprovados ? 'Valor original; acréscimos e supressões ficam nos aditivos.' : undefined} />
+        <Selecao rotulo="Regime jurídico da contratação" value={f.regime_juridico} onChange={set('regime_juridico')} ajuda="Conforme o processo de contratação e as regras de transição (não pela data). Usado nas notificações formais.">
+          <option value="">Não informado</option><option value="LEI_14133">Lei nº 14.133/2021</option><option value="LEI_8666">Lei nº 8.666/1993 (regime anterior)</option><option value="OUTRO">Outro</option>
+        </Selecao>
+        <Campo rotulo="Data de assinatura" type="date" value={f.data_assinatura} onChange={set('data_assinatura')} />
         <AreaTexto className="sm:col-span-2" rotulo="Observações" value={f.observacoes} onChange={set('observacoes')} maxLength={2000} />
         {erros.geral && <div className="sm:col-span-2"><CaixaErro mensagem={erros.geral} /></div>}
       </form>

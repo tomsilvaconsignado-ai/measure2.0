@@ -23,8 +23,9 @@ import { FormContrato } from './Contratos';
 import { DotacoesContrato } from './DotacoesContrato';
 import { EtapasContrato } from './EtapasContrato';
 import { ExtratosNotas } from './ExtratosNotas';
+import { NotificacoesDoContrato } from './notificacoes/comum';
 
-type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos';
+type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos' | 'notificacoes';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
 const TIPOS_ADITIVO = { PRAZO: 'Prazo', VALOR: 'Valor (acréscimo)', PRAZO_E_VALOR: 'Prazo e valor', SUPRESSAO: 'Supressão de valor', OUTRO: 'Outro' } as const;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
@@ -330,7 +331,7 @@ export function ContratoDetalhe() {
   const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const [params] = useSearchParams();
-  const [aba, setAba] = useState<Aba>(() => (['resumo', 'responsaveis', 'dotacao', 'aditivos', 'empenhos', 'notas', 'documentos'] as const).find((a) => a === params.get('aba')) ?? 'resumo');
+  const [aba, setAba] = useState<Aba>(() => (['resumo', 'responsaveis', 'dotacao', 'aditivos', 'empenhos', 'notas', 'documentos', 'notificacoes'] as const).find((a) => a === params.get('aba')) ?? 'resumo');
   const [editando, setEditando] = useState(false);
   const [inativando, setInativando] = useState(false);
   const q = useQuery({ queryKey: ['contrato', id], queryFn: () => obterContrato(id!), enabled: !!id });
@@ -353,7 +354,7 @@ export function ContratoDetalhe() {
       <Cartao>
         <Abas abas={[{ id: 'resumo', rotulo: 'Resumo' }, { id: 'responsaveis', rotulo: 'Responsáveis e portarias' }, { id: 'dotacao', rotulo: 'Dotação' },
           { id: 'aditivos', rotulo: `Aditivos${c.aditivos_aprovados ? ` (${c.aditivos_aprovados})` : ''}` }, { id: 'empenhos', rotulo: 'Empenhos' }, { id: 'notas', rotulo: 'Notas fiscais' },
-          { id: 'documentos', rotulo: 'Documentos e extratos' }]} ativa={aba} aoMudar={setAba} />
+          { id: 'documentos', rotulo: 'Documentos e extratos' }, { id: 'notificacoes', rotulo: 'Notificações à empresa' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'resumo' && <Resumo c={c} />}
         {aba === 'responsaveis' && <Responsaveis c={c} />}
         {aba === 'dotacao' && <DotacoesContrato c={c} />}
@@ -361,6 +362,7 @@ export function ContratoDetalhe() {
         {aba === 'empenhos' && <ListaEmpenhos c={c} />}
         {aba === 'notas' && <ListaNotas c={c} />}
         {aba === 'documentos' && <Documentos c={c} />}
+        {aba === 'notificacoes' && <div className="flex flex-col gap-3"><div className="flex justify-end"><Link to={`/notificacoes-contratuais/nova?contrato=${c.id}`}><Botao icone={<Plus className="size-4" />}>EMITIR NOVA NOTIFICAÇÃO</Botao></Link></div><NotificacoesDoContrato contratoId={c.id} /></div>}
       </Cartao>
       <FormContrato aberto={editando} aoFechar={() => { setEditando(false); void qc.invalidateQueries({ queryKey: ['contrato', id] }); }} contrato={c} />
       <ConfirmarComMotivo aberto={inativando} aoFechar={() => setInativando(false)} perigo={c.ativo}

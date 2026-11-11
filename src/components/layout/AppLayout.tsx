@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -46,6 +46,7 @@ const CADASTROS: Item[] = [
 const EXECUCAO: Item[] = [
   { para: '/contratos', rotulo: 'Contratos', icone: <FileText className="size-4" /> },
   { para: '/meus-contratos', rotulo: 'Meus contratos', icone: <FileCheck2 className="size-4" /> },
+  { para: '/notificacoes-contratuais', rotulo: 'Notificações e ocorrências', icone: <Gavel className="size-4" /> },
   { para: '/empenhos', rotulo: 'Empenhos', icone: <Wallet className="size-4" /> },
   { para: '/notas', rotulo: 'Notas fiscais e execução', icone: <Receipt className="size-4" /> },
   { para: '/pagamentos', rotulo: 'Pagamentos', icone: <Banknote className="size-4" />, recurso: 'notas_fiscais', acao: 'editar' },

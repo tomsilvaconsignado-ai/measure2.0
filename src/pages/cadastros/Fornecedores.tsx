@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Anexos } from '@/components/Anexos';
+import { HistoricoFornecedor } from '@/pages/contratos/notificacoes/comum';
 import { BotoesPlanilha } from '@/components/Planilhas';
 import { CamposEndereco, enderecoDe, enderecoParaGravar, enderecoVazio, type Endereco } from '@/components/CamposEndereco';
 import { ImagemPrivada, useBuscaAtrasada } from '@/components/ImagemPrivada';
@@ -246,7 +247,7 @@ function ContasBancarias({ fornecedor }: { fornecedor: Fornecedor }) {
 function DetalheFornecedor({ fornecedor, aoFechar, aoEditar }: { fornecedor: Fornecedor | null; aoFechar: () => void; aoEditar: (f: Fornecedor) => void }) {
   const { pode } = useSessao();
   const qc = useQueryClient();
-  const [aba, setAba] = useState<'dados' | 'contas' | 'documentos'>('dados');
+  const [aba, setAba] = useState<'dados' | 'contas' | 'documentos' | 'ocorrencias'>('dados');
   const entrada = useRef<HTMLInputElement>(null);
   useEffect(() => { setAba('dados'); }, [fornecedor?.id]);
   const logo = useMutation({
@@ -271,7 +272,7 @@ function DetalheFornecedor({ fornecedor, aoFechar, aoEditar }: { fornecedor: For
           <Botao pequeno variante="secundario" icone={<ImageUp className="size-4" />} carregando={logo.isPending} onClick={() => entrada.current?.click()}>{f.logo_path ? 'Trocar logo' : 'Enviar logo'}</Botao>
         </>}
       </div>
-      <Abas abas={[{ id: 'dados', rotulo: 'Dados' }, { id: 'contas', rotulo: 'Contas bancárias' }, { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
+      <Abas abas={[{ id: 'dados', rotulo: 'Dados' }, { id: 'contas', rotulo: 'Contas bancárias' }, { id: 'documentos', rotulo: 'Documentos' }, { id: 'ocorrencias', rotulo: 'Histórico de ocorrências e notificações' }]} ativa={aba} aoMudar={setAba} />
       {aba === 'dados' && (
         <dl className="grid gap-3 sm:grid-cols-2">
           {linha('Inscrição estadual', f.inscricao_estadual)}{linha('Inscrição municipal', f.inscricao_municipal)}
@@ -286,6 +287,7 @@ function DetalheFornecedor({ fornecedor, aoFechar, aoEditar }: { fornecedor: For
       )}
       {aba === 'contas' && <ContasBancarias fornecedor={f} />}
       {aba === 'documentos' && <Anexos recurso="fornecedores" registroId={f.id} />}
+      {aba === 'ocorrencias' && <HistoricoFornecedor fornecedorId={f.id} nome={nomeFornecedor(f)} documento={f.documento} />}
     </Modal>
   );
 }

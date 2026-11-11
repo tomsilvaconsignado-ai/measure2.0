@@ -3,7 +3,7 @@ export type TipoUnidade = 'ORGANIZACAO' | 'SECRETARIA' | 'DIRETORIA' | 'COORDENA
 export type Recurso =
   | 'estrutura' | 'usuarios' | 'configuracoes' | 'auditoria'
   | 'fornecedores' | 'servidores' | 'servidores_sensiveis' | 'unidades' | 'classificacoes' | 'tipos_servico'
-  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'decretos' | 'ordens_servico' | 'relatorios' | 'conecta' | 'patrimonio';
+  | 'contratos' | 'empenhos' | 'notas_fiscais' | 'decretos' | 'ordens_servico' | 'relatorios' | 'conecta' | 'patrimonio' | 'notificacoes_contratuais';
 export type Acao = 'ler' | 'criar' | 'editar' | 'excluir' | 'aprovar' | 'atestar' | 'exportar';
 
 export const TIPOS_UNIDADE: Record<TipoUnidade, string> = {
@@ -273,6 +273,7 @@ export interface Contrato {
   valor_global: Decimal; observacoes: string | null; contrato_origem_id: string | null; numero_renovacao: number; ativo: boolean;
   /** id de quem cadastrou (gravado pelo banco; nulo nos registros migrados) */
   criado_por?: string | null;
+  regime_juridico?: 'LEI_14133' | 'LEI_8666' | 'OUTRO' | null; data_assinatura?: string | null;
 }
 
 export interface ContratoResumo extends Contrato {
@@ -355,4 +356,4 @@ export interface PagamentoRealizado {
   registrado_por: string; registrado_em: string;
 }
 
-export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA' | 'EXTRATO_NOTAS' | 'EXTRATO_UNIDADES' | 'EXTRATO_RATEIO'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }
+export interface DocumentoEmitido { id: string; tenant_id: string; tipo: 'EXTRATO_CONTRATO' | 'EXTRATO_EMPENHO' | 'ATESTO' | 'CONSOLIDADO_MENSAL' | 'CHECKLIST_NOTA' | 'EXTRATO_NOTAS' | 'EXTRATO_UNIDADES' | 'EXTRATO_RATEIO' | 'NOTIFICACAO_FORMAL'; registro_id: string; titulo: string; dados: Record<string, unknown>; emitido_em: string }

@@ -55,6 +55,11 @@ const UnidadesAtendidas = pagina(() => import('@/pages/cadastros/UnidadesAtendid
 const ContratoDetalhe = pagina(() => import('@/pages/contratos/ContratoDetalhe'), 'ContratoDetalhe');
 const Contratos = pagina(() => import('@/pages/contratos/Contratos'), 'Contratos');
 const MeusContratos = pagina(() => import('@/pages/contratos/MeusContratos'), 'MeusContratos');
+const NotificacoesContratuais = pagina(() => import('@/pages/contratos/notificacoes/NotificacoesContratuais'), 'NotificacoesContratuais');
+const FormNotificacao = pagina(() => import('@/pages/contratos/notificacoes/FormNotificacao'), 'FormNotificacao');
+const DetalheNotificacao = pagina(() => import('@/pages/contratos/notificacoes/DetalheNotificacao'), 'DetalheNotificacao');
+const ConfigNotificacoes = pagina(() => import('@/pages/contratos/notificacoes/ConfigNotificacoes'), 'ConfigNotificacoes');
+const Sancoes = pagina(() => import('@/pages/contratos/notificacoes/Sancoes'), 'Sancoes');
 const Empenhos = pagina(() => import('@/pages/contratos/Empenhos'), 'Empenhos');
 const Imprimir = pagina(() => import('@/pages/contratos/Imprimir'), 'Imprimir');
 const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
@@ -151,6 +156,12 @@ export function App() {
         <Route path="tipos-servico" element={<TiposServico />} />
         <Route path="contratos" element={<Contratos />} />
         <Route path="meus-contratos" element={<MeusContratos />} />
+        <Route path="notificacoes-contratuais" element={<NotificacoesContratuais />} />
+        <Route path="notificacoes-contratuais/nova" element={<FormNotificacao />} />
+        <Route path="notificacoes-contratuais/configuracao" element={<ConfigNotificacoes />} />
+        <Route path="notificacoes-contratuais/sancoes" element={<Sancoes />} />
+        <Route path="notificacoes-contratuais/:id" element={<DetalheNotificacao />} />
+        <Route path="notificacoes-contratuais/:id/editar" element={<FormNotificacao />} />
         <Route path="contratos/:id" element={<ContratoDetalhe />} />
         <Route path="empenhos" element={<Empenhos />} />
         <Route path="notas" element={<Notas />} />

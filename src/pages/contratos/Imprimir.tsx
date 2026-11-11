@@ -248,6 +248,53 @@ function ChecklistNota({ d }: { d: D }) {
   </>;
 }
 
+const PAPEL_NF: Record<string, string> = { GESTOR: 'Gestor(a) do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente (atuando em substituição)', ADMINISTRADOR: 'Administrador(a) autorizado(a)' };
+
+/** Notificação formal à empresa contratada (estrutura oficial, com campos de assinatura e de ciência) */
+function NotificacaoFormal({ d }: { d: D }) {
+  const f = d.fornecedor as D, c = d.contrato as D, e = d.emissor as D;
+  const bloco = (n: number, titulo: string, texto: ReactNode) => (
+    <section className="mb-3"><h2 className="mb-1 text-[11.5px] font-bold uppercase">{n}. {titulo}</h2><div className="whitespace-pre-line text-justify text-[11.5px] leading-relaxed">{texto}</div></section>
+  );
+  const anexos = (d.anexos as string[] | undefined) ?? [];
+  return <>
+    {d.retifica && <p className="mb-2 text-center text-[10.5px] italic">Esta versão retifica e substitui a {String(d.retifica)}.</p>}
+    <div className="mb-4 grid gap-0.5 text-[11.5px]">
+      <p><b>À EMPRESA:</b> {f.razao_social}{f.nome_fantasia ? ` (${f.nome_fantasia})` : ''}</p>
+      <p><b>{f.tipo_pessoa === 'PF' ? 'CPF' : 'CNPJ'}:</b> {f.tipo_pessoa === 'PF' ? formatarCpf(f.documento) : formatarCnpj(f.documento)}</p>
+      {f.endereco && <p><b>ENDEREÇO:</b> {f.endereco}</p>}
+      {(f.representante || f.email) && <p><b>CONTATO:</b> {[f.representante, f.email, f.telefone ? formatarTelefone(f.telefone) : null].filter(Boolean).join(' · ')}</p>}
+      <p><b>ASSUNTO:</b> Notificação referente ao Contrato nº {c.numero}.</p>
+      <p><b>PROCESSO ADMINISTRATIVO:</b> {c.processo_administrativo ?? 'não informado'}{c.numero_licitacao ? ` · ${c.modalidade} ${c.numero_licitacao}` : ''}</p>
+      <p><b>OBJETO CONTRATUAL:</b> {c.objeto}</p>
+      <p><b>VIGÊNCIA:</b> {formatarData(c.data_inicio)} a {formatarData(c.data_fim)} · <b>VALOR:</b> {brl(c.valor_atual)}{d.estrutura?.descricao ? <> · <b>UNIDADE RESPONSÁVEL:</b> {d.estrutura.descricao}</> : null}</p>
+    </div>
+    {bloco(1, 'Dos fatos', <>
+      {d.data_ocorrencia && <>Em {formatarData(d.data_ocorrencia)}{d.local ? `, em ${d.local}` : ''}{d.unidade_atendida && d.unidade_atendida !== d.local ? ` (${d.unidade_atendida})` : ''}: </>}{d.fatos}
+      {d.tipo_ocorrencia && <><br /><i>Classificação da ocorrência: {d.tipo_ocorrencia}.</i></>}
+      {anexos.length > 0 && <><br /><i>Evidências registradas: {anexos.join('; ')}.</i></>}
+    </>)}
+    {bloco(2, 'Das obrigações contratuais', <>{d.obrigacoes}{d.clausula ? <><br />{d.clausula}.</> : null}</>)}
+    {bloco(3, 'Da fundamentação legal', d.fundamentacao)}
+    {bloco(4, 'Das providências exigidas', d.providencias)}
+    {bloco(5, 'Do prazo', d.prazo_texto)}
+    {bloco(6, 'Das consequências do não atendimento', d.consequencias)}
+    {bloco(7, 'Da manifestação da contratada', d.manifestacao)}
+    {d.observacoes && <p className="mb-3 text-[11px]"><b>Observações:</b> {d.observacoes}</p>}
+    <section className="break-inside-avoid mt-6">
+      <h2 className="mb-2 text-[11.5px] font-bold uppercase">8. Assinatura</h2>
+      <div className="grid grid-cols-2 gap-8 text-[11px]">
+        <div className="pt-12"><div className="border-t border-slate-800 pt-1 text-center">
+          <p className="font-semibold">{e.nome}</p><p>{e.cargo ?? 'Cargo/função'}{e.matricula ? ` · Matrícula ${e.matricula}` : ''}</p><p>{PAPEL_NF[e.papel] ?? e.papel}</p><p className="mt-1">Data: ____/____/________</p>
+        </div></div>
+        <div className="pt-12"><div className="border-t border-slate-800 pt-1 text-center">
+          <p className="font-semibold">Ciência da contratada</p><p>Representante: ____________________________</p><p>Documento: ______________ Data: ____/____/______</p>
+        </div></div>
+      </div>
+    </section>
+  </>;
+}
+
 /** O documento como sai no papel (usado na página de impressão e na geração do PDF) */
 export function FolhaImpressao({ doc }: { doc: DocumentoEmitido }) {
   const d = doc.dados as D;
@@ -269,6 +316,7 @@ export function FolhaImpressao({ doc }: { doc: DocumentoEmitido }) {
         {doc.tipo === 'CONSOLIDADO_MENSAL' && <ConsolidadoMensal d={d} />}
         {doc.tipo === 'CHECKLIST_NOTA' && (d.modelo === 'SERVICOS_CONTINUADOS' ? <ChecklistServicos d={d} /> : <ChecklistNota d={d} />)}
         {doc.tipo === 'ATESTO' && <p className="whitespace-pre-line text-[12px] leading-relaxed">{d.texto}</p>}
+        {doc.tipo === 'NOTIFICACAO_FORMAL' && <NotificacaoFormal d={d} />}
         <footer className="mt-6 border-t border-slate-300 pt-2 text-[9.5px] text-slate-600">
           {d.orgao?.rodape && <p>{d.orgao.rodape}</p>}
           {!paisagem && d.orgao?.endereco && <p>{d.orgao.endereco}</p>}

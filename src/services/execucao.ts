@@ -66,6 +66,11 @@ export async function salvarContrato(id: string | null, dados: Partial<Contrato>
   return falhou(await supabase.from('contratos').insert(dados).select().single()) as Contrato;
 }
 
+/** Regime jurídico e data de assinatura (campos usados nas notificações formais) */
+export async function regimeDoContrato(id: string) {
+  return falhou(await supabase.from('contratos').select('regime_juridico, data_assinatura').eq('id', id).single()) as { regime_juridico: Contrato['regime_juridico']; data_assinatura: string | null };
+}
+
 export async function definirStatusContrato(id: string, ativo: boolean, motivo: string) {
   falhou(await supabase.from('contratos').update({ ativo }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
 }
