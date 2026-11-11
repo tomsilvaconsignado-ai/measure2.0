@@ -166,7 +166,8 @@ export const EMAILS = {
 // Regras de autenticação: sem cadastro público, senha forte, e-mail confirmado, avisos de segurança
 const REGRAS = {
   site_url: SITE,
-  uri_allow_list: `${SITE}**,https://www.measuregcp.com.br/**,${SITE_ANTERIOR}**,http://localhost:5173/**`,
+  // produção: só os endereços oficiais (localhost não fica liberado no projeto publicado)
+  uri_allow_list: `${SITE}**,https://www.measuregcp.com.br/**,${SITE_ANTERIOR}**`,
   disable_signup: true,
   mailer_autoconfirm: false,
   password_min_length: 10,
@@ -177,6 +178,10 @@ const REGRAS = {
   mailer_notifications_password_changed_enabled: true,
   mailer_notifications_email_changed_enabled: true,
   rate_limit_email_sent: 30,
+  // verificação em duas etapas por aplicativo autenticador (obrigatória para administradores, ver migração 20261211000100)
+  mfa_totp_enroll_enabled: true,
+  mfa_totp_verify_enabled: true,
+  mfa_max_enrolled_factors: 10,
 };
 
 const dir = new URL('./', import.meta.url);

@@ -10,9 +10,10 @@ import { supabase } from '@/lib/supabase';
 import { atualizarMeuPerfil, definirVinculoPadrao, enviarMinhaFoto, urlArquivo } from '@/services/api';
 import { MeuCadastroServidor } from '@/components/PreCadastro';
 import { regraSenha } from './Acesso';
+import { CartaoDuasEtapas } from '@/auth/DuasEtapas';
 
 export function MeuPerfil() {
-  const { contexto, recarregar } = useSessao();
+  const { contexto, recarregar, mfa } = useSessao();
   const perfil = contexto!.perfil!;
   const arquivo = useRef<HTMLInputElement>(null);
   const [nome, setNome] = useState(perfil.nome);
@@ -99,6 +100,8 @@ export function MeuPerfil() {
               <div><Botao type="submit" carregando={trocarSenha.isPending} disabled={!senha}>Alterar senha</Botao></div>
             </form>
           </Cartao>
+
+          <CartaoDuasEtapas obrigatorio={mfa.obrigatorio} />
         </div>
       </div>
       <div className="mt-6"><MeuCadastroServidor /></div>

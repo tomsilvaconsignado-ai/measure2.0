@@ -13,6 +13,8 @@ import webpush from 'npm:web-push@3.6.7';
 interface Item { id: number; endpoint: string; p256dh: string; auth: string; payload: Record<string, unknown> }
 
 const LIMITE_MS = 25_000;
+// Só serviços de push conhecidos (o banco já recusa os demais; aqui é a segunda barreira contra SSRF)
+const SERVICO_PUSH = /^https:\/\/(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)\//;
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Método não permitido', { status: 405 });
@@ -32,6 +34,10 @@ Deno.serve(async (req) => {
     const lote = (data ?? []) as Item[];
     if (!lote.length) break;
     const resultados = await Promise.all(lote.map(async (i) => {
+      if (!SERVICO_PUSH.test(i.endpoint)) {
+        falhas++;
+        return { id: i.id, ok: false, status: 410, erro: 'Endereço fora dos serviços de push conhecidos' };
+      }
       try {
         const r = await webpush.sendNotification({ endpoint: i.endpoint, keys: { p256dh: i.p256dh, auth: i.auth } }, JSON.stringify(i.payload),
           { TTL: 60 * 60 * 24, urgency: 'high', topic: String(i.payload.tag ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || undefined });

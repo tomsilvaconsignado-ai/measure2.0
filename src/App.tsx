@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Marca } from '@/components/layout/Marca';
 import { Botao, Carregando } from '@/components/ui/basicos';
 import { precisaDefinirSenha } from '@/lib/supabase';
+import { CadastrarAutenticador, ConfirmarCodigo } from '@/auth/DuasEtapas';
 import { AtivarPorLink, DefinirSenha, Entrar, EsqueciSenha, linkDeAtivacao } from '@/pages/Acesso';
 import { Inicio } from '@/pages/Inicio';
 import { ModuloPatrimonio } from '@/pages/patrimonio/Layout';
@@ -99,7 +100,7 @@ function TelaCheia({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
-  const { sessao, carregando, contexto, sair } = useSessao();
+  const { sessao, carregando, contexto, sair, mfa } = useSessao();
   const logado = !!sessao && !!contexto?.perfil?.ativo;
   useEffect(() => { if (logado) preCarregarTelas(); }, [logado]);
 
@@ -123,6 +124,19 @@ export function App() {
 
   const tipoLink = precisaDefinirSenha();
   if (tipoLink) return <DefinirSenha tipo={tipoLink} />;
+
+  // verificação em duas etapas: o banco recusa a sessão até o código ser confirmado
+  if (mfa.pendente) {
+    return (
+      <TelaCheia>
+        <Marca />
+        {mfa.modo === 'confirmar'
+          ? <ConfirmarCodigo aoConcluir={() => void mfa.concluir()} />
+          : <CadastrarAutenticador obrigatorio aoConcluir={() => void mfa.concluir()} />}
+        <Botao variante="fantasma" onClick={() => void sair()}>Sair</Botao>
+      </TelaCheia>
+    );
+  }
 
   if (!contexto?.perfil || !contexto.perfil.ativo) {
     return (

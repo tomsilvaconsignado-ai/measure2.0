@@ -9,6 +9,21 @@ import { instalarMonitoramento, LimiteDeErro } from './lib/monitoramento';
 import { registrarServiceWorker } from './lib/push';
 import './index.css';
 
+// Contra clickjacking: o MEASURE não funciona dentro de outro site (moldura/iframe).
+// O GitHub Pages não envia o cabeçalho frame-ancestors, então a recusa fica aqui.
+const dentroDeOutroSite = (() => { try { return window.top !== window.self; } catch { return true; } })();
+if (dentroDeOutroSite) {
+  document.body.textContent = '';
+  const aviso = document.createElement('a');
+  aviso.href = window.location.href;
+  aviso.target = '_top';
+  aviso.rel = 'noopener';
+  aviso.textContent = 'Por segurança, o MEASURE só funciona aberto diretamente. Clique para abrir.';
+  aviso.style.cssText = 'display:block;padding:24px;font:16px sans-serif;color:#0f2a4a';
+  document.body.appendChild(aviso);
+  throw new Error('MEASURE aberto dentro de outro site: carregamento interrompido.');
+}
+
 instalarMonitoramento();
 void registrarServiceWorker();
 

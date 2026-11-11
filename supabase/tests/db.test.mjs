@@ -20,6 +20,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, au
 CREATE SCHEMA extensions;
 CREATE SCHEMA auth; GRANT USAGE ON SCHEMA auth TO anon, authenticated;
 CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, raw_user_meta_data jsonb);
+CREATE TABLE auth.mfa_factors (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, user_id uuid, status text, factor_type text DEFAULT 'totp');
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated;
 CREATE SCHEMA storage; GRANT USAGE ON SCHEMA storage TO anon, authenticated;
@@ -33,9 +34,11 @@ let failures = 0;
 const ok = (msg) => console.log('  ✔', msg);
 const bad = (msg) => { failures++; console.log('  ✘', msg); };
 
-export async function as(uid, sql, params = []) {
+// aal: nível da sessão no token (aal2 = confirmada com o segundo fator). Os casos gerais usam aal2.
+export async function as(uid, sql, params = [], aal = 'aal2') {
   await db.exec('RESET ROLE');
   await db.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [uid ?? '']);
+  await db.query(`SELECT set_config('request.jwt.claim.aal', $1, false)`, [aal]);
   await db.exec(uid ? 'SET ROLE authenticated' : 'SET ROLE anon');
   try { return await db.query(sql, params); } finally { await db.exec('RESET ROLE'); }
 }

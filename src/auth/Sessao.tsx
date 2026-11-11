@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Acao, FocoUnidade, MeuContexto, Recurso, SessaoSuporte, VinculoContexto } from '@/lib/tipos';
+import { lerNivelMfa } from './DuasEtapas';
 
 const CHAVE_TENANT = 'measure.tenant_atual';
 // Recursos que a plataforma administra sem sessão de suporte (espelha recursos.livre_para_plataforma)
@@ -34,6 +35,8 @@ interface ValorSessao {
   pode: (recurso: Recurso, acao: Acao) => boolean;
   recarregar: () => Promise<unknown>;
   sair: () => Promise<void>;
+  /** verificação em duas etapas: pendente (o banco recusa a sessão até o código ser confirmado) */
+  mfa: { pendente: boolean; modo: 'confirmar' | 'cadastrar'; obrigatorio: boolean; concluir: () => Promise<void> };
 }
 
 const Contexto = createContext<ValorSessao | null>(null);
@@ -61,15 +64,20 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   const uid = sessao?.user.id;
+  const nivelMfa = useQuery({ queryKey: ['mfa', uid, sessao?.access_token], enabled: !!uid, queryFn: lerNivelMfa });
   const q = useQuery({
     queryKey: ['meu_contexto', uid],
     enabled: !!uid,
+    // conta que exige o código: o banco recusa até ele ser confirmado (não adianta repetir)
+    retry: (n, e) => (e as { hint?: string })?.hint !== 'mfa_obrigatorio' && n < 3,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('meu_contexto');
       if (error) throw error;
       return data as MeuContexto;
     },
   });
+  const barradoPeloMfa = (q.error as { hint?: string } | null)?.hint === 'mfa_obrigatorio';
+  const mfaPendente = !!uid && !!nivelMfa.data && nivelMfa.data.atual !== 'aal2' && (nivelMfa.data.temFator || barradoPeloMfa);
   const contexto = q.data ?? null;
   // rede de segurança: entrou (sessão aberta) e o primeiro acesso ainda não foi registrado → registra uma vez.
   // Ex.: sessão aberta pelo link do e-mail antes de o app começar a ouvir o evento de login.
@@ -127,9 +135,22 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     setOrgaoEscolhido(null);
   }, []);
 
+  const concluirMfa = useCallback(async () => {
+    await supabase.auth.refreshSession();
+    await nivelMfa.refetch();
+    void supabase.rpc('registrar_acesso');
+    await q.refetch();
+  }, [nivelMfa, q]);
+  const mfa = {
+    pendente: mfaPendente,
+    modo: (nivelMfa.data?.temFator ? 'confirmar' : 'cadastrar') as 'confirmar' | 'cadastrar',
+    obrigatorio: barradoPeloMfa || ehPlataforma || (contexto?.vinculos ?? []).some((v) => v.papel === 'MASTER'),
+    concluir: concluirMfa,
+  };
+
   const valor: ValorSessao = {
-    sessao, carregando: iniciando || (!!uid && q.isLoading), contexto, ehPlataforma,
-    vinculosDoOrgao, orgao, suporte, foco, definirFoco, escolherOrgao, pode, recarregar: q.refetch, sair,
+    sessao, carregando: iniciando || (!!uid && (nivelMfa.isLoading || (q.isLoading && !barradoPeloMfa))), contexto, ehPlataforma,
+    vinculosDoOrgao, orgao, suporte, foco, definirFoco, escolherOrgao, pode, recarregar: q.refetch, sair, mfa,
   };
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
