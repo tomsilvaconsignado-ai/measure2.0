@@ -119,6 +119,7 @@ export interface OrdemServico {
   descricao: string | null; contrato_id: string | null; tipo_servico_id: string | null; responsavel_id: string | null;
   prioridade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'; status: 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA';
   previsao: string | null; data_conclusao: string | null; observacoes: string | null; motivo_cancelamento: string | null;
+  criado_por?: string | null;
   unidade?: { nome: string; sigla: string | null } | null;
   contrato?: { numero: string } | null;
   tipo_servico?: { nome: string } | null;

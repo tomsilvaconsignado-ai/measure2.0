@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { mensagemDeErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
+import { useAutoria } from '@/lib/autoria';
 import type { Recurso } from '@/lib/tipos';
 import { abrirDocumento, enviarDocumento, excluirDocumento, listarDocumentos, type Documento } from '@/services/documentos';
 import { Botao, Carregando } from './ui/basicos';
@@ -19,6 +20,7 @@ export function Anexos({ recurso, registroId, unidadeId = null, categoria = 'GER
   podeGerenciar?: boolean;
 }) {
   const { orgao: orgaoSessao, pode } = useSessao();
+  const podeAlterar = useAutoria();
   const orgao = tenantId ? { id: tenantId } : orgaoSessao;
   const qc = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
@@ -61,7 +63,7 @@ export function Anexos({ recurso, registroId, unidadeId = null, categoria = 'GER
                 onClick={() => abrirDocumento(d).catch((e) => toast.error(mensagemDeErro(e)))} />
               <Botao pequeno variante="fantasma" icone={<Download className="size-4" />} aria-label={`Baixar ${d.nome_arquivo}`}
                 onClick={() => abrirDocumento(d, true).catch((e) => toast.error(mensagemDeErro(e)))} />
-              {podeExcluir && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4 text-red-600" />} aria-label={`Excluir ${d.nome_arquivo}`} onClick={() => setExcluindo(d)} />}
+              {podeExcluir && podeAlterar(recurso, d.enviado_por) && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4 text-red-600" />} aria-label={`Excluir ${d.nome_arquivo}`} onClick={() => setExcluindo(d)} />}
             </li>
           ))}
         </ul>

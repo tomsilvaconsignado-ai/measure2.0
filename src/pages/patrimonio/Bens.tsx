@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
+import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { Anexos } from '@/components/Anexos';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
@@ -162,6 +163,7 @@ export function FichaPatrimonio({ id, aoFechar }: { id: string | null; aoFechar:
   const [editando, setEditando] = useState(false);
   const [movimentando, setMovimentando] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
+  const podeAlterar = useAutoria();
   useEffect(() => setAba('dados'), [id]);
   if (!id) return null;
   const b = q.data;
@@ -175,12 +177,13 @@ export function FichaPatrimonio({ id, aoFechar }: { id: string | null; aoFechar:
       rodape={b && <>
         <Botao variante="fantasma" icone={<FileDown className="size-4" />} carregando={gerando} onClick={() => void gerarPdf()}>Histórico em PDF</Botao>
         {b.pode_baixar && <Botao variante="fantasma" className="text-red-700" icone={<Trash2 className="size-4" />} onClick={() => setMovimentando('BAIXA')}>Baixa patrimonial</Botao>}
-        {b.pode_editar && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar</Botao>}
+        {b.pode_editar && podeAlterar('patrimonio', b.criado_por) && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar</Botao>}
         {b.pode_movimentar && <Botao icone={<ArrowLeftRight className="size-4" />} onClick={() => setMovimentando('TRANSFERENCIA_COORDENACAO')}>Movimentar</Botao>}
       </>}>
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> : !b ? null : <>
         <div className="mb-3 flex flex-wrap gap-2"><SeloSituacao s={b.situacao} /><SeloConservacao c={b.conservacao} /><Selo>{FUNCIONAMENTO[b.funcionamento]}</Selo>
           {b.movimentacao_pendente && <Selo tom="alerta">Movimentação {b.movimentacao_pendente} em andamento</Selo>}</div>
+        <CadastradoPor autor={b.criado_por} recurso="patrimonio" className="-mt-1 mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
         <Abas ativa={aba} aoMudar={setAba} abas={[
           { id: 'dados', rotulo: 'Dados gerais' }, { id: 'localizacao', rotulo: 'Localização' }, { id: 'responsavel', rotulo: 'Responsável' },
           { id: 'conservacao', rotulo: 'Conservação' }, { id: 'movimentacoes', rotulo: `Movimentações (${b.movimentacoes.length})` }, { id: 'historico', rotulo: 'Histórico' },

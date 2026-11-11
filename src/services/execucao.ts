@@ -314,3 +314,15 @@ export async function buscarServidoresDesignacao(tenantId: string, busca: string
     id: string; nome: string; matricula: string; cargo: string | null; unidade_nome: string; unidade_sigla: string | null; tem_acesso: boolean;
   }>;
 }
+
+/** Autoria das designações e das dotações do contrato (só quem cadastrou, ou o Master, encerra ou remove) */
+export async function autoriaDoContrato(contratoId: string) {
+  const [d, t] = await Promise.all([
+    supabase.from('contrato_designacoes').select('id, criado_por').eq('contrato_id', contratoId),
+    supabase.from('contrato_dotacoes').select('classificacao_id, criado_por').eq('contrato_id', contratoId),
+  ]);
+  return {
+    designacoes: Object.fromEntries((falhou(d) as Array<{ id: string; criado_por: string | null }>).map((x) => [x.id, x.criado_por])) as Record<string, string | null>,
+    dotacoes: Object.fromEntries((falhou(t) as Array<{ classificacao_id: string; criado_por: string | null }>).map((x) => [x.classificacao_id, x.criado_por])) as Record<string, string | null>,
+  };
+}

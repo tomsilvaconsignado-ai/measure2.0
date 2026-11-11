@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
+import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { CampoBusca } from '@/components/ui/Abas';
 import { BuscaSelect } from '@/components/ui/BuscaSelect';
@@ -163,6 +164,7 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
 
 function DetalheEmpenho({ id, aoFechar, aoEditar }: { id: string | null; aoFechar: () => void; aoEditar: (e: EmpenhoResumo) => void }) {
   const { orgao, pode } = useSessao();
+  const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const navegar = useNavigate();
   const q = useQuery({ queryKey: ['empenho', id], queryFn: () => obterEmpenho(id!), enabled: !!id });
@@ -185,9 +187,10 @@ function DetalheEmpenho({ id, aoFechar, aoEditar }: { id: string | null; aoFecha
     <Modal aberto aoFechar={aoFechar} titulo={e ? `Empenho ${e.numero}/${e.ano}` : 'Empenho'} descricao={e ? `${e.fornecedor_nome} · Contrato ${e.contrato_numero}` : undefined} largura="lg"
       rodape={<>
         <Botao variante="secundario" icone={<FileDown className="size-4" />} carregando={extrato.isPending} onClick={() => extrato.mutate()}>Extrato</Botao>
-        {e && pode('empenhos', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => aoEditar(e)}>Editar</Botao>}
+        {e && pode('empenhos', 'editar') && podeAlterar('empenhos', e.criado_por) && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => aoEditar(e)}>Editar</Botao>}
       </>}>
       {!e ? <Carregando /> : <div className="flex flex-col gap-5">
+        <CadastradoPor autor={e.criado_por} recurso="empenhos" />
         <div className="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-4">
           {[['Valor', e.valor], ['Reforços', e.reforcos], ['Utilizado (notas)', e.utilizado], ['Saldo', e.saldo]].map(([r, v]) => (
             <div key={r as string}><p className="text-xs text-slate-500">{r}</p><p className={cx('numero text-base font-semibold', r === 'Saldo' && centavos(v as string) < 0 && 'text-red-700')}>{brl(v as string)}</p></div>
@@ -212,7 +215,7 @@ function DetalheEmpenho({ id, aoFechar, aoEditar }: { id: string | null; aoFecha
               <li key={r.id} className={cx('flex items-center gap-3 px-3 py-2 text-sm', r.cancelado_em && 'opacity-50')}>
                 <span className="flex-1">{formatarData(r.data)}{r.numero ? ` · nº ${r.numero}` : ''}{r.motivo ? ` · ${r.motivo}` : ''}{r.cancelado_em && <> · <Selo>Cancelado: {r.motivo_cancelamento}</Selo></>}</span>
                 <span className="numero font-medium">{brl(r.valor)}</span>
-                {!r.cancelado_em && pode('empenhos', 'editar') && <Botao pequeno variante="fantasma" icone={<X className="size-4 text-red-600" />} aria-label="Cancelar reforço" onClick={() => setCancelando(r.id)} />}
+                {!r.cancelado_em && pode('empenhos', 'editar') && podeAlterar('empenhos', r.criado_por) && <Botao pequeno variante="fantasma" icone={<X className="size-4 text-red-600" />} aria-label="Cancelar reforço" onClick={() => setCancelando(r.id)} />}
               </li>))}
           </ul>}
         </div>
@@ -246,6 +249,7 @@ function DetalheEmpenho({ id, aoFechar, aoEditar }: { id: string | null; aoFecha
 
 export function Empenhos() {
   const { orgao, pode } = useSessao();
+  const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [busca, setBusca] = useState('');
@@ -303,7 +307,7 @@ export function Empenhos() {
                       <BarraUso usado={centavos(e.utilizado)} total={centavos(e.valor_total)} />
                     </span>
                   </button>
-                  {pode('empenhos', 'excluir') && <Botao pequeno variante="fantasma" icone={<Power className="size-4" />} aria-label={e.ativo ? `Inativar empenho ${e.numero}` : `Reativar empenho ${e.numero}`} onClick={() => setAlternando(e)} />}
+                  {pode('empenhos', 'excluir') && podeAlterar('empenhos', e.criado_por) && <Botao pequeno variante="fantasma" icone={<Power className="size-4" />} aria-label={e.ativo ? `Inativar empenho ${e.numero}` : `Reativar empenho ${e.numero}`} onClick={() => setAlternando(e)} />}
                 </li>
               ))}
             </ul>

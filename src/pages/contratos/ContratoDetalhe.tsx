@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
+import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { Anexos } from '@/components/Anexos';
 import { Abas } from '@/components/ui/Abas';
 import { BarraUso, CampoMoeda } from '@/components/ui/CampoMoeda';
@@ -14,7 +15,7 @@ import { brl, centavos, decimalDeCentavos, formatarData, formatarDataHora } from
 import type { Aditivo, ContratoResumo, Designacao } from '@/lib/tipos';
 import { FotoServidor } from '@/pages/cadastros/Servidores';
 import {
-  decidirAditivo, definirStatusContrato, designar, emitirExtrato, encerrarDesignacao, listarAditivos, listarDesignacoes,
+  autoriaDoContrato, decidirAditivo, definirStatusContrato, designar, emitirExtrato, encerrarDesignacao, listarAditivos, listarDesignacoes,
   listarEmitidos, listarEmpenhos, listarNotas, modalidades, obterContrato, renovarContrato, salvarAditivo,
 } from '@/services/execucao';
 import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
@@ -62,6 +63,8 @@ function Resumo({ c }: { c: ContratoResumo }) {
 
 function Responsaveis({ c }: { c: ContratoResumo }) {
   const { pode } = useSessao();
+  const podeAlterar = useAutoria();
+  const autoria = useQuery({ queryKey: ['autoria-contrato', c.id], queryFn: () => autoriaDoContrato(c.id) });
   const qc = useQueryClient();
   const [historico, setHistorico] = useState(false);
   const q = useQuery({ queryKey: ['designacoes', c.id, historico], queryFn: () => listarDesignacoes(c.id, historico) });
@@ -96,7 +99,7 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
                   {d.portaria && <p className="text-xs text-slate-500">{d.portaria}</p>}
                   {!d.tem_acesso && !d.fim && <p className="mt-1 text-xs text-amber-700">Sem acesso ao sistema: convide a pessoa com o e-mail institucional do cadastro.</p>}
                 </div>
-                {podeEditar && !d.fim && <Botao pequeno variante="fantasma" icone={<UserMinus className="size-4" />} aria-label={`Encerrar designação de ${d.servidor_nome}`} onClick={() => setEncerrando(d)} />}
+                {podeEditar && !d.fim && podeAlterar('contratos', autoria.data?.designacoes[d.id]) && <Botao pequeno variante="fantasma" icone={<UserMinus className="size-4" />} aria-label={`Encerrar designação de ${d.servidor_nome}`} onClick={() => setEncerrando(d)} />}
               </li>
             ))}
           </ul>
@@ -130,6 +133,7 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
 
 function Aditivos({ c }: { c: ContratoResumo }) {
   const { pode } = useSessao();
+  const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const navegar = useNavigate();
   const q = useQuery({ queryKey: ['aditivos', c.id], queryFn: () => listarAditivos(c.id) });
@@ -179,7 +183,7 @@ function Aditivos({ c }: { c: ContratoResumo }) {
                 </p>
               </div>
               {a.status === 'RASCUNHO' && <div className="flex gap-1">
-                {pode('contratos', 'editar') && <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} aria-label="Editar aditivo"
+                {pode('contratos', 'editar') && podeAlterar('contratos', a.criado_por) && <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} aria-label="Editar aditivo"
                   onClick={() => { setErro(null); setForm({ id: a.id, numero: a.numero, tipo: a.tipo, data_assinatura: a.data_assinatura ?? '', nova_data_fim: a.nova_data_fim ?? '', valor: Math.abs(centavos(a.valor)) || null, descricao: a.descricao }); }} />}
                 {pode('contratos', 'aprovar') && <>
                   <Botao pequeno variante="secundario" icone={<Check className="size-4 text-emerald-700" />} carregando={aprovar.isPending} onClick={() => aprovar.mutate(a)}>Aprovar</Botao>
@@ -296,6 +300,7 @@ function Documentos({ c }: { c: ContratoResumo }) {
 export function ContratoDetalhe() {
   const { id } = useParams();
   const { pode } = useSessao();
+  const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const [aba, setAba] = useState<Aba>('resumo');
   const [editando, setEditando] = useState(false);
@@ -311,9 +316,10 @@ export function ContratoDetalhe() {
         descricao={<span className="flex flex-wrap items-center gap-2">{c.fornecedor_nome} <SeloSituacao situacao={c.situacao} dias={c.dias_para_vencer} />{!c.ativo && <Selo tom="perigo">Inativo</Selo>}
           {c.contrato_origem_id && <Link to={`/contratos/${c.contrato_origem_id}`} className="text-xs text-marca-700 hover:underline">ver contrato anterior</Link>}</span>}
         acoes={<>
-          {pode('contratos', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar</Botao>}
-          {pode('contratos', 'excluir') && <Botao variante="fantasma" icone={<Power className="size-4" />} onClick={() => setInativando(true)}>{c.ativo ? 'Inativar' : 'Reativar'}</Botao>}
+          {pode('contratos', 'editar') && podeAlterar('contratos', c.criado_por) && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar</Botao>}
+          {pode('contratos', 'excluir') && podeAlterar('contratos', c.criado_por) && <Botao variante="fantasma" icone={<Power className="size-4" />} onClick={() => setInativando(true)}>{c.ativo ? 'Inativar' : 'Reativar'}</Botao>}
         </>} />
+      <CadastradoPor autor={c.criado_por} recurso="contratos" className="-mt-3 mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
       <div className="mb-4"><AvisoVencido c={c} /></div>
       <EtapasContrato c={c} abaAtual={aba} irParaAba={setAba} />
       <Cartao>

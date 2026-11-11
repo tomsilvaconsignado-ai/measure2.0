@@ -271,6 +271,8 @@ export interface Contrato {
   id: string; tenant_id: string; unidade_id: string; numero: string; modalidade: string; fornecedor_id: string;
   processo_administrativo: string | null; numero_licitacao: string | null; objeto: string; data_inicio: string; data_fim: string;
   valor_global: Decimal; observacoes: string | null; contrato_origem_id: string | null; numero_renovacao: number; ativo: boolean;
+  /** id de quem cadastrou (gravado pelo banco; nulo nos registros migrados) */
+  criado_por?: string | null;
 }
 
 export interface ContratoResumo extends Contrato {
@@ -290,12 +292,16 @@ export interface Aditivo {
   id: string; contrato_id: string; numero: string; tipo: 'PRAZO' | 'VALOR' | 'PRAZO_E_VALOR' | 'SUPRESSAO' | 'OUTRO';
   data_assinatura: string | null; nova_data_fim: string | null; valor: Decimal; descricao: string;
   status: 'RASCUNHO' | 'APROVADO' | 'REJEITADO'; decidido_em: string | null; motivo_decisao: string | null; criado_em: string;
+  /** id de quem cadastrou (gravado pelo banco; nulo nos registros migrados) */
+  criado_por?: string | null;
 }
 
 export interface Empenho {
   id: string; tenant_id: string; contrato_id: string; unidade_id: string; fornecedor_id: string; numero: string; ano: number;
   tipo: 'ORDINARIO' | 'ESTIMATIVO' | 'GLOBAL'; data_empenho: string; vigencia_fim: string | null; valor: Decimal;
   classificacao_id: string; processo: string | null; sd: string | null; licitacao: string | null; observacoes: string | null; ativo: boolean;
+  /** id de quem cadastrou (gravado pelo banco; nulo nos registros migrados) */
+  criado_por?: string | null;
 }
 
 export interface EmpenhoResumo extends Empenho {
@@ -303,7 +309,7 @@ export interface EmpenhoResumo extends Empenho {
   reforcos: Decimal; valor_total: Decimal; utilizado: Decimal; saldo: Decimal;
 }
 
-export interface Reforco { id: string; empenho_id: string; numero: string | null; data: string; valor: Decimal; motivo: string | null; cancelado_em: string | null; motivo_cancelamento: string | null }
+export interface Reforco { id: string; empenho_id: string; numero: string | null; data: string; valor: Decimal; motivo: string | null; cancelado_em: string | null; motivo_cancelamento: string | null; criado_por?: string | null }
 
 export type StatusPagamento = 'PENDENTE' | 'PARCIAL' | 'PAGO' | 'CANCELADA';
 
@@ -318,6 +324,8 @@ export interface NotaResumo {
   empenho_numero: string | null; empenho_ano: number | null; tipo_servico_nome: string | null; pago: Decimal; meses_referencia: string | null; sou_designado: boolean;
   /** designado no contrato ou quem lançou a nota (se o órgão permitir) */
   posso_atestar: boolean; atestado_em: string | null; retido: Decimal;
+  /** id de quem cadastrou (gravado pelo banco; nulo nos registros migrados) */
+  criado_por?: string | null;
 }
 
 export interface Pagamento {
@@ -325,6 +333,8 @@ export interface Pagamento {
   cancelado_em: string | null; motivo_cancelamento: string | null;
   retencao_iss: Decimal; retencao_irrf: Decimal; retencao_inss: Decimal; retencao_federais: Decimal; retencao_outras: Decimal;
   retencao_outras_descricao: string | null; valor_liquido: Decimal; justificativa_ordem: string | null;
+  /** quem registrou o pagamento (só essa pessoa ou o Master cancela) */
+  registrado_por?: string | null;
 }
 export interface Atesto { id: string; nota_id: string; servidor_id: string; papel: string; texto: string; atestado_em: string; servidor_nome: string | null; servidor_matricula: string | null }
 

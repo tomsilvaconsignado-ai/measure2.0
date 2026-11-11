@@ -8,7 +8,8 @@ export default async function ({ db, as, check, expectOk, expectFail, one, u, A,
   const outro = await one(`SELECT e.id FROM empenhos e WHERE e.tenant_id = $1 AND e.contrato_id <> $2 LIMIT 1`, [A, ct.id]);
 
   console.log('Notas migradas sem empenho');
-  // como a migração grava: direto no banco, atestada e sem empenho
+  // como a migração grava: direto no banco (sem usuário logado), atestada e sem empenho
+  await db.query(`SELECT set_config('request.jwt.claim.sub', '', false)`);
   const nota = (await one(`INSERT INTO notas_fiscais (tenant_id, contrato_id, unidade_id, fornecedor_id, numero, data_emissao, valor, status_atesto)
     VALUES ($1, $2, $3, $4, 'MIG-1', '2025-05-10', 10.00, 'ATESTADA') RETURNING id`, [A, ct.id, ct.unidade_id, ct.fornecedor_id])).id;
   const v = await val(u.adminCoinfra, `SELECT empenho_id, empenho_numero FROM v_notas WHERE id = $1`, [nota]);

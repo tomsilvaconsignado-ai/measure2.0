@@ -116,7 +116,7 @@ export interface FichaBem extends Record<string, unknown> {
   ambiente: string | null; sala: string | null; responsavel_id: string | null; responsavel_desde: string | null; responsavel_obs: string | null;
   responsavel: { id: string; nome: string; matricula: string; cargo: string | null; funcao: string | null; lotacao: Lotacao | null } | null;
   conservacao: string; funcionamento: string; situacao: string; data_ultima_avaliacao: string | null; observacoes_tecnicas: string | null;
-  baixado_em: string | null; criado_em: string; pode_editar: boolean; pode_movimentar: boolean; pode_baixar: boolean; movimentacao_pendente: string | null;
+  baixado_em: string | null; criado_em: string; criado_por: string | null; pode_editar: boolean; pode_movimentar: boolean; pode_baixar: boolean; movimentacao_pendente: string | null;
   movimentacoes: Array<{ id: string; codigo: string; tipo: string; situacao: string; criado_em: string; concluida_em: string | null; justificativa: string; papel: string;
     solicitante: string; origem: string; destino: string; responsavel_anterior: string | null; novo_responsavel: string | null; confirmacao: string;
     confirmacao_tipo: string | null; confirmado_em: string | null; confirmado_por: string | null; documentos: number }>;

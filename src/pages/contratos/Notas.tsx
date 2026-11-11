@@ -20,6 +20,7 @@ import {
   obterContrato, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { locaisDoAtesto, montarAtesto } from '@/lib/atesto';
+import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { BaixaPagamento, type NotaParaBaixa } from './BaixaPagamento';
 import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
@@ -370,6 +371,7 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
   const [editando, setEditando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [verificando, setVerificando] = useState(false);
+  const podeAlterar = useAutoria();
   useEffect(() => setAba('dados'), [id]);
   // antes de pedir o motivo, confere se a nota pode ser excluída (atesto, pagamento, documento emitido)
   const pedirExclusao = async () => {
@@ -389,12 +391,14 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
   const invalidar = async () => { await qc.invalidateQueries({ queryKey: ['nota', id] }); await qc.invalidateQueries({ queryKey: ['emitidos', id] }); await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['empenhos'] }); await qc.invalidateQueries({ queryKey: ['contrato'] }); };
   const atestar = useMutation({ mutationFn: () => atestarNota(id!, texto), onSuccess: async () => { await invalidar(); toast.success('Nota atestada.'); }, onError: (e) => toast.error(mensagemDeErro(e)) });
   if (!id) return null;
+  // só quem lançou a nota (ou o Master) edita, exclui ou cancela; os demais consultam
+  const autorOk = !!n && podeAlterar('notas_fiscais', n.criado_por);
   const restante = n ? centavos(n.valor) - centavos(n.pago) : 0;
   const falta = { atesto: !!n && !n.cancelada_em && n.status_atesto === 'PENDENTE' && n.posso_atestar,
     pagamento: !!n && !n.cancelada_em && n.status_atesto === 'ATESTADA' && restante > 0 && pode('notas_fiscais', 'editar') };
   return (
     <Modal aberto aoFechar={aoFechar} titulo={n ? `Nota fiscal ${n.numero}${n.serie ? `-${n.serie}` : ''}` : 'Nota fiscal'} descricao={n ? `${n.fornecedor_nome} · Contrato ${n.contrato_numero}` : undefined} largura="lg"
-      rodape={n && !n.cancelada_em && (pode('notas_fiscais', 'editar') || pode('notas_fiscais', 'excluir')) && <>
+      rodape={n && !n.cancelada_em && autorOk && (pode('notas_fiscais', 'editar') || pode('notas_fiscais', 'excluir')) && <>
         {pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" icone={<Ban className="size-4" />} onClick={() => setCancelandoNota(true)}>Cancelar nota</Botao>}
         {pode('notas_fiscais', 'excluir') && <Botao variante="fantasma" className="text-red-700" icone={<Trash2 className="size-4" />} carregando={verificando} onClick={() => void pedirExclusao()}>Excluir nota</Botao>}
         {pode('notas_fiscais', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => setEditando(true)}>Editar nota</Botao>}
@@ -406,7 +410,8 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
           {n.excecao_saldo && <Selo tom="alerta">Exceção de saldo</Selo>}
           {!n.empenho_id && <Selo tom="alerta">Sem empenho</Selo>}
         </div>
-        {!n.empenho_id && <VincularEmpenho nota={n} podeEditar={pode('notas_fiscais', 'editar')} aoVincular={invalidar} />}
+        <CadastradoPor autor={n.criado_por} recurso="notas_fiscais" className="-mt-2 mb-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
+        {!n.empenho_id && <VincularEmpenho nota={n} podeEditar={pode('notas_fiscais', 'editar') && autorOk} aoVincular={invalidar} />}
         {(falta.atesto || falta.pagamento) && aba !== (falta.atesto ? 'atesto' : 'pagamentos') && (
           <button onClick={() => setAba(falta.atesto ? 'atesto' : 'pagamentos')} className="mb-3 flex w-full items-center gap-2 rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-left text-sm text-amber-950 hover:bg-amber-100">
             <AlertTriangle className="size-4 shrink-0" /><span className="flex-1">{falta.atesto ? 'Esta nota aguarda o seu atesto.' : 'Nota atestada aguardando a baixa do pagamento.'}</span><span className="font-medium">{falta.atesto ? 'Atestar →' : 'Dar baixa →'}</span>
@@ -463,7 +468,7 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
                   {centavos(p.valor) !== centavos(p.valor_liquido) && <span className="block text-xs text-slate-500">Retido {formatarCentavos(centavos(p.valor) - centavos(p.valor_liquido))} · líquido <span className="numero">{brl(p.valor_liquido)}</span></span>}
                   {p.justificativa_ordem && <span className="block text-xs text-amber-800">Fora da ordem cronológica: {p.justificativa_ordem}</span>}</span>
                 <span className="numero font-medium" title="Valor bruto">{brl(p.valor)}</span>
-                {!p.cancelado_em && pode('notas_fiscais', 'excluir') && <Botao pequeno variante="fantasma" icone={<X className="size-4 text-red-600" />} aria-label="Cancelar pagamento" onClick={() => setCancelandoPag(p.id)} />}
+                {!p.cancelado_em && pode('notas_fiscais', 'excluir') && podeAlterar('notas_fiscais', p.registrado_por) && <Botao pequeno variante="fantasma" icone={<X className="size-4 text-red-600" />} aria-label="Cancelar pagamento" onClick={() => setCancelandoPag(p.id)} />}
               </li>))}
           </ul>}
         </div>}

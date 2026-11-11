@@ -3,6 +3,7 @@ import { CheckCircle2, Pencil, Play, Plus, XCircle } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
+import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { Anexos } from '@/components/Anexos';
 import { SeletorUnidadeOrg } from '@/components/CamposEndereco';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
@@ -92,6 +93,7 @@ function FormOs({ aberto, aoFechar, os }: { aberto: boolean; aoFechar: () => voi
 
 function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFechar: () => void; aoEditar: (o: OrdemServico) => void }) {
   const { pode } = useSessao();
+  const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const unidades = useQuery({ queryKey: ['os-unidades', os?.id], queryFn: () => unidadesDaOs(os!.id), enabled: !!os });
   const [cancelando, setCancelando] = useState(false);
@@ -101,7 +103,7 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
   if (!os) return null;
-  const editavel = pode('ordens_servico', 'editar') && !['CONCLUIDA', 'CANCELADA'].includes(os.status);
+  const editavel = pode('ordens_servico', 'editar') && podeAlterar('ordens_servico', os.criado_por) && !['CONCLUIDA', 'CANCELADA'].includes(os.status);
   return (
     <Modal aberto aoFechar={aoFechar} titulo={`OS ${numeroOs(os)} – ${os.titulo}`} largura="lg"
       rodape={editavel && <>
@@ -110,6 +112,7 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
         {os.status === 'ABERTA' && <Botao variante="secundario" icone={<Play className="size-4" />} carregando={mudar.isPending} onClick={() => mudar.mutate('EM_ANDAMENTO')}>Iniciar</Botao>}
         <Botao icone={<CheckCircle2 className="size-4" />} carregando={mudar.isPending} onClick={() => mudar.mutate('CONCLUIDA')}>Concluir</Botao>
       </>}>
+      <CadastradoPor autor={os.criado_por} recurso="ordens_servico" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
       <div className="mb-3 flex flex-wrap gap-2"><Selo tom={STATUS[os.status][1]}>{STATUS[os.status][0]}</Selo><Selo>Prioridade {PRIORIDADES[os.prioridade].toLowerCase()}</Selo></div>
       <dl className="mb-5 grid gap-3 text-sm sm:grid-cols-3">
         <div><dt className="text-xs text-slate-500">Abertura</dt><dd>{formatarData(os.data_abertura)}</dd></div>

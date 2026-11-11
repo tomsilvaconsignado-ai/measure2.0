@@ -14,7 +14,8 @@ import { brl } from '@/lib/formatacao';
 import type { ContratoResumo, DotacaoDetalhada, DotacaoDoContrato } from '@/lib/tipos';
 import { adicionarDotacaoContrato, listarClassificacoes } from '@/services/cadastros';
 import { ClassificacaoEmpenho, classificacaoVazia, faltandoNaClassificacao, idsDaClassificacao, type ValorClassificacao } from './ClassificacaoEmpenho';
-import { desvincularDotacao, listarDotacoesContrato, vincularDotacoes } from '@/services/execucao';
+import { autoriaDoContrato, desvincularDotacao, listarDotacoesContrato, vincularDotacoes } from '@/services/execucao';
+import { useAutoria } from '@/lib/autoria';
 
 const NATUREZA_ACAO = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Op. especial' } as const;
 
@@ -163,6 +164,8 @@ export function DotacoesContrato({ c }: { c: ContratoResumo }) {
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
   const podeEditar = pode('contratos', 'editar');
+  const podeAlterar = useAutoria();
+  const autoria = useQuery({ queryKey: ['autoria-contrato', c.id, q.data?.length ?? 0], queryFn: () => autoriaDoContrato(c.id) });
   const lista = q.data ?? [];
   const fontes = new Set(lista.map((d) => d.fonte_codigo)).size;
   const acoes = new Set(lista.map((d) => d.acao_codigo)).size;
@@ -194,7 +197,7 @@ export function DotacoesContrato({ c }: { c: ContratoResumo }) {
                     <td className="px-2 py-2">{d.fonte_codigo}<span className="block text-xs text-slate-500">{d.fonte_descricao}</span></td>
                     <td className="numero px-2 py-2 text-right">{brl(d.empenhado)}<span className="block text-xs text-slate-500">{d.empenhos} empenho(s)</span></td>
                     <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                      {podeEditar && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4 text-red-600" />} disabled={d.empenhos > 0}
+                      {podeEditar && podeAlterar('contratos', autoria.data?.dotacoes[d.id]) && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4 text-red-600" />} disabled={d.empenhos > 0}
                         title={d.empenhos > 0 ? 'Usada por empenho: não pode ser desvinculada' : 'Desvincular'} aria-label={`Desvincular ${d.codigo_completo}`}
                         carregando={remover.isPending && remover.variables === d.id} onClick={() => remover.mutate(d.id)} />}
                     </td>
