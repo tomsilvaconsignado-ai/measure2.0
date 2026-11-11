@@ -54,6 +54,7 @@ const TiposServico = pagina(() => import('@/pages/cadastros/TiposServico'), 'Tip
 const UnidadesAtendidas = pagina(() => import('@/pages/cadastros/UnidadesAtendidas'), 'UnidadesAtendidas');
 const ContratoDetalhe = pagina(() => import('@/pages/contratos/ContratoDetalhe'), 'ContratoDetalhe');
 const Contratos = pagina(() => import('@/pages/contratos/Contratos'), 'Contratos');
+const MeusContratos = pagina(() => import('@/pages/contratos/MeusContratos'), 'MeusContratos');
 const Empenhos = pagina(() => import('@/pages/contratos/Empenhos'), 'Empenhos');
 const Imprimir = pagina(() => import('@/pages/contratos/Imprimir'), 'Imprimir');
 const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
@@ -146,6 +147,7 @@ export function App() {
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />
         <Route path="contratos" element={<Contratos />} />
+        <Route path="meus-contratos" element={<MeusContratos />} />
         <Route path="contratos/:id" element={<ContratoDetalhe />} />
         <Route path="empenhos" element={<Empenhos />} />
         <Route path="notas" element={<Notas />} />

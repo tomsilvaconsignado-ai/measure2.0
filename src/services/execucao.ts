@@ -82,6 +82,22 @@ export async function designar(contratoId: string, servidorId: string, papel: De
   falhou(await supabase.from('contrato_designacoes').insert({ contrato_id: contratoId, servidor_id: servidorId, papel, inicio, portaria }));
 }
 
+/** Substitui o responsável: encerra a designação atual e cria a nova, ligadas no histórico */
+export async function substituirDesignacao(id: string, servidorId: string, inicio: string, portaria: string | null, motivo: string) {
+  return falhou(await supabase.rpc('substituir_designacao', { p_designacao: id, p_servidor: servidorId, p_inicio: inicio, p_portaria: portaria, p_motivo: motivo })
+    .setHeader('x-justificativa', cabecalhoJustificativa(motivo))) as string;
+}
+
+export interface ContratoDesignado {
+  contrato_id: string; tenant_id: string; orgao: string; numero: string; fornecedor_nome: string; objeto: string;
+  secretaria: string | null; diretoria: string | null; coordenacao: string | null; unidade_sigla: string | null;
+  papeis: Designacao['papel'][]; designado_desde: string; data_inicio: string; data_fim_atual: string; situacao: SituacaoContrato; saldo: string;
+}
+/** Contratos em que a pessoa logada está designada, em qualquer órgão ou estrutura */
+export async function meusContratosDesignados() {
+  return falhou(await supabase.rpc('meus_contratos_designados')) as ContratoDesignado[];
+}
+
 export async function encerrarDesignacao(id: string, fim: string, motivo: string) {
   falhou(await supabase.from('contrato_designacoes').update({ fim, motivo_fim: motivo }).eq('id', id)
     .setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
@@ -310,8 +326,9 @@ export async function listarEmitidos(registroId: string) {
 
 /** Servidores do órgão inteiro para designação (dados mínimos, sem dados pessoais) */
 export async function buscarServidoresDesignacao(tenantId: string, busca: string) {
-  return falhou(await supabase.rpc('buscar_servidores_designacao', { p_tenant: tenantId, p_busca: busca || null, p_limite: 20 })) as Array<{
+  return falhou(await supabase.rpc('buscar_servidores_designacao', { p_tenant: tenantId, p_busca: busca || null, p_limite: 50 })) as Array<{
     id: string; nome: string; matricula: string; cargo: string | null; unidade_nome: string; unidade_sigla: string | null; tem_acesso: boolean;
+    secretaria: string | null; diretoria: string | null; coordenacao: string | null; setor: string | null; situacao: 'ATIVO' | 'ATIVO_SEM_ACESSO';
   }>;
 }
 

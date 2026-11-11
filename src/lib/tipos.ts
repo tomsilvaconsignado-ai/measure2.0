@@ -286,6 +286,9 @@ export interface Designacao {
   id: string; contrato_id: string; servidor_id: string; papel: 'GESTOR' | 'FISCAL' | 'SUPLENTE'; inicio: string; fim: string | null;
   portaria: string | null; motivo_fim: string | null;
   servidor_nome: string; servidor_matricula: string; servidor_cargo: string | null; unidade_sigla: string | null; unidade_nome: string; tem_acesso: boolean;
+  /** lotação no momento da designação (retrato) */
+  lotacao_descricao: string | null; designado_em: string; designado_por: string | null; encerrado_por: string | null;
+  substitui_nome: string | null; substituido_por_nome: string | null;
 }
 
 export interface Aditivo {

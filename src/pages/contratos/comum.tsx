@@ -53,9 +53,10 @@ export function SeletorFornecedor(p: { valor: string | null; rotuloValor?: strin
 /** Servidores de todo o órgão (gestor/fiscal/suplente podem ser de outra coordenação); só dados mínimos */
 export function SeletorServidor(p: { rotulo: string; valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; obrigatorio?: boolean }) {
   const { orgao } = useSessao();
-  return <BuscaSelect {...p} chave={['servidores-designacao', orgao?.id]} placeholder="Nome, matrícula ou sigla da unidade"
+  return <BuscaSelect {...p} chave={['servidores-designacao', orgao?.id]} placeholder="Nome, matrícula, cargo, secretaria, diretoria ou coordenação"
     buscar={async (t) => (await buscarServidoresDesignacao(orgao!.id, t))
-      .map((s) => ({ valor: s.id, rotulo: s.nome, detalhe: `Mat. ${s.matricula} · ${s.unidade_sigla ?? s.unidade_nome}${s.tem_acesso ? '' : ' · sem acesso ao sistema'}` }))} />;
+      .map((s) => ({ valor: s.id, rotulo: s.nome, detalhe: [`Mat. ${s.matricula}`, s.cargo, [s.secretaria, s.diretoria, s.coordenacao, s.setor].filter(Boolean).join(' › ') || s.unidade_sigla || s.unidade_nome,
+        s.tem_acesso ? 'ativo' : 'ativo, sem acesso ao sistema'].filter(Boolean).join(' · ') }))} />;
 }
 
 export function SeletorDotacao(p: { rotulo?: string; valor: string | null; rotuloValor?: string | null; aoMudar: (v: string | null, o: Opcao | null) => void; erro?: string | null; excluir?: string[]; exercicio?: number | null; ajuda?: string }) {

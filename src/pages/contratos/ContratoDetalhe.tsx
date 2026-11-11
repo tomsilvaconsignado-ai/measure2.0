@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, UserMinus, X } from 'lucide-react';
+import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ import type { Aditivo, ContratoResumo, Designacao } from '@/lib/tipos';
 import { FotoServidor } from '@/pages/cadastros/Servidores';
 import {
   autoriaDoContrato, decidirAditivo, definirStatusContrato, designar, emitirExtrato, encerrarDesignacao, listarAditivos, listarDesignacoes,
-  listarEmitidos, listarEmpenhos, listarNotas, modalidades, obterContrato, renovarContrato, salvarAditivo,
+  listarEmitidos, substituirDesignacao, listarEmpenhos, listarNotas, modalidades, obterContrato, renovarContrato, salvarAditivo,
 } from '@/services/execucao';
 import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
 import { FormContrato } from './Contratos';
@@ -70,11 +70,17 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
   const q = useQuery({ queryKey: ['designacoes', c.id, historico], queryFn: () => listarDesignacoes(c.id, historico) });
   const [novo, setNovo] = useState<{ papel: Designacao['papel']; servidor: { id: string; rotulo: string } | null; inicio: string; portaria: string } | null>(null);
   const [encerrando, setEncerrando] = useState<Designacao | null>(null);
+  const [trocando, setTrocando] = useState<{ d: Designacao; servidor: { id: string; rotulo: string } | null; inicio: string; portaria: string; motivo: string } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const podeEditar = pode('contratos', 'editar');
   const salvar = useMutation({
     mutationFn: () => designar(c.id, novo!.servidor!.id, novo!.papel, novo!.inicio, novo!.portaria.trim() || null),
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['designacoes', c.id] }); setNovo(null); toast.success('Designação registrada. A pessoa já vê este contrato.'); },
+    onError: (e) => setErro(/designacoes_ativa_unica/.test((e as Error).message ?? '') ? 'Esta pessoa já está designada nesse papel.' : mensagemDeErro(e)),
+  });
+  const substituir = useMutation({
+    mutationFn: () => substituirDesignacao(trocando!.d.id, trocando!.servidor!.id, trocando!.inicio, trocando!.portaria.trim() || null, trocando!.motivo.trim()),
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['designacoes', c.id] }); await qc.invalidateQueries({ queryKey: ['autoria-contrato', c.id] }); setTrocando(null); toast.success('Responsável substituído. O anterior deixou de ver o contrato (se não tiver outra designação nele) e o histórico foi mantido.'); },
     onError: (e) => setErro(/designacoes_ativa_unica/.test((e as Error).message ?? '') ? 'Esta pessoa já está designada nesse papel.' : mensagemDeErro(e)),
   });
   return (
@@ -95,11 +101,20 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-marca-700">{PAPEIS[d.papel]}</p>
                   <p className="truncate text-sm font-medium text-slate-900">{d.servidor_nome}</p>
-                  <p className="text-xs text-slate-500">Mat. {d.servidor_matricula} · {d.unidade_sigla ?? d.unidade_nome} · desde {formatarData(d.inicio)}{d.fim ? ` até ${formatarData(d.fim)}` : ''}</p>
+                  <p className="text-xs text-slate-500">Mat. {d.servidor_matricula}{d.servidor_cargo ? ` · ${d.servidor_cargo}` : ''}</p>
+                  <p className="text-xs text-slate-500" title="Lotação do servidor no momento da designação (a lotação dele não muda)">Lotação: {d.lotacao_descricao ?? d.unidade_sigla ?? d.unidade_nome}</p>
+                  <p className="text-xs text-slate-500">Desde {formatarData(d.inicio)}{d.fim ? ` até ${formatarData(d.fim)}` : ''}</p>
                   {d.portaria && <p className="text-xs text-slate-500">{d.portaria}</p>}
+                  {d.substitui_nome && <p className="text-xs text-slate-500">Substituiu {d.substitui_nome}</p>}
+                  {d.fim && <p className="text-xs text-slate-500">{d.substituido_por_nome ? `Substituído(a) por ${d.substituido_por_nome}` : 'Encerrada'}{d.motivo_fim ? ` · ${d.motivo_fim}` : ''}{d.encerrado_por ? ` · por ${d.encerrado_por}` : ''}</p>}
+                  <p className="text-[11px] text-slate-400">Designado{d.designado_por ? ` por ${d.designado_por}` : ''} em {formatarDataHora(d.designado_em)}</p>
                   {!d.tem_acesso && !d.fim && <p className="mt-1 text-xs text-amber-700">Sem acesso ao sistema: convide a pessoa com o e-mail institucional do cadastro.</p>}
                 </div>
-                {podeEditar && !d.fim && podeAlterar('contratos', autoria.data?.designacoes[d.id]) && <Botao pequeno variante="fantasma" icone={<UserMinus className="size-4" />} aria-label={`Encerrar designação de ${d.servidor_nome}`} onClick={() => setEncerrando(d)} />}
+                {podeEditar && !d.fim && podeAlterar('contratos', autoria.data?.designacoes[d.id]) && <div className="flex flex-col">
+                  <Botao pequeno variante="fantasma" icone={<Repeat className="size-4" />} aria-label={`Substituir ${d.servidor_nome}`} title="Substituir por outro servidor"
+                    onClick={() => { setErro(null); setTrocando({ d, servidor: null, inicio: hoje(), portaria: '', motivo: '' }); }} />
+                  <Botao pequeno variante="fantasma" icone={<UserMinus className="size-4" />} aria-label={`Encerrar designação de ${d.servidor_nome}`} title="Encerrar designação" onClick={() => setEncerrando(d)} />
+                </div>}
               </li>
             ))}
           </ul>
@@ -111,7 +126,7 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
         <Anexos recurso="contratos" registroId={c.id} unidadeId={c.unidade_id} categoria="PORTARIA_SUPLENTE" titulo="Portaria de suplente" vazio="Nenhuma portaria anexada." />
       </div>
       <Modal aberto={!!novo} aoFechar={() => setNovo(null)} titulo="Designar responsável"
-        descricao="A pessoa passa a ver só este contrato (mesmo sendo de outra coordenação) e pode atestar as notas dele."
+        descricao="Qualquer servidor ativo do órgão, de qualquer secretaria, diretoria ou coordenação. A pessoa passa a ver só este contrato e pode atestar as notas dele; a lotação dela não muda."
         rodape={<><Botao variante="secundario" onClick={() => setNovo(null)}>Cancelar</Botao><Botao carregando={salvar.isPending} disabled={!novo?.servidor} onClick={() => salvar.mutate()}>Designar</Botao></>}>
         {novo && <div className="flex flex-col gap-4">
           <Selecao rotulo="Papel" value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value as Designacao['papel'] })}>
@@ -121,6 +136,18 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
             aoMudar={(v, o) => setNovo({ ...novo, servidor: v && o ? { id: v, rotulo: o.rotulo } : null })} />
           <Campo rotulo="Início da designação" type="date" value={novo.inicio} onChange={(e) => setNovo({ ...novo, inicio: e.target.value })} />
           <Campo rotulo="Portaria" value={novo.portaria} onChange={(e) => setNovo({ ...novo, portaria: e.target.value })} placeholder="Portaria nº 123/2026" maxLength={120} />
+          {erro && <CaixaErro mensagem={erro} />}
+        </div>}
+      </Modal>
+      <Modal aberto={!!trocando} aoFechar={() => setTrocando(null)} titulo={`Substituir ${trocando ? PAPEIS[trocando.d.papel].toLowerCase() : ''}`}
+        descricao={`${trocando?.d.servidor_nome ?? ''} deixa a função (o histórico é mantido) e o novo responsável passa a ver o contrato.`}
+        rodape={<><Botao variante="secundario" onClick={() => setTrocando(null)}>Cancelar</Botao><Botao carregando={substituir.isPending} disabled={!trocando?.servidor || (trocando?.motivo.trim().length ?? 0) < 5} onClick={() => substituir.mutate()}>Substituir</Botao></>}>
+        {trocando && <div className="flex flex-col gap-4">
+          <SeletorServidor rotulo="Novo responsável" obrigatorio valor={trocando.servidor?.id ?? null} rotuloValor={trocando.servidor?.rotulo}
+            aoMudar={(v, o) => setTrocando({ ...trocando, servidor: v && o ? { id: v, rotulo: o.rotulo } : null })} />
+          <Campo rotulo="A partir de" type="date" value={trocando.inicio} onChange={(e) => setTrocando({ ...trocando, inicio: e.target.value })} />
+          <Campo rotulo="Portaria do novo responsável" value={trocando.portaria} onChange={(e) => setTrocando({ ...trocando, portaria: e.target.value })} placeholder="Portaria nº 123/2026" maxLength={120} />
+          <AreaTexto rotulo="Motivo da substituição" obrigatorio value={trocando.motivo} onChange={(e) => setTrocando({ ...trocando, motivo: e.target.value })} rows={2} maxLength={500} />
           {erro && <CaixaErro mensagem={erro} />}
         </div>}
       </Modal>
