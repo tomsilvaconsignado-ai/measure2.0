@@ -9,6 +9,7 @@ import { precisaDefinirSenha } from '@/lib/supabase';
 import { DefinirSenha, Entrar, EsqueciSenha } from '@/pages/Acesso';
 import { Inicio } from '@/pages/Inicio';
 import { ModuloPatrimonio } from '@/pages/patrimonio/Layout';
+import { ModuloServidores } from '@/pages/cadastros/AbasServidores';
 
 // Cada módulo é carregado só quando aberto (o primeiro acesso fica mais leve) e, depois do login,
 // baixado em segundo plano quando o navegador está ocioso: a primeira abertura de cada tela fica instantânea.
@@ -137,8 +138,8 @@ export function App() {
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="meu-perfil" element={<MeuPerfil />} />
         <Route path="fornecedores" element={<Fornecedores />} />
-        <Route path="servidores" element={<Servidores />} />
-        <Route path="servidores/consolidado" element={<Consolidado />} />
+        <Route path="servidores" element={<ModuloServidores><Servidores /></ModuloServidores>} />
+        <Route path="servidores/consolidado" element={<ModuloServidores><Consolidado /></ModuloServidores>} />
         <Route path="ajuda" element={<Ajuda />} />
         <Route path="ajuda/capacitacao" element={<Capacitacao />} />
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />

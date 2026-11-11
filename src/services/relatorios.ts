@@ -97,7 +97,7 @@ export interface Painel {
   empenhos: { quantidade: number; empenhado: Decimal; utilizado: Decimal; saldo: Decimal; saldo_baixo: number };
   notas: { quantidade: number; valor: Decimal; pago: Decimal; pendentes_atesto: number; pendentes_pagamento: number; atestadas: number };
   cadastros: { fornecedores_ativos: number | null; servidores_ativos: number; servidores_exonerados: number; unidades_atendidas: number | null; os_abertas: number };
-  mensal: Array<{ mes: number; notas: Decimal }>;
+  mensal: Array<{ mes: number; notas: Decimal; pago: Decimal; quantidade: number }>;
   por_acao: Array<{ codigo: string; descricao: string; valor: Decimal }>;
   vencendo: Array<{ id: string; numero: string; fornecedor_nome: string; data_fim_atual: string; dias_para_vencer: number; saldo: Decimal }>;
 }

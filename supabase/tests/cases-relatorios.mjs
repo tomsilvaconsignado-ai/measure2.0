@@ -57,6 +57,8 @@ export default async function ({ db, as, ok, check, expectOk, expectFail, one, u
   check(p.contratos.vigentes >= 1 && Number(p.notas.valor) === 1300 && p.notas.pendentes_atesto === 1 && p.mensal.length === 12,
     `painel 2026: contratos, notas (R$ 1.300), pendências e série mensal (${JSON.stringify(p.notas)})`);
   check(p.por_acao[0].codigo === '2090', 'painel: consumo por ação');
+  check(p.mensal.reduce((t, m) => t + m.quantidade, 0) === p.notas.quantidade && p.mensal.every((m) => 'pago' in m) && p.mensal.reduce((t, m) => t + Number(m.pago), 0) <= Number(p.notas.pago),
+    'painel: série mensal traz quantidade de notas e valor pago');
   check((await val(adminC, `SELECT painel($1) p`, [A])).p.contratos.vigentes === 0, 'painel não vaza para outro órgão');
   const notif = (await val(u.novo, `SELECT minhas_notificacoes($1) n`, [A])).n;
   check(notif.some((x) => x.tipo === 'ATESTO'), 'suplente designado recebe a notificação de nota aguardando atesto');

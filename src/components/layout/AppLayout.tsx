@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  CalendarCheck, Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -36,7 +36,6 @@ const PLATAFORMA: Item[] = [
 const CADASTROS: Item[] = [
   { para: '/fornecedores', rotulo: 'Fornecedores', icone: <Truck className="size-4" />, recurso: 'fornecedores' },
   { para: '/servidores', rotulo: 'Servidores', icone: <UserCircle className="size-4" />, recurso: 'servidores' },
-  { para: '/servidores/consolidado', rotulo: 'Consolidado mensal', icone: <CalendarCheck className="size-4" />, recurso: 'servidores' },
   { para: '/unidades-atendidas', rotulo: 'Unidades atendidas', icone: <Building2 className="size-4" />, recurso: 'unidades' },
   { para: '/classificacao', rotulo: 'Classificação orçamentária', icone: <Network className="size-4" />, recurso: 'classificacoes' },
   { para: '/tipos-servico', rotulo: 'Tipos de serviço', icone: <ListChecks className="size-4" />, recurso: 'tipos_servico' },
@@ -57,7 +56,7 @@ const GESTAO: Item[] = [
 // Menu recolhido: só os ícones (o nome aparece ao passar o mouse); os pendentes viram um ponto
 function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean }) {
   return (
-    <NavLink to={item.para} onClick={aoNavegar} end={['/', '/servidores', '/ajuda', '/conecta'].includes(item.para)}
+    <NavLink to={item.para} onClick={aoNavegar} end={['/', '/ajuda', '/conecta'].includes(item.para)}
       data-flip={item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
       className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
         isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
