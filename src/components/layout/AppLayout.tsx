@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -33,6 +33,7 @@ const PLATAFORMA: Item[] = [
   { para: '/plataforma/dotacoes', rotulo: 'Classificações orçamentárias', icone: <Network className="size-4" />, plataforma: true },
   { para: '/plataforma/erros', rotulo: 'Erros do sistema', icone: <Bug className="size-4" />, plataforma: true },
   { para: '/plataforma/monitoramento', rotulo: 'Monitoramento organizacional', icone: <Radar className="size-4" />, plataforma: true },
+  { para: '/plataforma/notificacoes', rotulo: 'Painel de notificações', icone: <BellRing className="size-4" />, plataforma: true },
 ];
 const CADASTROS: Item[] = [
   { para: '/fornecedores', rotulo: 'Fornecedores', icone: <Truck className="size-4" />, recurso: 'fornecedores' },
@@ -106,6 +107,14 @@ export function AppLayout() {
   const local = useLocation();
   const navegar = useNavigate();
   useEffect(() => { setMenuAberto(false); setOrgaosAbertos(false); }, [local.pathname]);
+  // toque numa notificação PUSH com o sistema já aberto: o service worker pede para abrir o conteúdo aqui
+  useEffect(() => {
+    const sw = navigator.serviceWorker;
+    if (!sw) return;
+    const ouvir = (e: MessageEvent) => { const c = (e.data as { tipo?: string; caminho?: string } | null); if (c?.tipo === 'abrir' && typeof c.caminho === 'string' && c.caminho.startsWith('/')) navegar(c.caminho); };
+    sw.addEventListener('message', ouvir);
+    return () => sw.removeEventListener('message', ouvir);
+  }, [navegar]);
   useEffect(() => definirOrgaoMonitorado(orgao?.id ?? null), [orgao?.id]);
 
   const perfil = contexto!.perfil!;
@@ -161,7 +170,8 @@ export function AppLayout() {
         {orgao && <Link item={{ para: '/patrimonio', rotulo: 'Gestão patrimonial', icone: <Package className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
         {orgao && (
           <Grupo titulo="Gestão" recolhido={rec}>{GESTAO.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}
-            {!ehPlataforma && vinculosDoOrgao.some((v) => v.papel === 'MASTER') && <Link item={{ para: '/plataforma/monitoramento', rotulo: 'Monitoramento organizacional', icone: <Radar className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}</Grupo>
+            {!ehPlataforma && vinculosDoOrgao.some((v) => v.papel === 'MASTER') && <Link item={{ para: '/plataforma/monitoramento', rotulo: 'Monitoramento organizacional', icone: <Radar className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
+            {!ehPlataforma && vinculosDoOrgao.some((v) => v.papel === 'MASTER') && <Link item={{ para: '/plataforma/notificacoes', rotulo: 'Painel de notificações', icone: <BellRing className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}</Grupo>
         )}
         {orgao && (
           <Grupo titulo="Contratos e execução" recolhido={rec}>{EXECUCAO.filter((i) => !i.recurso || pode(i.recurso, i.acao ?? 'ler')).map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} pendentes={pendentesDe[i.para]} recolhido={rec} />)}</Grupo>
@@ -176,6 +186,7 @@ export function AppLayout() {
           <Grupo titulo="Plataforma" recolhido={rec}>{PLATAFORMA.map((i) => <Link key={i.para} item={i} aoNavegar={fecharMenu} recolhido={rec} />)}</Grupo>
         )}
         <Grupo titulo="Suporte" recolhido={rec}>
+          {orgao && <Link item={{ para: '/minhas-notificacoes', rotulo: 'Minhas notificações', icone: <Bell className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
           <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
           <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
         </Grupo>

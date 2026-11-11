@@ -64,6 +64,20 @@ SUPABASE_ACCESS_TOKEN=sbp_... npx supabase functions deploy usuarios --remote=ca
 
 A opção `--no-verify-jwt` não deixa a função aberta: ela mesma valida a sessão.
 
+### Notificações PUSH
+
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_... npx supabase functions deploy push --remote=cazsjehsqqyfawofefpe --no-verify-jwt --use-api
+```
+
+A função `push` só aceita chamadas com o cabeçalho `x-push-segredo`, que o próprio banco envia (pg_net logo após cada notificação; pg_cron a cada minuto para novas tentativas e às 8h para vencimentos e lembretes de atesto). Configuração única:
+
+1. Gerar o par VAPID (`npx web-push generate-vapid-keys`).
+2. Segredos da função (Edge Functions > Secrets): `PUSH_VAPID_PUBLICA`, `PUSH_VAPID_PRIVADA`, `PUSH_VAPID_ASSUNTO` (URL do sistema) e `PUSH_SEGREDO` (texto aleatório longo).
+3. No banco: `configuracoes_globais` com `push_vapid_publica` (a chave pública, lida pelo app) e `push_funcao_url` (`https://<ref>.supabase.co/functions/v1/push`), e o mesmo `PUSH_SEGREDO` no Vault com o nome `push_disparo_segredo` (`select vault.create_secret('<segredo>', 'push_disparo_segredo')`).
+
+A chave privada e o segredo nunca vão para o repositório nem para o app.
+
 ## Publicação
 
 O push na `main` roda a CI (lint, testes e build) e publica no GitHub Pages. Para usar a Vercel, importe o repositório lá: o `vercel.json` já traz a reescrita da SPA e os cabeçalhos de segurança.

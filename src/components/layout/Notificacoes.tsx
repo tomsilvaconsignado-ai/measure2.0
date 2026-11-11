@@ -1,7 +1,7 @@
 // Sino de notificações: pendências calculadas no banco (atesto, vencimentos...) e as mensagens internas do
 // CONECTA e do Patrimônio (comunicados, comentários, transferências a confirmar). Atualiza a cada 1-2 min.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, BadgeCheck, CalendarClock, Wallet, Receipt, MessagesSquare, Package } from 'lucide-react';
+import { Bell, BadgeCheck, CalendarClock, FileText, Wallet, Receipt, MessagesSquare, Package } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
@@ -64,7 +64,7 @@ export function Notificacoes() {
               <ul className="divide-y divide-slate-100">
                 {mensagens.map((n) => (
                   <li key={n.id}><button onClick={() => void abrirMensagem(n)} className={cx('flex w-full gap-3 px-4 py-2.5 text-left hover:bg-slate-50', !n.lida_em && 'bg-marca-50/60')}>
-                    <span className="mt-0.5">{n.modulo === 'CONECTA' ? <MessagesSquare className="size-4 text-marca-700" /> : <Package className="size-4 text-amber-700" />}</span>
+                    <span className="mt-0.5">{n.modulo === 'CONECTA' ? <MessagesSquare className="size-4 text-marca-700" /> : n.modulo === 'CONTRATOS' ? <FileText className="size-4 text-marca-700" /> : <Package className="size-4 text-amber-700" />}</span>
                     <span className="min-w-0 flex-1">
                       <span className={cx('block text-sm text-slate-900', !n.lida_em && 'font-semibold')}>{n.titulo}</span>
                       {n.descricao && <span className="block truncate text-xs text-slate-500">{n.descricao}</span>}
@@ -87,6 +87,7 @@ export function Notificacoes() {
               </ul>
             )}
           </div>
+          <Link to="/minhas-notificacoes" onClick={() => setAberto(false)} className="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-marca-700 hover:bg-slate-50">Ver todas, filtrar e configurar o PUSH</Link>
         </div>
       )}
     </div>

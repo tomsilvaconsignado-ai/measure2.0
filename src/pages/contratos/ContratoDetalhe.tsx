@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, X } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { CadastradoPor, useAutoria } from '@/lib/autoria';
@@ -329,7 +329,8 @@ export function ContratoDetalhe() {
   const { pode } = useSessao();
   const podeAlterar = useAutoria();
   const qc = useQueryClient();
-  const [aba, setAba] = useState<Aba>('resumo');
+  const [params] = useSearchParams();
+  const [aba, setAba] = useState<Aba>(() => (['resumo', 'responsaveis', 'dotacao', 'aditivos', 'empenhos', 'notas', 'documentos'] as const).find((a) => a === params.get('aba')) ?? 'resumo');
   const [editando, setEditando] = useState(false);
   const [inativando, setInativando] = useState(false);
   const q = useQuery({ queryKey: ['contrato', id], queryFn: () => obterContrato(id!), enabled: !!id });

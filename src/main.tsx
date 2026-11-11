@@ -6,9 +6,11 @@ import { Toaster } from 'sonner';
 import { App } from './App';
 import { SessaoProvider } from './auth/Sessao';
 import { instalarMonitoramento, LimiteDeErro } from './lib/monitoramento';
+import { registrarServiceWorker } from './lib/push';
 import './index.css';
 
 instalarMonitoramento();
+void registrarServiceWorker();
 
 const consultas = new QueryClient({
   defaultOptions: {

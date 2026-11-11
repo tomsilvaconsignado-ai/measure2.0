@@ -9,6 +9,7 @@ import { FluxoTrabalho } from '@/components/FluxoTrabalho';
 import { formatarDataHora } from '@/lib/formatacao';
 import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
+import { AtivarPush } from '@/pages/MinhasNotificacoes';
 
 function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: ReactNode; icone: ReactNode; para?: string }) {
   const conteudo = (
@@ -45,6 +46,7 @@ export function Inicio() {
     <>
       <CabecalhoPagina titulo={`Olá, ${primeiroNome}`}
         descricao={orgao ? orgao.nome_oficial : 'Escolha um órgão para começar.'} />
+      {orgao && <AtivarPush compacto={false} />}
 
       {!orgao && (
         <Cartao>
