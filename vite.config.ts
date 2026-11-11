@@ -4,7 +4,7 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Subcaminho de publicação (GitHub Pages de projeto: "/measure2.0/"); na Vercel fica "/"
+  // Subcaminho de publicação: "/" no domínio próprio (measuregcp.com.br); "/<repo>/" se voltar ao endereço github.io
   base: process.env.VITE_BASE_PATH || '/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },

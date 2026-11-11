@@ -11,7 +11,9 @@
 import fs from 'fs';
 
 const PROJECT_REF = 'cazsjehsqqyfawofefpe';
-const SITE = 'https://tomsilvaconsignado-ai.github.io/measure2.0/';
+const SITE = 'https://measuregcp.com.br/';
+// endereço anterior: continua aceito no login durante a transição
+const SITE_ANTERIOR = 'https://tomsilvaconsignado-ai.github.io/measure2.0/';
 const REMETENTE = 'measuresistemas@gmail.com';
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -157,7 +159,7 @@ export const EMAILS = {
 // Regras de autenticação: sem cadastro público, senha forte, e-mail confirmado, avisos de segurança
 const REGRAS = {
   site_url: SITE,
-  uri_allow_list: `${SITE}**,http://localhost:5173/**`,
+  uri_allow_list: `${SITE}**,https://www.measuregcp.com.br/**,${SITE_ANTERIOR}**,http://localhost:5173/**`,
   disable_signup: true,
   mailer_autoconfirm: false,
   password_min_length: 10,

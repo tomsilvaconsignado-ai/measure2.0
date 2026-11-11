@@ -17,7 +17,7 @@ const cors = {
 };
 
 const URLS_PERMITIDAS = (Deno.env.get('APP_URLS') ??
-  'https://tomsilvaconsignado-ai.github.io/measure2.0/,http://localhost:5173/').split(',').map((s) => s.trim());
+  'https://measuregcp.com.br/,https://www.measuregcp.com.br/,https://tomsilvaconsignado-ai.github.io/measure2.0/,http://localhost:5173/').split(',').map((s) => s.trim());
 
 class ErroHttp extends Error {
   constructor(public status: number, message: string, public campo?: string) { super(message); }

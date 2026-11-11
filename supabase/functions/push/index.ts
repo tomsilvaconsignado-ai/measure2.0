@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
   const publica = Deno.env.get('PUSH_VAPID_PUBLICA'), privada = Deno.env.get('PUSH_VAPID_PRIVADA');
   if (!publica || !privada) return new Response('VAPID não configurado', { status: 500 });
-  webpush.setVapidDetails(Deno.env.get('PUSH_VAPID_ASSUNTO') ?? 'https://tomsilvaconsignado-ai.github.io/measure2.0/', publica, privada);
+  webpush.setVapidDetails(Deno.env.get('PUSH_VAPID_ASSUNTO') ?? 'https://measuregcp.com.br/', publica, privada);
 
   const banco = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   const inicio = Date.now();
