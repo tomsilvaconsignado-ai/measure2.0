@@ -29,7 +29,7 @@ function usePapeisConcedíveis() {
   }, [cat.data, ehPlataforma, vinculosDoOrgao]);
 }
 
-function FormAcesso({ aberto, aoFechar, emailInicial }: { aberto: boolean; aoFechar: () => void; emailInicial?: string }) {
+function FormAcesso({ aberto, aoFechar, emailInicial, aoConcluir }: { aberto: boolean; aoFechar: () => void; emailInicial?: string; aoConcluir: (email: string) => void }) {
   const { orgao } = useSessao();
   const qc = useQueryClient();
   const papeis = usePapeisConcedíveis();
@@ -46,6 +46,7 @@ function FormAcesso({ aberto, aoFechar, emailInicial }: { aberto: boolean; aoFec
     onSuccess: async (r) => {
       await qc.invalidateQueries({ queryKey: ['usuarios'] });
       toast.success(r.conta_criada ? `Convite enviado para ${email}. O link vale por 1 hora.` : 'Acesso concedido. A pessoa já pode usar o novo papel.');
+      aoConcluir(email.trim().toLowerCase());
       aoFechar();
     },
     onError: (e) => { const t = traduzirErro(e); setErros(t.campo && ['email', 'papel', 'unidade_id'].includes(t.campo) ? { [t.campo]: t.mensagem } : { geral: t.mensagem }); },
@@ -126,14 +127,15 @@ type Acao = { tipo: 'vinculo'; usuario: UsuarioListado; vinculoId: string; ativo
   | { tipo: 'conta'; usuario: UsuarioListado } | { tipo: 'plataforma'; usuario: UsuarioListado };
 
 export function Usuarios() {
-  const { orgao, pode, ehPlataforma, contexto, foco } = useSessao();
+  const { orgao, pode, ehPlataforma, contexto } = useSessao();
   const qc = useQueryClient();
   const [busca, setBusca] = useState('');
   const [buscaAtrasada, setBuscaAtrasada] = useState('');
   const [papel, setPapel] = useState<Papel | ''>('');
-  // coordenação: começa na escolhida no topo (quando houver) e pode ser trocada aqui
-  const [coordenacao, setCoordenacao] = useState(foco?.unidade_id ?? '');
-  useEffect(() => { setCoordenacao(foco?.unidade_id ?? ''); setPagina(0); }, [foco?.unidade_id]);
+  // coordenação: começa em "Todas". O foco do topo não filtra esta tela: para quem tem vínculo, o banco
+  // já limita a lista ao foco; para a plataforma, a gestão de usuários não passa pelo foco. Antes a tela
+  // abria filtrada pelo foco e escondia quem acabara de ser convidado em outra coordenação.
+  const [coordenacao, setCoordenacao] = useState('');
   const [emLote, setEmLote] = useState<UsuarioListado[] | null>(null);
   const coordenacoes = useQuery({
     queryKey: ['coordenacoes-foco', orgao?.id], enabled: !!orgao, staleTime: 5 * 60_000,
@@ -262,7 +264,8 @@ export function Usuarios() {
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
       </Cartao>
 
-      <FormAcesso aberto={!!convidando} aoFechar={() => setConvidando(null)} emailInicial={convidando?.email} />
+      <FormAcesso aberto={!!convidando} aoFechar={() => setConvidando(null)} emailInicial={convidando?.email}
+        aoConcluir={(e) => { setPapel(''); setCoordenacao(''); setSituacao('ATIVOS'); setBusca(e); setBuscaAtrasada(e); setPagina(0); }} />
       <ConviteEmLote aberto={!!emLote} aoFechar={() => setEmLote(null)} pendentes={emLote ?? []} />
       <ConfirmarComMotivo aberto={!!acao} aoFechar={() => setAcao(null)}
         perigo={acao?.tipo === 'vinculo' ? acao.ativo : acao?.tipo === 'conta' ? acao.usuario.ativo : !acao?.usuario.is_platform_admin}
