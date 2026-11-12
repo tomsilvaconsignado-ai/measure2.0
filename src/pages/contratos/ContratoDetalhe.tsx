@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Briefcase, Check, ClipboardCheck, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, UserRoundCog, X } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, ArrowLeft, Briefcase, Check, CheckCircle2, ClipboardCheck, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, UserRoundCog, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -41,15 +41,76 @@ const INFO_PAPEL: Record<PapelDesignacao, { descricao: string; icone: typeof Bri
 const TIPOS_ADITIVO = { PRAZO: 'Prazo', VALOR: 'Valor (acréscimo)', PRAZO_E_VALOR: 'Prazo e valor', SUPRESSAO: 'Supressão de valor', OUTRO: 'Outro' } as const;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 
+/** Destaque do contrato: número, fornecedor e os três valores que importam (global, usado e saldo) */
+function DestaqueContrato({ c }: { c: ContratoResumo }) {
+  const total = centavos(c.valor_atual);
+  const usado = centavos(c.notas_valor);
+  const saldo = centavos(c.saldo);
+  const pct = total > 0 ? (usado / total) * 100 : 0;
+  const pctTexto = `${pct.toFixed(1).replace('.', ',')}%`;
+  // situação do saldo: sempre com ícone e texto, nunca só pela cor
+  const estado = saldo < 0 ? { icone: AlertOctagon, texto: 'Saldo negativo: as notas passam do valor do contrato', faixa: 'border-red-600', icor: 'text-red-600', barra: 'bg-red-600' }
+    : pct >= 85 ? { icone: AlertTriangle, texto: 'Saldo baixo: mais de 85% do contrato já foi usado', faixa: 'border-amber-500', icor: 'text-amber-600', barra: 'bg-amber-500' }
+      : { icone: CheckCircle2, texto: 'Saldo disponível', faixa: 'border-emerald-600', icor: 'text-emerald-600', barra: 'bg-marca-600' };
+  const IconeEstado = estado.icone;
+  const temAditivo = centavos(c.aditivos_valor) !== 0;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Contrato</p>
+          <p className="numero text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{c.numero}</p>
+          <p className="mt-1 text-xs text-slate-600">Vigência {formatarData(c.data_inicio)} a {formatarData(c.data_fim_atual)}</p>
+        </div>
+        <div className="min-w-0 flex-1 sm:max-w-md sm:text-right">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Fornecedor</p>
+          <p className="text-lg font-semibold leading-snug text-slate-900">{c.fornecedor_nome}</p>
+          <p className="numero text-xs text-slate-600">{documentoFornecedor(c)}</p>
+        </div>
+      </div>
+
+      <dl className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Valor global</dt>
+          <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.valor_atual)}</dd>
+          <dd className="mt-1 text-xs text-slate-500">{temAditivo ? `Original ${brl(c.valor_global)} + aditivos ${brl(c.aditivos_valor)}` : 'Sem aditivo de valor'}</dd>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Valor usado</dt>
+          <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.notas_valor)}</dd>
+          <dd className="mt-1 text-xs text-slate-500"><span className="numero">{pctTexto}</span> do valor global · notas fiscais não canceladas</dd>
+        </div>
+        <div className={cx('rounded-xl border border-l-4 border-slate-200 bg-white p-4', estado.faixa)}>
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Saldo do contrato</dt>
+          <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.saldo)}</dd>
+          <dd className="mt-1 flex items-start gap-1 text-xs text-slate-600"><IconeEstado className={cx('mt-px size-3.5 shrink-0', estado.icor)} aria-hidden />{estado.texto}</dd>
+        </div>
+      </dl>
+
+      <div>
+        <div className="mb-1 flex flex-wrap justify-between gap-2 text-xs text-slate-600">
+          <span>Uso do contrato</span>
+          <span className="numero">{brl(c.notas_valor)} de {brl(c.valor_atual)} ({pctTexto})</span>
+        </div>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow={Math.round(Math.min(pct, 100))} aria-valuemin={0} aria-valuemax={100}
+          aria-label={`Uso do contrato: ${pctTexto}`}>
+          <div className={cx('h-full rounded-full', estado.barra)} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Resumo({ c }: { c: ContratoResumo }) {
   const mods = useQuery({ queryKey: ['modalidades'], queryFn: modalidades, staleTime: Infinity });
   const item = (r: string, v: React.ReactNode) => <div><dt className="text-xs text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
   const total = centavos(c.valor_atual);
   return (
+    <div className="flex flex-col gap-6">
+    <DestaqueContrato c={c} />
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
       <dl className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">{item('Objeto', <span className="whitespace-pre-line">{c.objeto}</span>)}</div>
-        {item('Fornecedor', <>{c.fornecedor_nome}<span className="block text-xs text-slate-500">{documentoFornecedor(c)}</span></>)}
         {item('Modalidade', mods.data?.find((m) => m.codigo === c.modalidade)?.nome ?? c.modalidade)}
         {item('Processo administrativo', c.processo_administrativo)}{item('Pregão / licitação', c.numero_licitacao)}
         {item('Vigência', <>{formatarData(c.data_inicio)} a {formatarData(c.data_fim_atual)}{c.data_fim_atual !== c.data_fim && <span className="block text-xs text-slate-500">original: {formatarData(c.data_fim)}</span>}</>)}
@@ -58,17 +119,17 @@ function Resumo({ c }: { c: ContratoResumo }) {
         {c.observacoes && <div className="sm:col-span-2">{item('Observações', c.observacoes)}</div>}
       </dl>
       <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-800">Execução financeira</p>
+        <p className="text-sm font-semibold text-slate-800">Execução financeira (detalhe)</p>
         {[['Valor global (original)', c.valor_global], ['Aditivos aprovados', c.aditivos_valor], ['Valor atual', c.valor_atual], ['Empenhado', c.empenhado],
-          ['Notas fiscais (consumido)', c.notas_valor], ['Pago', c.pago], ['Saldo do contrato', c.saldo]].map(([r, v]) => (
+          ['Notas fiscais (usado)', c.notas_valor], ['Pago', c.pago], ['Saldo do contrato', c.saldo]].map(([r, v]) => (
           <div key={r as string} className={cx('flex justify-between text-sm', r === 'Saldo do contrato' && 'border-t border-slate-200 pt-2 font-semibold')}>
             <span className="text-slate-600">{r}</span><span className="numero">{brl(v as string)}</span>
           </div>
         ))}
-        <BarraUso usado={centavos(c.notas_valor)} total={total} rotulo="Consumido (notas não canceladas)" />
         <BarraUso usado={centavos(c.empenhado)} total={total} rotulo="Empenhado" />
-        <p className="text-xs text-slate-500">"Consumido" = notas fiscais registradas e não canceladas. Empenho, nota e pagamento não são somados entre si.</p>
+        <p className="text-xs text-slate-500">"Usado" = notas fiscais registradas e não canceladas. Empenho, nota e pagamento não são somados entre si.</p>
       </div>
+    </div>
     </div>
   );
 }
