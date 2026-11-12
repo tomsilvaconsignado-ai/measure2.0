@@ -6,7 +6,7 @@ import { PontoPendente, Selo, cx } from '@/components/ui/basicos';
 import { brl, formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
 import type { ContratoResumo, SituacaoContrato, StatusPagamento } from '@/lib/tipos';
 import { buscarFornecedoresOpcoes, listarClassificacoes } from '@/services/cadastros';
-import { buscarServidoresDesignacao, listarContratos, listarEmpenhos } from '@/services/execucao';
+import { buscarServidoresDesignacao, contratosDaCadeia, listarContratos, listarEmpenhos } from '@/services/execucao';
 
 export function SeloSituacao({ situacao, dias }: { situacao: SituacaoContrato; dias?: number }) {
   if (situacao === 'VENCIDO') return <Selo tom="perigo" icone={<CircleSlash className="size-3" />}>Vencido</Selo>;
@@ -79,9 +79,10 @@ export function SeletorEmpenho(p: { contratoId: string | null; valor: string | n
   const { orgao } = useSessao();
   return <BuscaSelect rotulo="Empenho" valor={p.valor} rotuloValor={p.rotuloValor} aoMudar={p.aoMudar} erro={p.erro} obrigatorio={p.obrigatorio}
     desabilitado={!p.contratoId} ajuda={!p.contratoId ? 'Escolha antes o contrato.' : undefined}
-    chave={['empenhos-opcoes', orgao?.id, p.contratoId]} placeholder="Número do empenho"
-    buscar={async (t) => (await listarEmpenhos({ tenantId: orgao!.id, contratoId: p.contratoId, busca: t, situacao: 'ATIVOS', limite: 30, offset: 0 })).itens
-      .map((e) => ({ valor: e.id, rotulo: `${e.numero}/${e.ano}`, detalhe: `Saldo ${brl(e.saldo)} · ${e.classificacao_codigo}` }))} />;
+    chave={['empenhos-opcoes', orgao?.id, p.contratoId, 'cadeia']} placeholder="Número do empenho"
+    // o empenho é anual e pode pagar notas do contrato e das renovações dele: lista os da cadeia toda
+    buscar={async (t) => (await listarEmpenhos({ tenantId: orgao!.id, contratoIds: await contratosDaCadeia(p.contratoId!), busca: t, situacao: 'ATIVOS', limite: 30, offset: 0 })).itens
+      .map((e) => ({ valor: e.id, rotulo: `${e.numero}/${e.ano}`, detalhe: `${e.contrato_id !== p.contratoId ? `Contrato ${e.contrato_numero} · ` : ''}Saldo ${brl(e.saldo)} · ${e.classificacao_codigo}` }))} />;
 }
 
 // ---------------------------------------------------------------- botões de ação da nota

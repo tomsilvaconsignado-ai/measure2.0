@@ -16,7 +16,7 @@ import { brl, centavos, decimalDeCentavos, formatarCentavos, formatarData, forma
 import type { ContratoResumo, NotaResumo, StatusPagamento } from '@/lib/tipos';
 import { listarTiposServico, listarUnidadesAtendidas, membrosDoGrupo, obterUnidadeAtendida } from '@/services/cadastros';
 import {
-  atestarNota, cancelarNota, excluirNota, impedimentoExclusaoNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto,
+  atestarNota, cancelarNota, contratosDaCadeia, excluirNota, impedimentoExclusaoNota, vincularEmpenhoNota, listarEmpenhos, cancelarPagamento, listarEmitidos, listarNotas, modeloAtesto,
   obterContrato, obterEmitido, obterNota, saldoEmpenho, salvarNota,
 } from '@/services/execucao';
 import { locaisDoAtesto, montarAtesto } from '@/lib/atesto';
@@ -127,7 +127,7 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar,
   // contrato com um só empenho ativo: ele já vem escolhido (e o rótulo do empenho vindo por atalho é completado)
   const empenhosDoContrato = useQuery({
     queryKey: ['empenhos-opcoes', orgao?.id, contrato?.id, 'auto'], enabled: aberto && !!contrato && !!orgao,
-    queryFn: () => listarEmpenhos({ tenantId: orgao!.id, contratoId: contrato!.id, situacao: 'ATIVOS', limite: 30, offset: 0 }),
+    queryFn: async () => listarEmpenhos({ tenantId: orgao!.id, contratoIds: await contratosDaCadeia(contrato!.id), situacao: 'ATIVOS', limite: 30, offset: 0 }),
   });
   useEffect(() => {
     const lista = empenhosDoContrato.data?.itens ?? [];
@@ -206,7 +206,7 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar,
   const salvar = useMutation({
     mutationFn: () => salvarNota({
       ...(editarId ? { id: editarId } : {}),
-      empenho_id: empenho?.id ?? null, numero: f.numero.trim(), serie: f.serie.trim() || null, data_emissao: f.data_emissao,
+      contrato_id: contrato?.id ?? null, empenho_id: empenho?.id ?? null, numero: f.numero.trim(), serie: f.serie.trim() || null, data_emissao: f.data_emissao,
       processo_administrativo: f.processo_administrativo.trim() || null, valor: decimalDeCentavos(valor!), tipo_servico_id: f.tipo_servico_id || null,
       periodo_inicio: f.periodo_inicio || null, periodo_fim: f.periodo_fim || null, observacoes: f.observacoes.trim() || null,
       excecao_saldo: excede ? f.excecao_saldo.trim() : null, referencias: meses,

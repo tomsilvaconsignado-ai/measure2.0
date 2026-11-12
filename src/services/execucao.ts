@@ -149,11 +149,17 @@ export async function minhasDesignacoes(userId: string, tenantId: string) {
 
 // ---------------------------------------------------------------- empenhos
 
-export async function listarEmpenhos(p: { tenantId: string; busca?: string; contratoId?: string | null; ano?: number | null; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
+/** Contratos da mesma cadeia de renovação (ex.: 027/2023 e 027/2023 (02)), incluindo o próprio */
+export async function contratosDaCadeia(contratoId: string) {
+  return falhou(await supabase.rpc('contratos_da_cadeia', { p_contrato: contratoId })) as string[];
+}
+
+export async function listarEmpenhos(p: { tenantId: string; busca?: string; contratoId?: string | null; contratoIds?: string[] | null; ano?: number | null; situacao: 'ATIVOS' | 'INATIVOS' | 'TODOS'; limite: number; offset: number }) {
   let q = supabase.from('v_empenhos').select('*', { count: 'exact' }).eq('tenant_id', p.tenantId)
     .order('ano', { ascending: false }).order('numero').range(p.offset, p.offset + p.limite - 1);
   if (p.situacao !== 'TODOS') q = q.eq('ativo', p.situacao === 'ATIVOS');
-  if (p.contratoId) q = q.eq('contrato_id', p.contratoId);
+  if (p.contratoIds?.length) q = q.in('contrato_id', p.contratoIds);
+  else if (p.contratoId) q = q.eq('contrato_id', p.contratoId);
   if (p.ano) q = q.eq('ano', p.ano);
   const t = termo(p.busca ?? '');
   if (t) q = q.or(`numero.ilike.*${t}*,contrato_numero.ilike.*${t}*,fornecedor_nome.ilike.*${t}*,classificacao_codigo.ilike.*${t}*`);
@@ -238,7 +244,8 @@ export async function obterNota(id: string) {
 
 export interface DadosNota {
   /** null só na edição de nota migrada que continua sem empenho */
-  id?: string; empenho_id: string | null; numero: string; serie?: string | null; data_emissao: string; processo_administrativo?: string | null;
+  /** contrato da nota; o empenho pode ser dele ou de uma renovação dele (mesma cadeia) */
+  id?: string; contrato_id?: string | null; empenho_id: string | null; numero: string; serie?: string | null; data_emissao: string; processo_administrativo?: string | null;
   valor: string; tipo_servico_id?: string | null; periodo_inicio?: string | null; periodo_fim?: string | null; observacoes?: string | null;
   excecao_saldo?: string | null; referencias: Array<{ ano: number; mes: number }>; unidades: Array<{ id: string; valor: string | null }>;
 }
