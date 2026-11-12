@@ -9,13 +9,45 @@ import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
 import { supabase } from '@/lib/supabase';
-import { TIPOS_UNIDADE, type Papel, type UsuarioListado } from '@/lib/tipos';
+import { TIPOS_UNIDADE, type Papel, type UnidadeOrganizacional, type UsuarioListado } from '@/lib/tipos';
 import {
   buscarUnidades, catalogoPermissoes, convidarUsuario, definirAdminPlataforma, definirStatusUsuario, definirStatusVinculo,
-  listarUsuarios, reenviarAcesso,
+  listarUnidades, listarUsuarios, reenviarAcesso,
 } from '@/services/api';
 
 const POR_PAGINA = 20;
+const POR_PAGINA_AGRUPADA = 100;
+
+type Grupo = { chave: string; titulo: string; subtitulo?: string; ordem: string; usuarios: UsuarioListado[] };
+
+/** Agrupa os usuários pela coordenação de cada vínculo (quem atua em duas coordenações aparece nas duas).
+ *  Vínculos acima de coordenação (Secretaria, Diretoria) ou do órgão inteiro formam grupos próprios. */
+function agruparPorCoordenacao(itens: UsuarioListado[], mapa?: Map<string, UnidadeOrganizacional>): Grupo[] {
+  const grupos = new Map<string, Grupo>();
+  const incluir = (g: Omit<Grupo, 'usuarios'>, u: UsuarioListado) => {
+    const atual = grupos.get(g.chave) ?? { ...g, usuarios: [] };
+    if (!atual.usuarios.some((x) => x.id === u.id)) atual.usuarios.push(u);
+    grupos.set(g.chave, atual);
+  };
+  for (const u of itens) {
+    if (!u.vinculos.length) { incluir({ chave: 'sem', titulo: 'Sem vínculo neste órgão', ordem: '3' }, u); continue; }
+    for (const v of u.vinculos) {
+      if (!v.unidade_id) { incluir({ chave: 'orgao', titulo: 'Órgão inteiro', ordem: '0' }, u); continue; }
+      const un = mapa?.get(v.unidade_id);
+      const coord = un?.caminho.map((id) => mapa!.get(id)).find((x) => x?.tipo === 'COORDENACAO');
+      if (coord) {
+        const dir = coord.pai_id ? mapa!.get(coord.pai_id) : undefined;
+        const rotulo = [dir?.sigla, coord.sigla].filter(Boolean).join(' › ') || coord.nome;
+        incluir({ chave: coord.id, titulo: rotulo, subtitulo: coord.nome, ordem: `2${rotulo}` }, u);
+      } else if (un) {
+        incluir({ chave: 'acima', titulo: 'Secretaria e diretorias', subtitulo: 'Vínculos acima do nível de coordenação', ordem: '1' }, u);
+      } else {
+        incluir({ chave: 'outras', titulo: v.unidade_sigla ?? v.unidade_nome ?? 'Outras unidades', ordem: `2${v.unidade_sigla ?? ''}` }, u);
+      }
+    }
+  }
+  return [...grupos.values()].sort((a, b) => a.ordem.localeCompare(b.ordem, 'pt-BR'));
+}
 
 /** Papéis que quem está logado pode conceder neste órgão (a regra de verdade está no banco) */
 function usePapeisConcedíveis() {
@@ -153,12 +185,21 @@ export function Usuarios() {
   const cat = useQuery({ queryKey: ['catalogo-permissoes'], queryFn: catalogoPermissoes, staleTime: 5 * 60_000 });
   useEffect(() => { const t = setTimeout(() => { setBuscaAtrasada(busca); setPagina(0); }, 300); return () => clearTimeout(t); }, [busca]);
 
+  // Com "Todas as coordenações", a lista é agrupada por coordenação; páginas maiores evitam partir os grupos.
+  const agrupar = !coordenacao;
+  const porPagina = agrupar ? POR_PAGINA_AGRUPADA : POR_PAGINA;
   const q = useQuery({
-    queryKey: ['usuarios', orgao?.id, buscaAtrasada, papel, coordenacao, situacao, pagina],
-    queryFn: () => listarUsuarios({ tenantId: orgao!.id, busca: buscaAtrasada, papel: papel || null, unidadeId: coordenacao || null, situacao, limite: POR_PAGINA, offset: pagina * POR_PAGINA }),
+    queryKey: ['usuarios', orgao?.id, buscaAtrasada, papel, coordenacao, situacao, pagina, porPagina],
+    queryFn: () => listarUsuarios({ tenantId: orgao!.id, busca: buscaAtrasada, papel: papel || null, unidadeId: coordenacao || null, situacao, limite: porPagina, offset: pagina * porPagina }),
     enabled: !!orgao && pode('usuarios', 'ler'),
     placeholderData: (anterior) => anterior,
   });
+  // Mapa das unidades do órgão (id → unidade) para achar a coordenação de cada vínculo pelo caminho
+  const unidades = useQuery({
+    queryKey: ['unidades-mapa', orgao?.id], enabled: !!orgao && agrupar, staleTime: 5 * 60_000,
+    queryFn: async () => new Map((await listarUnidades(orgao!.id)).map((u) => [u.id, u])),
+  });
+  const grupos = useMemo(() => agruparPorCoordenacao(q.data?.itens ?? [], unidades.data), [q.data, unidades.data]);
   const reenviar = useMutation({
     mutationFn: (id: string) => reenviarAcesso(id),
     onSuccess: (r) => toast.success(r.tipo === 'ativacao' ? 'Link de ativação reenviado por e-mail.' : 'Link para criar nova senha enviado por e-mail.'),
@@ -176,6 +217,54 @@ export function Usuarios() {
       const r = await listarUsuarios({ tenantId: orgao.id, busca: buscaAtrasada, papel: papel || null, unidadeId: coordenacao || null, situacao: 'ATIVOS', limite: 100, offset: 0 });
       setEmLote(r.itens.filter((u) => !u.ultimo_acesso && u.ativo && u.id !== meuId));
     } catch (e) { toast.error(traduzirErro(e).mensagem); }
+  };
+
+  // Uma pessoa na lista. A mesma pessoa pode aparecer em mais de um grupo; o menu usa grupo + id.
+  const linhaUsuario = (u: UsuarioListado, grupo: string) => {
+    const ehEu = u.id === meuId;
+    const chaveMenu = `${grupo}:${u.id}`;
+    return (
+      <li key={u.id} className="flex flex-wrap items-start gap-3 py-3">
+        <Avatar nome={u.nome || u.email} />
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+            {u.nome || '(sem nome)'}
+            {ehEu && <Selo tom="marca">Você</Selo>}
+            {!u.ativo && <Selo tom="perigo">Conta suspensa</Selo>}
+            {u.is_platform_admin && <Selo tom="alerta" icone={<ShieldCheck className="size-3" />}>Plataforma</Selo>}
+            {!u.ultimo_acesso && <Selo tom="info">Ainda não acessou</Selo>}
+          </p>
+          <p className="truncate text-sm text-slate-600">{u.email}</p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {u.vinculos.map((v) => (
+              <li key={v.id}>
+                <button disabled={ehEu || !podeCriar} title={ehEu ? 'Você não altera os próprios acessos' : v.ativo ? 'Suspender este acesso' : 'Reativar este acesso'}
+                  onClick={() => setAcao({ tipo: 'vinculo', usuario: u, vinculoId: v.id, ativo: v.ativo, rotulo: `${v.papel_nome}${v.unidade_sigla || v.unidade_nome ? ` · ${v.unidade_sigla ?? v.unidade_nome}` : ''}` })}
+                  className={cx('rounded-md px-2 py-0.5 text-xs ring-1 ring-inset enabled:hover:ring-marca-400',
+                    v.ativo ? 'bg-marca-50 text-marca-800 ring-marca-200' : 'bg-slate-50 text-slate-500 line-through ring-slate-200')}>
+                  {v.papel_nome}{v.unidade_sigla || v.unidade_nome ? ` · ${v.unidade_sigla ?? v.unidade_nome}` : ' · órgão inteiro'}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-slate-500">Último acesso: {formatarDataHora(u.ultimo_acesso)}</p>
+        </div>
+        {!ehEu && (podeCriar || ehPlataforma) && (
+          <div className="relative">
+            <Botao pequeno variante="fantasma" icone={<MoreHorizontal className="size-4" />} aria-label={`Ações para ${u.email}`}
+              onClick={() => setMenu(menu === chaveMenu ? null : chaveMenu)} />
+            {menu === chaveMenu && (
+              <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg" onMouseLeave={() => setMenu(null)}>
+                {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setConvidando({ email: u.email }); setMenu(null); }}><Plus className="size-4" />Conceder outro acesso</button>}
+                {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reenviar.mutate(u.id); setMenu(null); }}><MailPlus className="size-4" />{u.ultimo_acesso ? 'Enviar link de nova senha' : 'Reenviar convite'}</button>}
+                {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'conta', usuario: u }); setMenu(null); }}><ShieldAlert className="size-4" />{u.ativo ? 'Suspender a conta inteira' : 'Reativar a conta'}</button>}
+                {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'plataforma', usuario: u }); setMenu(null); }}><ShieldCheck className="size-4" />{u.is_platform_admin ? 'Remover admin. da plataforma' : 'Tornar admin. da plataforma'}</button>}
+              </div>
+            )}
+          </div>
+        )}
+      </li>
+    );
   };
 
   return (
@@ -213,55 +302,26 @@ export function Usuarios() {
 
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> :
           q.data!.itens.length === 0 ? <Vazio titulo="Nenhum usuário encontrado" descricao={filtrosAtivos ? 'Ajuste os filtros.' : 'Convide as pessoas do órgão para começar.'} /> : (
+            agrupar ? (
+              <div className={cx('flex flex-col gap-6', q.isFetching && 'opacity-70')}>
+                {grupos.map((g) => (
+                  <section key={g.chave} aria-label={`Usuários de ${g.titulo}`}>
+                    <header className="flex flex-wrap items-baseline gap-2 border-b border-slate-200 pb-2">
+                      <h3 className="text-sm font-semibold text-slate-900">{g.titulo}</h3>
+                      {g.subtitulo && <span className="text-xs text-slate-500">{g.subtitulo}</span>}
+                      <Selo tom="info">{g.usuarios.length} {g.usuarios.length === 1 ? 'pessoa' : 'pessoas'}</Selo>
+                    </header>
+                    <ul className="divide-y divide-slate-100">{g.usuarios.map((u) => linhaUsuario(u, g.chave))}</ul>
+                  </section>
+                ))}
+              </div>
+            ) : (
             <ul className={cx('divide-y divide-slate-100', q.isFetching && 'opacity-70')}>
-              {q.data!.itens.map((u) => {
-                const ehEu = u.id === contexto?.perfil?.id;
-                return (
-                  <li key={u.id} className="flex flex-wrap items-start gap-3 py-3">
-                    <Avatar nome={u.nome || u.email} />
-                    <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
-                        {u.nome || '(sem nome)'}
-                        {ehEu && <Selo tom="marca">Você</Selo>}
-                        {!u.ativo && <Selo tom="perigo">Conta suspensa</Selo>}
-                        {u.is_platform_admin && <Selo tom="alerta" icone={<ShieldCheck className="size-3" />}>Plataforma</Selo>}
-                        {!u.ultimo_acesso && <Selo tom="info">Ainda não acessou</Selo>}
-                      </p>
-                      <p className="truncate text-sm text-slate-600">{u.email}</p>
-                      <ul className="mt-2 flex flex-wrap gap-1.5">
-                        {u.vinculos.map((v) => (
-                          <li key={v.id}>
-                            <button disabled={ehEu || !podeCriar} title={ehEu ? 'Você não altera os próprios acessos' : v.ativo ? 'Suspender este acesso' : 'Reativar este acesso'}
-                              onClick={() => setAcao({ tipo: 'vinculo', usuario: u, vinculoId: v.id, ativo: v.ativo, rotulo: `${v.papel_nome}${v.unidade_sigla || v.unidade_nome ? ` · ${v.unidade_sigla ?? v.unidade_nome}` : ''}` })}
-                              className={cx('rounded-md px-2 py-0.5 text-xs ring-1 ring-inset enabled:hover:ring-marca-400',
-                                v.ativo ? 'bg-marca-50 text-marca-800 ring-marca-200' : 'bg-slate-50 text-slate-500 line-through ring-slate-200')}>
-                              {v.papel_nome}{v.unidade_sigla || v.unidade_nome ? ` · ${v.unidade_sigla ?? v.unidade_nome}` : ' · órgão inteiro'}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="mt-1 text-xs text-slate-500">Último acesso: {formatarDataHora(u.ultimo_acesso)}</p>
-                    </div>
-                    {!ehEu && (podeCriar || ehPlataforma) && (
-                      <div className="relative">
-                        <Botao pequeno variante="fantasma" icone={<MoreHorizontal className="size-4" />} aria-label={`Ações para ${u.email}`}
-                          onClick={() => setMenu(menu === u.id ? null : u.id)} />
-                        {menu === u.id && (
-                          <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg" onMouseLeave={() => setMenu(null)}>
-                            {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setConvidando({ email: u.email }); setMenu(null); }}><Plus className="size-4" />Conceder outro acesso</button>}
-                            {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reenviar.mutate(u.id); setMenu(null); }}><MailPlus className="size-4" />{u.ultimo_acesso ? 'Enviar link de nova senha' : 'Reenviar convite'}</button>}
-                            {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'conta', usuario: u }); setMenu(null); }}><ShieldAlert className="size-4" />{u.ativo ? 'Suspender a conta inteira' : 'Reativar a conta'}</button>}
-                            {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'plataforma', usuario: u }); setMenu(null); }}><ShieldCheck className="size-4" />{u.is_platform_admin ? 'Remover admin. da plataforma' : 'Tornar admin. da plataforma'}</button>}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
+              {q.data!.itens.map((u) => linhaUsuario(u, ''))}
             </ul>
+            )
           )}
-        {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
+        {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={porPagina} aoMudar={setPagina} />}
       </Cartao>
 
       <FormAcesso aberto={!!convidando} aoFechar={() => setConvidando(null)} emailInicial={convidando?.email}
