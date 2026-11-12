@@ -63,7 +63,7 @@ function Resumo({ c }: { c: ContratoResumo }) {
 }
 
 function Responsaveis({ c }: { c: ContratoResumo }) {
-  const { pode } = useSessao();
+  const { pode, ehPlataforma } = useSessao();
   const podeAlterar = useAutoria();
   const autoria = useQuery({ queryKey: ['autoria-contrato', c.id], queryFn: () => autoriaDoContrato(c.id) });
   const qc = useQueryClient();
@@ -73,7 +73,8 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
   const [encerrando, setEncerrando] = useState<Designacao | null>(null);
   const [trocando, setTrocando] = useState<{ d: Designacao; servidor: { id: string; rotulo: string } | null; inicio: string; portaria: string; motivo: string } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const podeEditar = pode('contratos', 'editar');
+  // a plataforma (desenvolvedor) também designa, encerra e substitui responsáveis (regra no banco: pode_designar)
+  const podeEditar = pode('contratos', 'editar') || ehPlataforma;
   const salvar = useMutation({
     mutationFn: () => designar(c.id, novo!.servidor!.id, novo!.papel, novo!.inicio, novo!.portaria.trim() || null),
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['designacoes', c.id] }); setNovo(null); toast.success('Designação registrada. A pessoa já vê este contrato.'); },

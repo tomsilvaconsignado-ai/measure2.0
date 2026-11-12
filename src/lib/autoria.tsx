@@ -9,9 +9,10 @@ import type { Recurso } from './tipos';
 
 /** (recurso, autor) => a pessoa logada pode alterar/excluir o registro? Registro antigo sem autor: sim. */
 export function useAutoria() {
-  const { contexto, pode } = useSessao();
+  const { contexto, pode, ehPlataforma } = useSessao();
   const uid = contexto?.perfil?.id;
-  return useCallback((recurso: Recurso, autor: string | null | undefined) => !autor || autor === uid || pode(recurso, 'aprovar'), [uid, pode]);
+  // espelha pode_alterar_registro(): autor, plataforma ou quem tem "aprovar"
+  return useCallback((recurso: Recurso, autor: string | null | undefined) => !autor || autor === uid || ehPlataforma || pode(recurso, 'aprovar'), [uid, pode, ehPlataforma]);
 }
 
 /** "Cadastrado por Fulano" (e o aviso de somente consulta para quem não é o autor) */

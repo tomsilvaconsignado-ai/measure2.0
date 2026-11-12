@@ -10,7 +10,7 @@ import type { ContratoResumo } from '@/lib/tipos';
 import { listarDesignacoes, listarDotacoesContrato } from '@/services/execucao';
 
 export function EtapasContrato({ c, abaAtual, irParaAba }: { c: ContratoResumo; abaAtual: string; irParaAba: (aba: 'responsaveis' | 'dotacao') => void }) {
-  const { pode } = useSessao();
+  const { pode, ehPlataforma } = useSessao();
   const navegar = useNavigate();
   const desig = useQuery({ queryKey: ['designacoes', c.id], queryFn: () => listarDesignacoes(c.id) });
   const dots = useQuery({ queryKey: ['contrato-dotacoes', c.id], queryFn: () => listarDotacoesContrato(c.id) });
@@ -18,7 +18,7 @@ export function EtapasContrato({ c, abaAtual, irParaAba }: { c: ContratoResumo; 
   const temFiscal = desig.data.some((d) => !d.fim && d.papel === 'FISCAL');
   const etapas = [
     { titulo: 'Responsáveis', feito: temFiscal, detalhe: temFiscal ? 'Fiscal designado' : 'Designe gestor, fiscal e suplente',
-      acao: pode('contratos', 'editar') && abaAtual !== 'responsaveis' ? { rotulo: 'Designar responsáveis', fazer: () => irParaAba('responsaveis') } : null },
+      acao: (pode('contratos', 'editar') || ehPlataforma) && abaAtual !== 'responsaveis' ? { rotulo: 'Designar responsáveis', fazer: () => irParaAba('responsaveis') } : null },
     { titulo: 'Dotação', feito: dots.data.length > 0, detalhe: dots.data.length ? `${dots.data.length} dotação(ões)` : 'Escolha as classificações orçamentárias',
       acao: pode('contratos', 'editar') && abaAtual !== 'dotacao' ? { rotulo: 'Ir para a dotação', fazer: () => irParaAba('dotacao') } : null },
     { titulo: 'Empenho', feito: centavos(c.empenhado) > 0, detalhe: centavos(c.empenhado) > 0 ? 'Empenhado' : 'Lance a nota de empenho',

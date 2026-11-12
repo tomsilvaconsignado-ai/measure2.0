@@ -8,7 +8,7 @@ import type { Acao, FocoUnidade, MeuContexto, Recurso, SessaoSuporte, VinculoCon
 
 const CHAVE_TENANT = 'measure.tenant_atual';
 // Recursos que a plataforma administra sem sessão de suporte (espelha recursos.livre_para_plataforma)
-const LIVRES_PLATAFORMA: Recurso[] = ['estrutura', 'usuarios', 'configuracoes', 'auditoria', 'decretos'];
+const LIVRES_PLATAFORMA: Recurso[] = ['estrutura', 'usuarios', 'configuracoes', 'auditoria', 'decretos', 'servidores'];
 
 export interface OrgaoAtual {
   id: string;
