@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, X } from 'lucide-react';
+import { ArrowLeft, Briefcase, Check, ClipboardCheck, FileDown, FilePlus2, Pencil, Plus, Power, RefreshCw, Repeat, UserMinus, UserRoundCog, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -27,6 +27,17 @@ import { NotificacoesDoContrato } from './notificacoes/comum';
 
 type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos' | 'notificacoes';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
+type PapelDesignacao = keyof typeof PAPEIS;
+const ORDEM_PAPEIS: PapelDesignacao[] = ['GESTOR', 'FISCAL', 'SUPLENTE'];
+// Cada papel com cor e ícone próprios, para ficar claro quem é gestor, fiscal e suplente de fiscal
+const INFO_PAPEL: Record<PapelDesignacao, { descricao: string; icone: typeof Briefcase; cabecalho: string; selo: string; cartao: string; marcado: string }> = {
+  GESTOR: { descricao: 'Coordena e acompanha a execução do contrato como um todo.', icone: Briefcase,
+    cabecalho: 'border-sky-600 text-sky-800', selo: 'bg-sky-600 text-white', cartao: 'border-l-sky-600', marcado: 'border-sky-600 bg-sky-50 ring-1 ring-sky-600' },
+  FISCAL: { descricao: 'Fiscaliza a execução no dia a dia e atesta as notas fiscais.', icone: ClipboardCheck,
+    cabecalho: 'border-emerald-600 text-emerald-800', selo: 'bg-emerald-600 text-white', cartao: 'border-l-emerald-600', marcado: 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600' },
+  SUPLENTE: { descricao: 'Substitui o fiscal nas ausências e impedimentos.', icone: UserRoundCog,
+    cabecalho: 'border-amber-500 text-amber-800', selo: 'bg-amber-500 text-white', cartao: 'border-l-amber-500', marcado: 'border-amber-500 bg-amber-50 ring-1 ring-amber-500' },
+};
 const TIPOS_ADITIVO = { PRAZO: 'Prazo', VALOR: 'Valor (acréscimo)', PRAZO_E_VALOR: 'Prazo e valor', SUPRESSAO: 'Supressão de valor', OUTRO: 'Outro' } as const;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 
@@ -95,14 +106,36 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
             {podeEditar && <Botao pequeno variante="secundario" icone={<Plus className="size-4" />} onClick={() => { setErro(null); setNovo({ papel: 'GESTOR', servidor: null, inicio: hoje(), portaria: '' }); }}>Designar</Botao>}
           </div>
         </div>
-        {q.isLoading ? <Carregando /> : !q.data?.length ? <Vazio titulo="Nenhum responsável designado" descricao="Designe o gestor, o fiscal e o suplente. Eles passam a ver o contrato e a atestar as notas." /> : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {q.data.map((d) => (
-              <li key={d.id} className={cx('flex items-start gap-3 rounded-xl border p-3', d.fim ? 'border-slate-200 opacity-60' : 'border-marca-200 bg-marca-50/40')}>
+        {q.isLoading ? <Carregando /> : (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {ORDEM_PAPEIS.map((papel) => {
+              const info = INFO_PAPEL[papel];
+              const Icone = info.icone;
+              const lista = (q.data ?? []).filter((d) => d.papel === papel);
+              return (
+                <section key={papel} aria-label={PAPEIS[papel]} className="flex flex-col gap-3">
+                  <header className={cx('flex items-center gap-2 border-b-2 pb-2', info.cabecalho)}>
+                    <span className={cx('grid size-7 place-items-center rounded-full', info.selo)}><Icone className="size-4" aria-hidden /></span>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold uppercase tracking-wide">{PAPEIS[papel]}</h4>
+                      <p className="text-xs font-normal text-slate-500">{info.descricao}</p>
+                    </div>
+                  </header>
+                  {!lista.length ? (
+                    <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-slate-300 p-3">
+                      <p className="text-sm text-slate-500">Não designado</p>
+                      {podeEditar && !historico && <Botao pequeno variante="secundario" icone={<Plus className="size-4" />}
+                        onClick={() => { setErro(null); setNovo({ papel, servidor: null, inicio: hoje(), portaria: '' }); }}>
+                        Designar {papel === 'SUPLENTE' ? 'suplente de fiscal' : papel === 'GESTOR' ? 'gestor' : 'fiscal'}</Botao>}
+                    </div>
+                  ) : (
+          <ul className="flex flex-col gap-3">
+            {lista.map((d) => (
+              <li key={d.id} className={cx('flex items-start gap-3 rounded-xl border border-l-4 p-3', info.cartao, d.fim ? 'border-slate-200 opacity-60' : 'border-slate-200 bg-white')}>
                 <FotoServidor caminho={null} nome={d.servidor_nome} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-marca-700">{PAPEIS[d.papel]}</p>
-                  <p className="truncate text-sm font-medium text-slate-900">{d.servidor_nome}</p>
+                  <span className={cx('inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide', info.selo)}>{PAPEIS[d.papel]}</span>
+                  <p className="mt-1 truncate text-sm font-medium text-slate-900">{d.servidor_nome}</p>
                   <p className="text-xs text-slate-500">Mat. {d.servidor_matricula}{d.servidor_cargo ? ` · ${d.servidor_cargo}` : ''}</p>
                   <p className="text-xs text-slate-500" title="Lotação do servidor no momento da designação (a lotação dele não muda)">Lotação: {d.lotacao_descricao ?? d.unidade_sigla ?? d.unidade_nome}</p>
                   <p className="text-xs text-slate-500">Desde {formatarData(d.inicio)}{d.fim ? ` até ${formatarData(d.fim)}` : ''}</p>
@@ -120,6 +153,11 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
               </li>
             ))}
           </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
         )}
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
@@ -127,13 +165,30 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
         <Anexos recurso="contratos" registroId={c.id} unidadeId={c.unidade_id} categoria="PORTARIA_FISCAL" titulo="Portaria de fiscal" vazio="Nenhuma portaria anexada." />
         <Anexos recurso="contratos" registroId={c.id} unidadeId={c.unidade_id} categoria="PORTARIA_SUPLENTE" titulo="Portaria de suplente" vazio="Nenhuma portaria anexada." />
       </div>
-      <Modal aberto={!!novo} aoFechar={() => setNovo(null)} titulo="Designar responsável"
+      <Modal aberto={!!novo} aoFechar={() => setNovo(null)} titulo={novo ? `Designar ${PAPEIS[novo.papel].toLowerCase()}` : 'Designar responsável'}
         descricao="Qualquer servidor ativo do órgão, de qualquer secretaria, diretoria ou coordenação. A pessoa passa a ver só este contrato e pode atestar as notas dele; a lotação dela não muda."
-        rodape={<><Botao variante="secundario" onClick={() => setNovo(null)}>Cancelar</Botao><Botao carregando={salvar.isPending} disabled={!novo?.servidor} onClick={() => salvar.mutate()}>Designar</Botao></>}>
+        rodape={<><Botao variante="secundario" onClick={() => setNovo(null)}>Cancelar</Botao><Botao carregando={salvar.isPending} disabled={!novo?.servidor} onClick={() => salvar.mutate()}>{novo ? `Designar como ${PAPEIS[novo.papel].toLowerCase()}` : 'Designar'}</Botao></>}>
         {novo && <div className="flex flex-col gap-4">
-          <Selecao rotulo="Papel" value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value as Designacao['papel'] })}>
-            {Object.entries(PAPEIS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </Selecao>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-slate-800">Função no contrato <span className="text-red-600">*</span></legend>
+            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
+              {ORDEM_PAPEIS.map((papel) => {
+                const info = INFO_PAPEL[papel];
+                const Icone = info.icone;
+                const marcado = novo.papel === papel;
+                return (
+                  <label key={papel} className={cx('flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-sm transition-colors', marcado ? info.marcado : 'border-slate-200 hover:border-slate-400')}>
+                    <span className="flex items-center gap-2 font-semibold text-slate-900">
+                      <input type="radio" name="papel-designacao" className="sr-only" checked={marcado} onChange={() => setNovo({ ...novo, papel })} />
+                      <span className={cx('grid size-6 place-items-center rounded-full', info.selo)}><Icone className="size-3.5" aria-hidden /></span>
+                      {PAPEIS[papel]}
+                    </span>
+                    <span className="text-xs text-slate-600">{info.descricao}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
           <SeletorServidor rotulo="Servidor" obrigatorio valor={novo.servidor?.id ?? null} rotuloValor={novo.servidor?.rotulo}
             aoMudar={(v, o) => setNovo({ ...novo, servidor: v && o ? { id: v, rotulo: o.rotulo } : null })} />
           <Campo rotulo="Início da designação" type="date" value={novo.inicio} onChange={(e) => setNovo({ ...novo, inicio: e.target.value })} />

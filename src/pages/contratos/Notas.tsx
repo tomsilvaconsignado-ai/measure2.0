@@ -32,7 +32,7 @@ import { ExtratosNotas } from './ExtratosNotas';
 import { AvisoVencido, BotaoAtestar, BotaoBaixa, BotaoVisualizar, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 
 const POR_PAGINA = 25;
-const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente', LANCADOR: 'quem lançou a nota' };
+const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente de fiscal', LANCADOR: 'quem lançou a nota' };
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 interface UnidadeLinha { id: string; nome: string; eh_grupo: boolean; regra: string; valor: number | null; sigla?: string | null; tipo?: string | null }

@@ -26,7 +26,7 @@ export const STATUS: Record<StatusNotificacao, { rotulo: string; tom: 'neutro' |
 };
 
 export const REGIMES: Record<Regime, string> = { LEI_14133: 'Lei nº 14.133/2021', LEI_8666: 'Lei nº 8.666/1993 (regime anterior)', OUTRO: 'Outro / a confirmar' };
-export const PAPEIS: Record<string, string> = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente (substituto)', ADMINISTRADOR: 'Administrador autorizado' };
+export const PAPEIS: Record<string, string> = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal', ADMINISTRADOR: 'Administrador autorizado' };
 export const GRAVIDADES: Record<Gravidade, string> = { LEVE: 'Leve', MEDIA: 'Média', GRAVE: 'Grave' };
 export const SANCOES: Record<string, string> = { ADVERTENCIA: 'Advertência', MULTA: 'Multa', IMPEDIMENTO: 'Impedimento de licitar e contratar', INIDONEIDADE: 'Declaração de inidoneidade', SUSPENSAO: 'Suspensão temporária (Lei 8.666/1993)' };
 export const SITUACOES_SANCAO: Record<string, string> = { VIGENTE: 'Vigente', CUMPRIDA: 'Cumprida', SUSPENSA: 'Suspensa', ANULADA: 'Anulada', ENCERRADA: 'Encerrada' };

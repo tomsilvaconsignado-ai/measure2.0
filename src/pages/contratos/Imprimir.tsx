@@ -15,7 +15,7 @@ import { ImprimirExtratoNotas } from './ImprimirExtratoNotas';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type D = Record<string, any>;
 
-const PAPEIS: Record<string, string> = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente', LANCADOR: 'Quem lançou a nota' };
+const PAPEIS: Record<string, string> = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente de fiscal', LANCADOR: 'Quem lançou a nota' };
 const SIT_PAG: Record<string, string> = { PENDENTE: 'Pendente', PARCIAL: 'Parcial', PAGO: 'Paga', CANCELADA: 'Cancelada' };
 const TIPO_ADITIVO: Record<string, string> = { PRAZO: 'Prazo', VALOR: 'Valor', PRAZO_E_VALOR: 'Prazo e valor', SUPRESSAO: 'Supressão', OUTRO: 'Outro' };
 const TIPO_EMPENHO: Record<string, string> = { ORDINARIO: 'Ordinário', ESTIMATIVO: 'Estimativo', GLOBAL: 'Global' };
@@ -210,7 +210,7 @@ function ChecklistServicos({ d }: { d: D }) {
           <td className={c}><b>{(PAPEL_CHECKLIST[r?.papel] ?? 'FISCAL DO CONTRATO')}:</b> {r?.nome ?? ''}</td>
           <td className={c}><b>MATRÍCULA:</b> {r?.matricula ?? ''}</td>
         </tr>
-        <tr><td className={`${c} h-10`}><b>ASSINATURA {r?.papel === 'GESTOR' ? 'DO GESTOR' : r?.papel === 'SUPLENTE' ? 'DO SUPLENTE' : 'DO FISCAL'}:</b></td><td className={c}><b>DATA:</b></td></tr>
+        <tr><td className={`${c} h-10`}><b>ASSINATURA {r?.papel === 'GESTOR' ? 'DO GESTOR' : r?.papel === 'SUPLENTE' ? 'DO SUPLENTE DE FISCAL' : 'DO FISCAL'}:</b></td><td className={c}><b>DATA:</b></td></tr>
       </tbody>
     </table>
   </>;
@@ -248,7 +248,7 @@ function ChecklistNota({ d }: { d: D }) {
   </>;
 }
 
-const PAPEL_NF: Record<string, string> = { GESTOR: 'Gestor(a) do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente (atuando em substituição)', ADMINISTRADOR: 'Administrador(a) autorizado(a)' };
+const PAPEL_NF: Record<string, string> = { GESTOR: 'Gestor(a) do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal (atuando em substituição)', ADMINISTRADOR: 'Administrador(a) autorizado(a)' };
 
 /** Notificação formal à empresa contratada (estrutura oficial, com campos de assinatura e de ciência) */
 function NotificacaoFormal({ d }: { d: D }) {

@@ -8,7 +8,7 @@ import { brl, formatarData } from '@/lib/formatacao';
 import { meusContratosDesignados } from '@/services/execucao';
 import { SeloSituacao } from './comum';
 
-const PAPEL = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente' } as const;
+const PAPEL = { GESTOR: 'Gestor', FISCAL: 'Fiscal', SUPLENTE: 'Suplente de fiscal' } as const;
 const dias = (fim: string) => Math.round((new Date(`${fim}T12:00:00`).getTime() - Date.now()) / 86_400_000);
 
 export function MeusContratos() {
