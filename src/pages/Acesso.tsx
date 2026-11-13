@@ -99,7 +99,7 @@ export function EsqueciSenha() {
         <div className="flex flex-col gap-4">
           <div className="flex gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
             <CheckCircle2 className="size-5 shrink-0" />
-            <p>Se <strong>{email}</strong> estiver cadastrado, você receberá o link em instantes. Ele vale por 1 hora. Confira também a caixa de spam.</p>
+            <p>Se <strong>{email}</strong> estiver cadastrado, você receberá o link em instantes. Ele vale por 24 horas. Confira também a caixa de spam.</p>
           </div>
           <Link to="/entrar" className="text-center text-sm text-marca-700 hover:underline">Voltar para o login</Link>
         </div>
@@ -111,6 +111,53 @@ export function EsqueciSenha() {
           <Link to="/entrar" className="text-center text-sm text-marca-700 hover:underline">Voltar para o login</Link>
         </form>
       )}
+    </Moldura>
+  );
+}
+
+/** Parâmetros do link de e-mail (convite / nova senha) que abre esta página: ?token_hash=...&type=... */
+export function linkDeAtivacao() {
+  const p = new URLSearchParams(window.location.search);
+  const token = p.get('token_hash');
+  const tipo = p.get('type');
+  return token && (tipo === 'invite' || tipo === 'recovery') ? { token, tipo } as const : null;
+}
+
+/**
+ * Página aberta pelo link do e-mail. O link NÃO ativa nada sozinho: os filtros de segurança do e-mail
+ * institucional abrem os links das mensagens para verificar e, antes, consumiam o link de uso único.
+ * Agora a ativação só acontece quando a pessoa clica no botão (o filtro não clica em botões).
+ */
+export function AtivarPorLink({ token, tipo }: { token: string; tipo: 'invite' | 'recovery' }) {
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const convite = tipo === 'invite';
+  const ativar = async () => {
+    setEnviando(true); setErro(null);
+    const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: tipo });
+    setEnviando(false);
+    if (error) {
+      setErro(/expired|invalid|not found/i.test(error.message)
+        ? 'Este link expirou ou já foi usado. Peça ao administrador do seu órgão para reenviar o convite, ou use "Esqueci minha senha".'
+        : mensagemDeErro(error));
+      return;
+    }
+    // sessão aberta: o app leva à tela de criar a senha
+    sessionStorage.setItem('measure.definir_senha', tipo);
+    window.history.replaceState(null, '', window.location.pathname);
+    window.location.reload();
+  };
+  return (
+    <Moldura titulo={convite ? 'Ative seu acesso' : 'Crie uma nova senha'}
+      subtitulo={convite ? 'Clique no botão para ativar seu acesso ao MEASURE. Em seguida você cria a sua senha.' : 'Clique no botão para continuar e criar a nova senha.'}>
+      <div className="flex flex-col gap-4">
+        {erro && <CaixaErro mensagem={erro} />}
+        <Botao variante="chamada" carregando={enviando} onClick={() => void ativar()} className="h-12 w-full text-base">
+          {convite ? 'Ativar meu acesso' : 'Continuar'}
+        </Botao>
+        {erro && <Link to="/esqueci-senha" onClick={() => window.history.replaceState(null, '', '/')} className="text-center text-sm text-marca-700 hover:underline">Esqueci minha senha</Link>}
+        <p className="text-xs text-slate-500">O link vale por 24 horas e só pode ser usado uma vez.</p>
+      </div>
     </Moldura>
   );
 }

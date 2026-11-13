@@ -6,7 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Marca } from '@/components/layout/Marca';
 import { Botao, Carregando } from '@/components/ui/basicos';
 import { precisaDefinirSenha } from '@/lib/supabase';
-import { DefinirSenha, Entrar, EsqueciSenha } from '@/pages/Acesso';
+import { AtivarPorLink, DefinirSenha, Entrar, EsqueciSenha, linkDeAtivacao } from '@/pages/Acesso';
 import { Inicio } from '@/pages/Inicio';
 import { ModuloPatrimonio } from '@/pages/patrimonio/Layout';
 import { ModuloServidores } from '@/pages/cadastros/AbasServidores';
@@ -106,6 +106,10 @@ export function App() {
   if (carregando) {
     return <TelaCheia><Marca /><Loader2 className="size-6 animate-spin text-marca-600" aria-label="Carregando" /></TelaCheia>;
   }
+
+  // link do e-mail (convite / nova senha): a ativação só acontece no clique do botão
+  const ativacao = linkDeAtivacao();
+  if (ativacao) return <AtivarPorLink token={ativacao.token} tipo={ativacao.tipo} />;
 
   if (!sessao) {
     return (

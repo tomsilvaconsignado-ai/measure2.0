@@ -2,7 +2,7 @@
 // A segurança de verdade está no banco (RLS + funções); aqui só decidimos o que mostrar.
 import type { Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Acao, FocoUnidade, MeuContexto, Recurso, SessaoSuporte, VinculoContexto } from '@/lib/tipos';
 
@@ -52,7 +52,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => { setSessao(data.session); setIniciando(false); });
     const { data } = supabase.auth.onAuthStateChange((evento, s) => {
       setSessao(s);
-      if (evento === 'SIGNED_IN') {
+      if (evento === 'SIGNED_IN' || evento === 'PASSWORD_RECOVERY') {
         void supabase.rpc('registrar_acesso').then(() => qc.invalidateQueries({ queryKey: ['meu_contexto'] }));
       }
       if (evento === 'SIGNED_OUT') qc.clear();
@@ -71,6 +71,14 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     },
   });
   const contexto = q.data ?? null;
+  // rede de segurança: entrou (sessão aberta) e o primeiro acesso ainda não foi registrado → registra uma vez.
+  // Ex.: sessão aberta pelo link do e-mail antes de o app começar a ouvir o evento de login.
+  const registrouPrimeiro = useRef(false);
+  useEffect(() => {
+    if (!contexto?.perfil || contexto.perfil.ultimo_acesso || registrouPrimeiro.current) return;
+    registrouPrimeiro.current = true;
+    void supabase.rpc('registrar_acesso').then(() => qc.invalidateQueries({ queryKey: ['meu_contexto'] }));
+  }, [contexto, qc]);
   const ehPlataforma = !!contexto?.perfil?.is_platform_admin && !!contexto.perfil.ativo;
 
   // Órgão em uso: escolhido na sessão, o salvo no navegador ou o do vínculo padrão

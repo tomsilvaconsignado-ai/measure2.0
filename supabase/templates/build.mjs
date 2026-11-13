@@ -58,6 +58,11 @@ function layout({ preheader, title, intro, button, url = '{{ .ConfirmationURL }}
 `;
 }
 
+// Links de convite e de nova senha abrem uma página do próprio MEASURE (?token_hash=...), que só ativa no
+// clique do botão. O {{ .ConfirmationURL }} direto do Supabase é de uso único e os filtros de segurança do
+// e-mail institucional o abriam antes da pessoa, deixando o link "já usado".
+const linkPagina = (tipo) => `{{ .SiteURL }}?token_hash={{ .TokenHash }}&type=${tipo}`;
+
 const nota = (texto) => `<p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#334155;background:#f1f5f9;border-left:4px solid #2563eb;padding:10px 12px;border-radius:6px">${texto}</p>`;
 
 // Avisos de segurança (sem botão)
@@ -72,9 +77,10 @@ export const EMAILS = {
     html: layout({
       preheader: 'Ative seu acesso e crie sua senha.',
       title: 'Você recebeu acesso ao MEASURE',
-      intro: 'O administrador do seu órgão cadastrou você no <strong>MEASURE</strong>, o sistema de gestão de contratos e despesas. Clique no botão para ativar o acesso e criar sua senha.',
+      intro: 'O administrador do seu órgão cadastrou você no <strong>MEASURE</strong>, o sistema de gestão de contratos e despesas. Clique no botão para abrir a página de ativação; lá, clique em <strong>Ativar meu acesso</strong> e crie sua senha.',
       button: 'Ativar meu acesso',
-      after: nota('O link vale por 1 hora e só pode ser usado uma vez. Se expirar, peça ao administrador para reenviar o convite.'),
+      url: linkPagina('invite'),
+      after: nota('O link vale por 24 horas e só pode ser usado uma vez. Se expirar, peça ao administrador para reenviar o convite.'),
     }),
   },
   recovery: {
@@ -82,9 +88,10 @@ export const EMAILS = {
     html: layout({
       preheader: 'Crie uma nova senha de acesso.',
       title: 'Redefinir sua senha',
-      intro: 'Recebemos um pedido para redefinir a senha da conta <strong>{{ .Email }}</strong>. Clique no botão para escolher uma nova senha.',
+      intro: 'Recebemos um pedido para redefinir a senha da conta <strong>{{ .Email }}</strong>. Clique no botão para abrir a página e escolher uma nova senha.',
       button: 'Criar nova senha',
-      after: nota('O link vale por 1 hora e só pode ser usado uma vez.'),
+      url: linkPagina('recovery'),
+      after: nota('O link vale por 24 horas e só pode ser usado uma vez.'),
     }),
   },
   confirmation: {
@@ -164,7 +171,8 @@ const REGRAS = {
   mailer_autoconfirm: false,
   password_min_length: 10,
   password_required_characters: 'abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789',
-  mailer_otp_exp: 3600,
+  // 24 horas: servidores abrem o e-mail institucional no dia seguinte com frequência
+  mailer_otp_exp: 86400,
   mailer_secure_email_change_enabled: true,
   mailer_notifications_password_changed_enabled: true,
   mailer_notifications_email_changed_enabled: true,

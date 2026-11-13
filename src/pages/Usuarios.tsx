@@ -78,7 +78,7 @@ function FormAcesso({ aberto, aoFechar, emailInicial, aoConcluir }: { aberto: bo
     mutationFn: () => convidarUsuario({ email: email.trim().toLowerCase(), nome: nome.trim(), tenant_id: orgao!.id, unidade_id: unidade?.id ?? null, papel: papel as Papel }),
     onSuccess: async (r) => {
       await qc.invalidateQueries({ queryKey: ['usuarios'] });
-      toast.success(r.conta_criada ? `Convite enviado para ${email}. O link vale por 1 hora.` : 'Acesso concedido. A pessoa já pode usar o novo papel.');
+      toast.success(r.conta_criada ? `Convite enviado para ${email}. O link vale por 24 horas.` : 'Acesso concedido. A pessoa já pode usar o novo papel.');
       aoConcluir(email.trim().toLowerCase());
       aoFechar();
     },
@@ -139,7 +139,7 @@ function ConviteEmLote({ aberto, aoFechar, pendentes }: { aberto: boolean; aoFec
   };
   return (
     <Modal aberto={aberto} aoFechar={() => !enviando && aoFechar()} titulo="Enviar convite a quem ainda não acessou"
-      descricao="Cada pessoa recebe um e-mail com o link para criar a senha e entrar. O link vale por 1 hora; depois é só reenviar."
+      descricao="Cada pessoa recebe um e-mail com o link para criar a senha e entrar. O link vale por 24 horas; depois é só reenviar."
       rodape={<><Botao variante="secundario" onClick={aoFechar} disabled={enviando}>{falhas.length ? 'Fechar' : 'Cancelar'}</Botao>
         {!falhas.length && <Botao icone={<Mail className="size-4" />} carregando={enviando} disabled={!pendentes.length} onClick={() => void enviar()}>
           {enviando ? `Enviando ${feitos} de ${pendentes.length}…` : `Enviar ${pendentes.length} convite(s)`}</Botao>}</>}>
