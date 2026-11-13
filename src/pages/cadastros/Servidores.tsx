@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { cpfValido, formatarCpf, formatarData, formatarTelefone, iniciais, somenteDigitos } from '@/lib/formatacao';
 import type { DadosPessoais, Escolaridade, Servidor, ServidorListado } from '@/lib/tipos';
-import { aniversariantes, definirEntraConsolidado, enviarFotoServidor, listarServidores, obterServidor, salvarServidor } from '@/services/cadastros';
+import { aniversariantes, confirmarPreCadastro, definirEntraConsolidado, enviarFotoServidor, listarServidores, obterServidor, salvarServidor } from '@/services/cadastros';
 import { ESCOLARIDADES, rotuloEscolaridade, ServidorCurriculo } from './ServidorCurriculo';
 import { ServidorFerias } from './ServidorFerias';
 
@@ -198,6 +198,11 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['servidor', id] }); await qc.invalidateQueries({ queryKey: ['servidores'] }); toast.success('Foto atualizada.'); },
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
+  const confirmar = useMutation({
+    mutationFn: () => confirmarPreCadastro(id!),
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['servidor', id] }); await qc.invalidateQueries({ queryKey: ['servidores'] }); toast.success('Cadastro conferido. A matrícula agora só é alterada pelo administrador.'); },
+    onError: (e) => toast.error(mensagemDeErro(e)),
+  });
   if (!id) return null;
   const v = q.data?.servidor;
   const x = q.data?.pessoais;
@@ -214,7 +219,13 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
             <div className="mt-1 flex flex-wrap gap-1.5">
               {exonerado ? <Selo>EXONERADO</Selo> : <Selo tom="sucesso">Ativo</Selo>}
               {v.user_id && <Selo tom="info">Tem acesso ao sistema</Selo>}
+              {v.pre_cadastro && <Selo tom="alerta">Pré-cadastro feito pelo servidor</Selo>}
             </div>
+            {v.pre_cadastro && pode('servidores', 'editar') && (
+              <Botao pequeno variante="sucesso" className="mt-2" carregando={confirmar.isPending} onClick={() => confirmar.mutate()}>
+                Conferi: confirmar cadastro
+              </Botao>
+            )}
           </div>
           {pode('servidores', 'editar') && <>
             <input ref={entrada} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { const a = e.target.files?.[0]; if (a) foto.mutate(a); e.target.value = ''; }} />
@@ -306,6 +317,7 @@ export function Servidores() {
         <span className="min-w-0">
           <span className={cx('flex flex-wrap items-center gap-2 text-sm font-medium', s.exonerado ? 'text-slate-500' : 'text-slate-900')}>
             {s.nome}{s.exonerado && <Selo>EXONERADO</Selo>}
+            {s.pre_cadastro && <Selo tom="alerta">Pré-cadastro — conferir</Selo>}
           </span>
           <span className="block truncate text-sm text-slate-600">Mat. {s.matricula}{s.cargo ? ` · ${s.cargo}` : ''}{s.funcao ? ` · ${s.funcao}` : ''}</span>
           <span className="block truncate text-xs text-slate-500">{s.unidade_sigla ?? s.unidade_nome}{s.cpf ? ` · CPF ${formatarCpf(s.cpf)}` : ''}{s.exonerado && s.data_exoneracao ? ` · exonerado em ${formatarData(s.data_exoneracao)}` : ''}</span>

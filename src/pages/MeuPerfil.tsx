@@ -8,6 +8,7 @@ import { mensagemDeErro } from '@/lib/erros';
 import { formatarDataHora, formatarTelefone, somenteDigitos } from '@/lib/formatacao';
 import { supabase } from '@/lib/supabase';
 import { atualizarMeuPerfil, definirVinculoPadrao, enviarMinhaFoto, urlArquivo } from '@/services/api';
+import { MeuCadastroServidor } from '@/components/PreCadastro';
 import { regraSenha } from './Acesso';
 
 export function MeuPerfil() {
@@ -100,6 +101,7 @@ export function MeuPerfil() {
           </Cartao>
         </div>
       </div>
+      <div className="mt-6"><MeuCadastroServidor /></div>
     </>
   );
 }

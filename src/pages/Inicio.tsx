@@ -6,6 +6,7 @@ import { useSessao } from '@/auth/Sessao';
 import { Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
 import { usePendencias } from '@/components/Pendencias';
 import { FluxoTrabalho } from '@/components/FluxoTrabalho';
+import { AvisoPreCadastro } from '@/components/PreCadastro';
 import { formatarDataHora } from '@/lib/formatacao';
 import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
@@ -50,6 +51,7 @@ export function Inicio() {
     <>
       <CabecalhoPagina titulo={`Olá, ${primeiroNome}`}
         descricao={orgao ? orgao.nome_oficial : 'Escolha um órgão para começar.'} />
+      {orgao && <AvisoPreCadastro />}
       {orgao && <AtivarPush compacto={false} />}
 
       {!orgao && (

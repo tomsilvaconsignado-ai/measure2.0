@@ -3,7 +3,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Aniversariante, Classificador, Decreto, FeriasServidor, ItemCurriculo, ClassificadorTipo, ClassificacaoOrcamentaria, ContaBancaria, DadosPessoais, DotacaoDetalhada, Ente, Fornecedor,
-  Servidor, ServidorListado, TipoClassificador, TipoServico, UnidadeAtendida,
+  MeuServidor, Servidor, ServidorListado, TipoClassificador, TipoServico, UnidadeAtendida,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
 import { enviarDocumento, reduzirImagem } from './documentos';
@@ -111,7 +111,25 @@ export async function obterServidor(id: string) {
   return { servidor: s, pessoais: (data ?? null) as DadosPessoais | null };
 }
 
-export type DadosServidor = Omit<Servidor, 'id' | 'user_id' | 'foto_path'>;
+export type DadosServidor = Omit<Servidor, 'id' | 'user_id' | 'foto_path' | 'pre_cadastro'>;
+
+// ---------------------------------------------------------------- pré-cadastro / meu cadastro de servidor
+
+export async function meuServidor(tenantId: string) {
+  return falhou(await supabase.rpc('meu_servidor', { p_tenant: tenantId })) as MeuServidor;
+}
+
+export async function completarPreCadastro(tenantId: string, d: { matricula: string; cargo?: string | null; telefone?: string | null }) {
+  return falhou(await supabase.rpc('completar_pre_cadastro', { p_tenant: tenantId, p_matricula: d.matricula, p_cargo: d.cargo ?? null, p_telefone: d.telefone ?? null })) as string;
+}
+
+export async function atualizarMeuCadastro(tenantId: string, dados: Record<string, unknown>) {
+  falhou(await supabase.rpc('atualizar_meu_cadastro', { p_tenant: tenantId, p: dados }));
+}
+
+export async function confirmarPreCadastro(servidorId: string) {
+  falhou(await supabase.rpc('confirmar_pre_cadastro', { p_servidor: servidorId }));
+}
 
 export async function salvarServidor(id: string | null, dados: Partial<DadosServidor>, pessoais: Partial<DadosPessoais> | null) {
   let s: Servidor;

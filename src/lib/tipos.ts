@@ -161,6 +161,16 @@ export interface Servidor {
   jornada: string | null; numero_comunicado: string | null; atribuicoes: string | null; observacoes: string | null;
   foto_path: string | null; user_id: string | null;
   escolaridade: Escolaridade | null; curriculo_observacoes: string | null;
+  /** ficha criada pelo próprio servidor ao ativar o acesso, aguardando a conferência do administrador */
+  pre_cadastro?: boolean;
+}
+
+/** Ficha de servidor de quem está logado (meu_servidor) */
+export interface MeuServidor {
+  servidor: Servidor | null;
+  pessoais: DadosPessoais | null;
+  lotacao: { id: string; nome: string; sigla: string | null; descricao: string | null } | null;
+  pode_completar: boolean;
 }
 
 export type Escolaridade = 'FUNDAMENTAL_INCOMPLETO' | 'FUNDAMENTAL' | 'MEDIO_INCOMPLETO' | 'MEDIO' | 'TECNICO' | 'SUPERIOR_INCOMPLETO'
@@ -185,6 +195,7 @@ export interface ServidorListado {
   unidade_id: string; unidade_nome: string; unidade_sigla: string | null;
   email_institucional: string | null; telefone: string | null; foto_path: string | null;
   data_nomeacao: string | null; data_exoneracao: string | null; exonerado: boolean; tem_acesso: boolean; cpf: string | null;
+  pre_cadastro?: boolean;
   /** entra nos consolidados mensais (padrão SIM) */
   entra_consolidado: boolean;
 }
