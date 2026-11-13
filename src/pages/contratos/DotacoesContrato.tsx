@@ -16,6 +16,7 @@ import { adicionarDotacaoContrato, listarClassificacoes } from '@/services/cadas
 import { ClassificacaoEmpenho, classificacaoVazia, faltandoNaClassificacao, idsDaClassificacao, type ValorClassificacao } from './ClassificacaoEmpenho';
 import { autoriaDoContrato, desvincularDotacao, listarDotacoesContrato, vincularDotacoes } from '@/services/execucao';
 import { useAutoria } from '@/lib/autoria';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const NATUREZA_ACAO = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Op. especial' } as const;
 
@@ -72,10 +73,10 @@ function SelecionarDotacoes({ contrato, jaVinculadas, aberto, aoFechar }: { cont
         <Botao disabled={!marcadas.length} carregando={vincular.isPending} onClick={() => vincular.mutate()}>Vincular {marcadas.length || ''} dotação(ões)</Botao></>}>
       <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_11rem]">
         <CampoBusca valor={busca} aoMudar={setBusca} rotulo="Buscar dotação" placeholder="Código, fonte, ação, elemento (33903914), unidade ou descrição" />
-        <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
+        <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
           <option value="">Todos os exercícios</option>
           {anos.map((a) => <option key={a} value={a}>Exercício {a}</option>)}
-        </select>
+        </ListaSelecao>
       </div>
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={mensagemDeErro(q.error)} /> : !itens.length
         ? <Vazio titulo="Nenhuma dotação disponível" descricao={busca || exercicio ? 'Ajuste a busca ou o exercício.' : 'As dotações são cadastradas pelo módulo Desenvolvedor (Dotações orçamentárias).'} />

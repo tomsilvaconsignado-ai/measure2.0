@@ -9,6 +9,7 @@ import { formatarCnpj, formatarCpf } from '@/lib/formatacao';
 import { buscarClassificadoresOrgao, buscarFornecedoresOpcoes, listarUnidadesAtendidas } from '@/services/cadastros';
 import { listarContratos } from '@/services/execucao';
 import { anosComMovimento, CAMPOS_CLASSIFICACAO, type Filtros } from '@/services/relatorios';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 export interface EstadoFiltros {
   anoBase: 'EMPENHO' | 'EMISSAO';
@@ -74,10 +75,10 @@ export function PainelFiltros({ estado, aoMudar, completo }: { estado: EstadoFil
       <div>
         <div className="mb-1.5 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-slate-700">Ano(s)</span>
-          <select className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={estado.anoBase} aria-label="Ano considerado"
+          <ListaSelecao className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs" value={estado.anoBase} aria-label="Ano considerado"
             onChange={(e) => set('anoBase', e.target.value as EstadoFiltros['anoBase'])}>
             <option value="EMPENHO">pelo exercício do empenho</option><option value="EMISSAO">pela data de emissão da nota</option>
-          </select>
+          </ListaSelecao>
           {estado.anos.length > 0 && <button type="button" className="text-xs text-marca-700 hover:underline" onClick={() => set('anos', [])}>limpar anos</button>}
         </div>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Anos">

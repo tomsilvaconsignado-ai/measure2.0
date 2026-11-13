@@ -9,6 +9,7 @@ import { CabecalhoPagina, CaixaErro, Cartao, Carregando, Paginacao, SemPermissao
 import { traduzirErro } from '@/lib/erros';
 import type { DotacaoDetalhada } from '@/lib/tipos';
 import { listarClassificacoes } from '@/services/cadastros';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const POR_PAGINA = 25;
 
@@ -52,13 +53,13 @@ export function Classificacao() {
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_11rem_10rem] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código, fonte, ação, elemento, unidade ou descrição" rotulo="Buscar dotação" />
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
             <option value="">Todos os exercícios</option>
             {[0, 1, 2, -1].map((k) => new Date().getFullYear() + (k === -1 ? 1 : -k)).map((a) => <option key={a} value={a}>Exercício {a}</option>)}
-          </select>
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
+          </ListaSelecao>
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
             <option value="ATIVOS">Ativas</option><option value="INATIVOS">Inativas</option><option value="TODOS">Todas</option>
-          </select>
+          </ListaSelecao>
         </div>
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> :
           !q.data!.itens.length ? <Vazio titulo="Nenhuma dotação disponível" descricao={busca ? 'Ajuste a busca.' : 'Peça à equipe da plataforma o cadastro das dotações do município (LOA) e o vínculo deste órgão ao município.'} /> : (

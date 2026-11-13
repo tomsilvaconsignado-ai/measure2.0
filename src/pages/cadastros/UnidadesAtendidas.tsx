@@ -13,6 +13,7 @@ import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarCep, formatarTelefone, somenteDigitos } from '@/lib/formatacao';
 import type { UnidadeAtendida } from '@/lib/tipos';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 import {
   definirStatusUnidadeAtendida, gruposDaUnidade, incluirNoGrupo, listarServidores, listarUnidadesAtendidas, membrosDoGrupo,
   removerDoGrupo, salvarUnidadeAtendida,
@@ -192,9 +193,9 @@ export function UnidadesAtendidas() {
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Nome, sigla, tipo ou bairro" rotulo="Buscar unidade" />
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
             <option value="ATIVOS">Ativas</option><option value="INATIVOS">Inativas</option><option value="TODOS">Todas</option>
-          </select>
+          </ListaSelecao>
           <Interruptor rotulo="Só grupos" marcado={soGrupos} aoMudar={setSoGrupos} />
         </div>
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> :

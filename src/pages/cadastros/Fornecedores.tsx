@@ -18,6 +18,7 @@ import {
   definirStatusFornecedor, enviarLogoFornecedor, vincularFornecedor, listarContas, listarFornecedores, removerConta, salvarConta, salvarFornecedor,
 } from '@/services/cadastros';
 import { consultarCnpj } from '@/services/consultasPublicas';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const POR_PAGINA = 20;
 export const formatarDocumento = (f: Pick<Fornecedor, 'tipo_pessoa' | 'documento'>) => f.tipo_pessoa === 'PJ' ? formatarCnpj(f.documento) : formatarCpf(f.documento);
@@ -318,9 +319,9 @@ export function Fornecedores() {
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center">
           <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Razão social, nome fantasia ou CNPJ/CPF" rotulo="Buscar fornecedor" />
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
             <option value="ATIVOS">Ativos</option><option value="INATIVOS">Inativos</option><option value="TODOS">Todos</option>
-          </select>
+          </ListaSelecao>
           {(busca || situacao !== 'ATIVOS') && <Botao variante="fantasma" onClick={() => { setBusca(''); setSituacao('ATIVOS'); }}>Limpar filtros</Botao>}
         </div>
         {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> :

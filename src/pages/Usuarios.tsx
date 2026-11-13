@@ -10,6 +10,7 @@ import { traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
 import { supabase } from '@/lib/supabase';
 import { TIPOS_UNIDADE, type Papel, type UnidadeOrganizacional, type UsuarioListado } from '@/lib/tipos';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 import {
   buscarUnidades, catalogoPermissoes, convidarUsuario, definirAdminPlataforma, definirStatusUsuario, definirStatusVinculo,
   listarUnidades, listarUsuarios, reenviarAcesso,
@@ -282,21 +283,21 @@ export function Usuarios() {
               value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar usuário" />
           </div>
           {(coordenacoes.data?.length ?? 0) > 1 ? (
-            <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={coordenacao} aria-label="Filtrar por coordenação"
+            <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={coordenacao} aria-label="Filtrar por coordenação"
               onChange={(e) => { setCoordenacao(e.target.value); setPagina(0); }}>
               <option value="">Todas as coordenações</option>
               {coordenacoes.data!.map((c) => <option key={c.id} value={c.id}>{[c.diretoria, c.sigla].filter(Boolean).join(' · ') || c.nome}</option>)}
-            </select>
+            </ListaSelecao>
           ) : <span className="hidden sm:block" />}
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={papel} aria-label="Filtrar por papel"
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={papel} aria-label="Filtrar por papel"
             onChange={(e) => { setPapel(e.target.value as Papel); setPagina(0); }}>
             <option value="">Todos os papéis</option>
             {cat.data?.papeis.map((p) => <option key={p.codigo} value={p.codigo}>{p.nome}</option>)}
-          </select>
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} aria-label="Situação"
+          </ListaSelecao>
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} aria-label="Situação"
             onChange={(e) => { setSituacao(e.target.value as typeof situacao); setPagina(0); }}>
             <option value="ATIVOS">Ativos</option><option value="INATIVOS">Suspensos</option><option value="TODOS">Todos</option>
-          </select>
+          </ListaSelecao>
           {filtrosAtivos && <Botao variante="fantasma" onClick={() => { setBusca(''); setPapel(''); setCoordenacao(''); setSituacao('ATIVOS'); setPagina(0); }}>Limpar filtros</Botao>}
         </div>
 

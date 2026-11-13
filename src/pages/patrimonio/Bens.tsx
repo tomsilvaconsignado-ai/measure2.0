@@ -23,6 +23,7 @@ import {
 import { Dado, rotuloUnidade, SeletorLocal, SeletorResponsavel, SeletorSetor, SeloConservacao, SeloMov, SeloSituacao, useCategorias } from './comum';
 import { NovaMovimentacao } from './Movimentacoes';
 import { pdfHistorico } from './pdf';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const POR_PAGINA = 25;
 const hoje = () => new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
@@ -300,14 +301,14 @@ export function Bens({ cadastro = false }: { cadastro?: boolean }) {
       <Cartao>
         <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="md:col-span-2"><CampoBusca valor={busca} aoMudar={setBusca} rotulo="Buscar bens" placeholder="Número patrimonial, descrição, marca, modelo ou série" /></div>
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
             <option value="">Todas as categorias</option>{(cats.data ?? []).filter((c) => !c.pai_id).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
-          <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
+          </ListaSelecao>
+          <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value)} aria-label="Situação">
             <option value="">Todas as situações (sem baixados)</option>
             {situacao && !SITUACAO[situacao] && <option value={situacao}>{situacao.split(',').map((s) => SITUACAO[s]).join(' / ')}</option>}
             {Object.entries(SITUACAO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </ListaSelecao>
         </div>
         <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <SeletorSetor rotulo="Diretoria / coordenação / setor" valor={setor?.id ?? null} rotuloValor={setor?.rotulo} aoMudar={(v, o) => setSetor(v && o ? { id: v, rotulo: o.rotulo } : null)} />

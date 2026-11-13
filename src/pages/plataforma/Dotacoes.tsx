@@ -20,6 +20,7 @@ import {
   type CampoEmpenho, type CamposEmpenho, type ResultadoImportacaoDotacoes,
 } from '@/services/cadastros';
 import { NaturezasDespesa } from './NaturezasDespesa';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const POR_PAGINA = 25;
 const NATUREZAS = { PROJETO: 'Projeto', ATIVIDADE: 'Atividade', OPERACAO_ESPECIAL: 'Operação especial' } as const;
@@ -351,14 +352,14 @@ function DotacoesDoEnte({ ente, orgaosDoEnte }: { ente: Ente; orgaosDoEnte: Tena
     <>
       <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_9rem_9rem_auto] lg:items-center">
         <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Código, fonte, ação, elemento, unidade ou descrição" rotulo="Buscar dotação" />
-        <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
+        <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={exercicio} onChange={(e) => setExercicio(e.target.value)} aria-label="Exercício">
           <option value="">Todos os exercícios</option>
           {[ANO_ATUAL + 1, ANO_ATUAL, ANO_ATUAL - 1, ANO_ATUAL - 2].map((a) => <option key={a} value={a}>Exercício {a}</option>)}
           <option value="SEM">Sem exercício</option>
-        </select>
-        <select className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
+        </ListaSelecao>
+        <ListaSelecao className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm" value={situacao} onChange={(e) => setSituacao(e.target.value as typeof situacao)} aria-label="Situação">
           <option value="ATIVOS">Ativas</option><option value="INATIVOS">Inativas</option><option value="TODOS">Todas</option>
-        </select>
+        </ListaSelecao>
         <div className="flex flex-wrap gap-2">
           <Botao variante="secundario" icone={<Download className="size-4" />} onClick={() => void baixarModelo()}>Modelo</Botao>
           <input ref={entrada} type="file" accept=".xlsx,.csv" className="hidden" onChange={(e) => { setArquivo(e.target.files?.[0] ?? null); e.target.value = ''; }} />

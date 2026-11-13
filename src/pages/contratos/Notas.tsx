@@ -30,6 +30,7 @@ import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
 import { ExtratosNotas } from './ExtratosNotas';
 import { AvisoVencido, BotaoAtestar, BotaoBaixa, BotaoVisualizar, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 const POR_PAGINA = 25;
 const PAPEL_ATESTO: Record<string, string> = { GESTOR: 'gestor', FISCAL: 'fiscal', SUPLENTE: 'suplente de fiscal', LANCADOR: 'quem lançou a nota' };
@@ -270,9 +271,9 @@ function NovaNota({ aberto, aoFechar, contratoInicial, empenhoInicial, aoSalvar,
       {etapa === 'referencia' && <div className="flex flex-col gap-5">
         <div>
           <div className="mb-2 flex items-center gap-3"><span className="text-sm font-medium text-slate-700">Meses de referência *</span>
-            <select className="h-8 rounded-lg border border-slate-300 px-2 text-sm" value={ano} onChange={(e) => setAno(Number(e.target.value))} aria-label="Ano de referência">
+            <ListaSelecao className="h-8 rounded-lg border border-slate-300 px-2 text-sm" value={ano} onChange={(e) => setAno(Number(e.target.value))} aria-label="Ano de referência">
               {Array.from({ length: 6 }, (_, k) => new Date().getFullYear() - 3 + k).map((a) => <option key={a}>{a}</option>)}
-            </select></div>
+            </ListaSelecao></div>
           <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-12">
             {MESES.map((m, k) => {
               const marcado = meses.some((x) => x.ano === ano && x.mes === k + 1);

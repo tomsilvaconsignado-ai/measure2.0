@@ -1,8 +1,11 @@
 import { AlertTriangle, ChevronLeft, ChevronRight, Inbox, Loader2, Lock } from 'lucide-react';
 import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
+import { ListaSelecao } from './ListaSelecao';
+
 const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(' ');
 export { cx };
+export { ListaSelecao };
 
 type Variante = 'primario' | 'secundario' | 'perigo' | 'fantasma';
 const VARIANTES: Record<Variante, string> = {
@@ -84,7 +87,7 @@ export function Selecao({ rotulo, erro, ajuda, obrigatorio, className, id, child
   const cid = id ?? gerado;
   return (
     <Moldura id={cid} rotulo={rotulo} erro={erro} ajuda={ajuda} obrigatorio={obrigatorio} className={className}>
-      <select id={cid} required={obrigatorio} aria-invalid={!!erro} className={cx(estiloEntrada(erro), 'h-10')} {...resto}>{children}</select>
+      <ListaSelecao id={cid} required={obrigatorio} aria-invalid={!!erro} aria-describedby={erro ? `${cid}-erro` : ajuda ? `${cid}-ajuda` : undefined} {...resto}>{children}</ListaSelecao>
     </Moldura>
   );
 }

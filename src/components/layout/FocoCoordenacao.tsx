@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { mensagemDeErro } from '@/lib/erros';
 import { supabase } from '@/lib/supabase';
+import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
 interface Coordenacao { id: string; nome: string; sigla: string | null; diretoria: string | null }
 
@@ -38,13 +39,13 @@ export function FocoCoordenacao() {
     <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-marca-50/60 px-4 py-2 text-sm sm:px-6">
       <Filter className="size-4 text-marca-700" aria-hidden />
       <label htmlFor="foco-coordenacao" className="font-medium text-slate-700">Coordenação em visualização</label>
-      <select id="foco-coordenacao" className="min-w-0 max-w-full flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm sm:max-w-md sm:flex-none"
+      <ListaSelecao id="foco-coordenacao" className="min-w-0 max-w-full flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm sm:max-w-md sm:flex-none"
         value={foco?.unidade_id ?? ''} disabled={salvando} onChange={(e) => void mudar(e.target.value)}>
         <option value="">Todas as coordenações</option>
         {opcoes.data!.map((c) => (
           <option key={c.id} value={c.id}>{[c.diretoria, c.sigla].filter(Boolean).join(' · ')}{c.sigla ? ' — ' : ''}{c.nome}</option>
         ))}
-      </select>
+      </ListaSelecao>
       {foco && <span className="text-xs text-slate-500">Mostrando só a {foco.sigla ?? foco.nome}.</span>}
     </div>
   );
