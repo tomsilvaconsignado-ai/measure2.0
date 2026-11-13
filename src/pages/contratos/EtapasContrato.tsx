@@ -28,20 +28,20 @@ export function EtapasContrato({ c, abaAtual, irParaAba }: { c: ContratoResumo; 
   ];
   const proxima = etapas.findIndex((e) => !e.feito);
   return (
-    <nav aria-label="Etapas do contrato" className="mb-4 rounded-xl border border-slate-200 bg-white p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Etapas do contrato</p>
-      <ol className="grid gap-2 sm:grid-cols-4">
+    <nav aria-label="Etapas do contrato" className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <p className="bg-marca-900 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white">Etapas do contrato</p>
+      <ol className="grid gap-2 p-3 sm:grid-cols-4">
         {etapas.map((e, i) => {
           const atual = i === proxima;
           return (
             <li key={e.titulo} aria-current={atual ? 'step' : undefined}
-              className={cx('flex items-start gap-2.5 rounded-lg border p-2.5', e.feito ? 'border-emerald-200 bg-emerald-50/60' : atual ? 'border-amber-300 bg-amber-50' : 'border-slate-200')}>
-              <span className={cx('mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                e.feito ? 'bg-emerald-600 text-white' : atual ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-600')}>
+              className={cx('flex items-start gap-2.5 rounded-lg border-2 p-2.5', e.feito ? 'border-acento-300 bg-acento-50' : atual ? 'border-chamada-500 bg-chamada-300/30' : 'border-slate-200')}>
+              <span className={cx('mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold',
+                e.feito ? 'bg-acento-600 text-white' : atual ? 'bg-chamada-500 text-marca-950' : 'bg-slate-200 text-slate-600')}>
                 {e.feito ? <Check className="size-3.5" aria-label="feito" /> : i + 1}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-slate-900">{e.titulo}</span>
+                <span className="block text-sm font-bold text-marca-900">{e.titulo}</span>
                 <span className="block text-xs text-slate-600">{e.detalhe}</span>
                 {e.acao && (atual || (i === 3 && e.feito)) && (
                   <Botao pequeno destaque={atual} variante={atual ? 'primario' : 'secundario'} className="mt-1.5" onClick={e.acao.fazer}>{e.acao.rotulo}</Botao>

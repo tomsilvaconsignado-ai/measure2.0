@@ -27,19 +27,21 @@ export function Modal({ aberto, aoFechar, titulo, descricao, children, rodape, l
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) aoFechar(); }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="modal-titulo"
-        className={cx('flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl',
+        className={cx('flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl',
           { sm: 'sm:max-w-md', md: 'sm:max-w-xl', lg: 'sm:max-w-3xl' }[largura])}>
-        <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        {/* faixa azul-marinho com o título, como os blocos do termo de abertura */}
+        <header className="relative flex items-start justify-between gap-3 bg-gradient-to-r from-marca-950 to-marca-800 px-5 py-4">
           <div className="min-w-0">
-            <h2 id="modal-titulo" className="text-base font-semibold text-slate-900">{titulo}</h2>
-            {descricao && <p className="mt-0.5 text-sm text-slate-600">{descricao}</p>}
+            <h2 id="modal-titulo" className="text-base font-bold uppercase tracking-wide text-white">{titulo}</h2>
+            {descricao && <p className="mt-1 text-sm text-marca-100">{descricao}</p>}
           </div>
-          <button data-fechar type="button" onClick={aoFechar} className="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
+          <button data-fechar type="button" onClick={aoFechar} className="rounded-md p-1 text-marca-100 hover:bg-white/10 hover:text-white" aria-label="Fechar">
             <X className="size-5" />
           </button>
+          <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-acento-400 via-acento-500 to-chamada-400" aria-hidden />
         </header>
         <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {rodape && <footer className="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-3">{rodape}</footer>}
+        {rodape && <footer className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">{rodape}</footer>}
       </div>
     </div>,
     document.body,

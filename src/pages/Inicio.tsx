@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Banknote, Building2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
+import { BadgeCheck, Banknote, CheckCircle2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
@@ -13,16 +13,20 @@ import { AtivarPush } from '@/pages/MinhasNotificacoes';
 
 function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: ReactNode; icone: ReactNode; para?: string }) {
   const conteudo = (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-marca-200">
-      <span className="flex size-11 items-center justify-center rounded-lg bg-marca-50 text-marca-700">{icone}</span>
+    <div className="flex items-center gap-4 rounded-xl border border-slate-200 border-l-4 border-l-acento-500 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <span className="flex size-12 items-center justify-center rounded-full bg-marca-900 text-white">{icone}</span>
       <span>
-        <span className="numero block text-2xl font-semibold text-slate-900">{valor}</span>
-        <span className="block text-sm text-slate-600">{rotulo}</span>
+        <span className="numero block text-3xl font-extrabold leading-none text-marca-900">{valor}</span>
+        <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">{rotulo}</span>
       </span>
     </div>
   );
   return para ? <Link to={para}>{conteudo}</Link> : conteudo;
 }
+
+// Aviso de pendência: faixa azul-marinho com o comando na chamada amarela
+const AVISO = 'mb-3 flex flex-wrap items-center gap-3 rounded-xl border-l-4 border-chamada-500 bg-marca-900 p-4 text-sm text-marca-50 shadow-md transition-colors hover:bg-marca-800';
+const CHAMADA = 'rounded-lg bg-chamada-500 px-3 py-1.5 text-sm font-bold text-marca-950 shadow-sm';
 
 // Atalhos do dia a dia (cada um só aparece para quem pode usar o módulo)
 const ATALHOS: Array<{ para: string; rotulo: string; descricao: string; recurso?: Recurso }> = [
@@ -62,17 +66,17 @@ export function Inicio() {
       )}
 
       {!!pendencias.atesto && (
-        <Link to="/notas?filtro=ATESTO" className="mb-3 flex items-center gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 hover:bg-amber-100">
-          <span className="relative"><BadgeCheck className="size-5 shrink-0" /><PontoPendente className="absolute -right-1.5 -top-1.5" /></span>
-          <span className="flex-1"><strong>{pendencias.atesto} nota{pendencias.atesto > 1 ? 's' : ''} fisca{pendencias.atesto > 1 ? 'is' : 'l'}</strong> aguardando o seu atesto.</span>
-          <span className="font-medium">Atestar →</span>
+        <Link to="/notas?filtro=ATESTO" className={AVISO}>
+          <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-chamada-500 text-marca-950"><BadgeCheck className="size-5" /><PontoPendente className="absolute -right-1 -top-1" /></span>
+          <span className="flex-1"><strong className="text-base">{pendencias.atesto} nota{pendencias.atesto > 1 ? 's' : ''} fisca{pendencias.atesto > 1 ? 'is' : 'l'}</strong> aguardando o seu atesto.</span>
+          <span className={CHAMADA}>Atestar agora →</span>
         </Link>
       )}
       {!!pendencias.pagamento && (
-        <Link to="/pagamentos" className="mb-3 flex items-center gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 hover:bg-amber-100">
-          <span className="relative"><Banknote className="size-5 shrink-0" /><PontoPendente className="absolute -right-1.5 -top-1.5" /></span>
-          <span className="flex-1"><strong>{pendencias.pagamento} nota{pendencias.pagamento > 1 ? 's' : ''} atestada{pendencias.pagamento > 1 ? 's' : ''}</strong> aguardando a baixa do pagamento.</span>
-          <span className="font-medium">Dar baixa →</span>
+        <Link to="/pagamentos" className={AVISO}>
+          <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-chamada-500 text-marca-950"><Banknote className="size-5" /><PontoPendente className="absolute -right-1 -top-1" /></span>
+          <span className="flex-1"><strong className="text-base">{pendencias.pagamento} nota{pendencias.pagamento > 1 ? 's' : ''} atestada{pendencias.pagamento > 1 ? 's' : ''}</strong> aguardando a baixa do pagamento.</span>
+          <span className={CHAMADA}>Dar baixa →</span>
         </Link>
       )}
       <FluxoTrabalho />
@@ -92,7 +96,7 @@ export function Inicio() {
             <ul className="flex flex-col gap-3">
               {vinculosDoOrgao.map((v) => (
                 <li key={v.id} className="flex items-start gap-3">
-                  <Building2 className="mt-0.5 size-4 shrink-0 text-slate-400" />
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-acento-600" aria-hidden />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900">{v.papel_nome} {v.somente_leitura && <Selo tom="info">Somente leitura</Selo>}</p>
                     <p className="text-sm text-slate-600">{v.unidade ? `${v.unidade.nome}${v.unidade.sigla ? ` (${v.unidade.sigla})` : ''} e unidades abaixo` : 'Órgão inteiro'}</p>
@@ -108,9 +112,12 @@ export function Inicio() {
           <ul className="grid gap-2 sm:grid-cols-2">
             {ATALHOS.filter((a) => (!a.recurso || pode(a.recurso, 'ler')) && (orgao || a.para === '/ajuda')).map((a) => (
               <li key={a.para}>
-                <Link to={a.para} className="block rounded-xl border border-slate-200 p-3 hover:border-marca-300 hover:bg-marca-50">
-                  <span className="block text-sm font-medium text-slate-900">{a.rotulo}</span>
-                  <span className="block text-xs text-slate-600">{a.descricao}</span>
+                <Link to={a.para} className="group flex h-full items-start gap-2.5 rounded-xl border border-slate-200 p-3 transition-all hover:-translate-y-0.5 hover:border-marca-400 hover:shadow-md">
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-acento-600" aria-hidden />
+                  <span>
+                    <span className="block text-sm font-bold text-marca-900 group-hover:text-marca-700">{a.rotulo}</span>
+                    <span className="block text-xs text-slate-600">{a.descricao}</span>
+                  </span>
                 </Link>
               </li>
             ))}

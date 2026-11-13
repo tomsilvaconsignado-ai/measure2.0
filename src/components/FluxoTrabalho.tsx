@@ -18,23 +18,27 @@ export function FluxoTrabalho() {
     { n: 6, titulo: 'Pagamento', texto: 'Baixa com retenções e data', para: '/pagamentos', ok: pode('notas_fiscais', 'editar'), pendentes: pendencias.pagamento },
     { n: 7, titulo: 'Documentos', texto: 'Checklist, extratos e relatórios', para: '/relatorios', ok: true },
   ].filter((p) => p.ok);
+  // faixa azul-marinho com o título; passos numerados como uma linha do tempo; o passo com pendência
+  // do usuário fica na chamada amarela, com a quantidade e o comando para resolver
   return (
-    <section aria-label="Fluxo de trabalho" className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-900">Fluxo de trabalho</h2>
-        <Link to="/ajuda" className="text-xs text-marca-700 hover:underline">Como fazer cada passo</Link>
+    <section aria-label="Fluxo de trabalho" className="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-marca-900 px-4 py-2.5">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-white">Fluxo de trabalho</h2>
+        <Link to="/ajuda" className="text-xs font-medium text-chamada-300 hover:text-white">Como fazer cada passo →</Link>
       </div>
-      <ol className="grid gap-2 sm:grid-cols-4 xl:grid-cols-7">
+      <ol className="grid gap-2 p-3 sm:grid-cols-4 xl:grid-cols-7">
         {passos.map((p, i) => (
-          <li key={p.n}>
-            <Link to={p.para} className={cx('group flex h-full flex-col rounded-lg border p-2.5 transition-colors',
-              p.pendentes ? 'border-amber-300 bg-amber-50 hover:bg-amber-100' : 'border-slate-200 hover:border-marca-300 hover:bg-marca-50')}>
+          <li key={p.n} className="relative">
+            <Link to={p.para} className={cx('group flex h-full flex-col rounded-lg border-2 p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md',
+              p.pendentes ? 'border-chamada-500 bg-chamada-300/30 hover:bg-chamada-300/50' : 'border-slate-200 bg-white hover:border-marca-400')}>
               <span className="flex items-center gap-1.5">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-marca-700 text-[11px] font-bold text-white">{i + 1}</span>
-                <span className="text-sm font-medium text-slate-900">{p.titulo}</span>
+                <span className={cx('flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold',
+                  p.pendentes ? 'bg-chamada-500 text-marca-950' : 'bg-marca-900 text-white')}>{i + 1}</span>
+                <span className="text-sm font-bold text-marca-900">{p.titulo}</span>
                 {!!p.pendentes && <ContadorPendente n={p.pendentes} className="ml-auto" />}
               </span>
               <span className="mt-1 text-xs leading-snug text-slate-600">{p.texto}</span>
+              {!!p.pendentes && <span className="mt-2 inline-flex w-fit items-center rounded-md bg-chamada-500 px-2 py-0.5 text-xs font-bold text-marca-950">Resolver agora →</span>}
             </Link>
           </li>
         ))}

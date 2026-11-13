@@ -143,7 +143,7 @@ export function ListaSelecao({ value, defaultValue, onChange, disabled, children
   return (
     <>
       <button
-        ref={botao} id={idBotao} type="button" disabled={disabled} role="combobox" aria-haspopup="listbox" aria-expanded={aberto} aria-controls={idLista}
+        ref={botao} id={idBotao} type="button" data-variante="campo" disabled={disabled} role="combobox" aria-haspopup="listbox" aria-expanded={aberto} aria-controls={idLista}
         aria-required={required || undefined} aria-label={aria['aria-label']} aria-invalid={aria['aria-invalid']} aria-describedby={aria['aria-describedby']}
         title={aria.title ?? selecionado?.rotulo}
         onClick={() => setAberto((a) => !a)} onKeyDown={tecla} style={style}

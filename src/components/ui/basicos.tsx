@@ -7,12 +7,16 @@ const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean)
 export { cx };
 export { ListaSelecao };
 
-type Variante = 'primario' | 'secundario' | 'perigo' | 'fantasma';
+// Identidade visual: azul-marinho para a ação principal, amarelo de chamada para o próximo passo do fluxo
+// (e para ação pendente), verde para concluir/confirmar, vermelho para operações de risco.
+type Variante = 'primario' | 'secundario' | 'perigo' | 'fantasma' | 'chamada' | 'sucesso';
 const VARIANTES: Record<Variante, string> = {
-  primario: 'bg-marca-700 text-white hover:bg-marca-800 disabled:bg-marca-300',
-  secundario: 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 disabled:text-slate-400',
-  perigo: 'bg-red-700 text-white hover:bg-red-800 disabled:bg-red-300',
+  primario: 'bg-marca-800 text-white shadow-sm hover:bg-marca-900 disabled:bg-marca-300 disabled:shadow-none',
+  secundario: 'bg-white text-marca-900 border border-slate-300 shadow-sm hover:border-marca-400 hover:bg-marca-50 disabled:text-slate-400 disabled:shadow-none',
+  perigo: 'bg-red-700 text-white shadow-sm hover:bg-red-800 disabled:bg-red-300 disabled:shadow-none',
   fantasma: 'text-slate-700 hover:bg-slate-100 disabled:text-slate-400',
+  chamada: 'bg-chamada-500 font-bold text-marca-950 shadow-sm hover:bg-chamada-400 disabled:bg-chamada-300 disabled:text-marca-950/50',
+  sucesso: 'bg-acento-600 font-semibold text-white shadow-sm hover:bg-acento-700 disabled:bg-acento-300',
 };
 
 export const Botao = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -20,13 +24,16 @@ export const Botao = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButt
   /** ação pendente: anel e ponto pulsante até a ação ser feita */
   destaque?: boolean;
 }>(function Botao({ variante = 'primario', carregando, icone, pequeno, destaque, className, children, disabled, type = 'button', ...resto }, ref) {
+  // ação pendente do fluxo: vira a chamada amarela, com anel e ponto pulsante
+  const v: Variante = destaque && !disabled && (variante === 'primario' || variante === 'secundario') ? 'chamada' : variante;
   return (
     <button
       ref={ref}
       type={type}
       disabled={disabled || carregando}
+      data-variante={v}
       className={cx('inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed',
-        pequeno ? 'h-8 px-3 text-sm' : 'h-10 px-4 text-sm', VARIANTES[variante], destaque && !disabled && 'relative ring-2 ring-amber-400 ring-offset-2', className)}
+        pequeno ? 'h-8 px-3 text-sm' : 'h-10 px-4 text-sm', VARIANTES[v], destaque && !disabled && 'relative ring-2 ring-chamada-400 ring-offset-2', className)}
       {...resto}
     >
       {carregando ? <Loader2 className="size-4 animate-spin" aria-hidden /> : icone}
@@ -118,19 +125,20 @@ const TONS: Record<Tom, string> = {
 };
 export function Selo({ tom = 'neutro', children, icone }: { tom?: Tom; children: ReactNode; icone?: ReactNode }) {
   return (
-    <span className={cx('inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset', TONS[tom])}>
+    <span className={cx('inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset', TONS[tom])}>
       {icone}{children}
     </span>
   );
 }
 
+/** Cartão. Com título: faixa azul-marinho com o título em branco (como os blocos de um termo de abertura). */
 export function Cartao({ children, className, titulo, acoes }: { children: ReactNode; className?: string; titulo?: ReactNode; acoes?: ReactNode }) {
   return (
-    <section className={cx('rounded-xl border border-slate-200 bg-white', className)}>
+    <section className={cx('overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm', className)}>
       {(titulo || acoes) && (
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
-          <h2 className="text-sm font-semibold text-slate-800">{titulo}</h2>
-          {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
+        <header className="faixa-pagina flex flex-wrap items-center justify-between gap-2 bg-marca-900 px-4 py-2.5 sm:px-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">{titulo}</h2>
+          {acoes && <div className="flex flex-wrap items-center gap-2 [&_a]:text-chamada-300 [&_button:not([data-variante])]:text-chamada-300">{acoes}</div>}
         </header>
       )}
       <div className="p-4 sm:p-5">{children}</div>
@@ -138,13 +146,30 @@ export function Cartao({ children, className, titulo, acoes }: { children: React
   );
 }
 
+/** Título da página: faixa azul-marinho com linha de acento; o botão principal vira a chamada amarela. */
 export function CabecalhoPagina({ titulo, descricao, acoes }: { titulo: string; descricao?: ReactNode; acoes?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{titulo}</h1>
-        {descricao && <p className="mt-1 text-sm text-slate-600">{descricao}</p>}
+    <div className="faixa-pagina relative mb-5 overflow-hidden rounded-xl bg-gradient-to-r from-marca-950 via-marca-900 to-marca-800 px-5 py-4 shadow-md sm:px-6 sm:py-5">
+      <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-white/5" aria-hidden />
+      <div className="relative flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl">{titulo}</h1>
+          <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-acento-400 to-chamada-400" aria-hidden />
+          {descricao && <div className="mt-2 text-sm text-marca-100 [&_a]:text-chamada-300 [&_a:hover]:text-white">{descricao}</div>}
+        </div>
+        {acoes && <div className="flex flex-wrap items-center gap-2 [&_a:not([data-variante])]:text-chamada-300 [&_button:not([data-variante])]:text-marca-50">{acoes}</div>}
       </div>
+    </div>
+  );
+}
+
+/** Subtítulo de seção dentro de um cartão (barra de acento + texto em caixa alta) */
+export function TituloSecao({ children, acoes, className }: { children: ReactNode; acoes?: ReactNode; className?: string }) {
+  return (
+    <div className={cx('mb-3 flex flex-wrap items-center justify-between gap-2 border-b-2 border-marca-900 pb-1.5', className)}>
+      <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-marca-900">
+        <span className="h-4 w-1 rounded-full bg-acento-500" aria-hidden />{children}
+      </h3>
       {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
     </div>
   );
@@ -160,9 +185,9 @@ export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {
 
 export function Vazio({ titulo, descricao, acao }: { titulo: string; descricao?: string; acao?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-      <Inbox className="size-8 text-slate-300" aria-hidden />
-      <p className="text-sm font-medium text-slate-700">{titulo}</p>
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-10 text-center">
+      <span className="grid size-12 place-items-center rounded-full bg-marca-100 text-marca-700"><Inbox className="size-6" aria-hidden /></span>
+      <p className="text-sm font-bold text-marca-900">{titulo}</p>
       {descricao && <p className="max-w-md text-sm text-slate-500">{descricao}</p>}
       {acao}
     </div>

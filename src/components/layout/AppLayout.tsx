@@ -63,7 +63,9 @@ function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Ite
     <NavLink to={item.para} onClick={aoNavegar} end={['/', '/ajuda', '/conecta'].includes(item.para)}
       data-flip={item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
       className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
-        isActive ? 'bg-white/12 font-medium text-white' : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
+        // item ativo: fundo claro e barra de acento verde à esquerda
+        isActive ? 'bg-white/15 font-semibold text-white shadow-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-acento-400'
+          : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
       {item.icone}
       {!recolhido && <span data-rotulo className="flex-1 truncate">{item.rotulo}</span>}
       {recolhido
@@ -78,7 +80,7 @@ function Grupo({ titulo, children, recolhido = false }: { titulo: string; childr
     <div className="flex flex-col gap-0.5" role="group" aria-label={titulo}>
       {recolhido
         ? <div data-flip={'grupo:' + titulo} className="mx-3 mb-1.5 mt-3.5 h-px bg-white/10" aria-hidden />
-        : <p data-flip={'grupo:' + titulo} data-rotulo className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-marca-300">{titulo}</p>}
+        : <p data-flip={'grupo:' + titulo} data-rotulo className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider text-acento-300">{titulo}</p>}
       {children}
     </div>
   );
@@ -160,7 +162,7 @@ export function AppLayout() {
   const cadastros = CADASTROS.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
 
   const menuLateral = (rec: boolean) => (
-    <nav className="flex h-full flex-col bg-marca-900 px-3 pb-4 text-white" aria-label="Menu principal">
+    <nav className="flex h-full flex-col bg-gradient-to-b from-marca-950 via-marca-900 to-marca-950 px-3 pb-4 text-white" aria-label="Menu principal">
       <div className="flex h-16 items-center justify-between px-2" style={rec ? { width: LARGURA_RECOLHIDO - 24 } : undefined}>
         {rec ? <Simbolo clara className="h-7 w-auto" /> : <span data-rotulo><Marca clara /></span>}
         <button className="rounded-md p-1 text-marca-200 hover:bg-white/10 lg:hidden" onClick={fecharMenu} aria-label="Fechar menu"><X className="size-5" /></button>
@@ -214,7 +216,8 @@ export function AppLayout() {
         </div>
       )}
 
-      <header ref={cabecalhoRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header ref={cabecalhoRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-marca-900 via-acento-500 to-chamada-400" aria-hidden />
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
           <button className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setMenuAberto(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
 

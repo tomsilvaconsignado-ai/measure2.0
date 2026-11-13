@@ -15,6 +15,20 @@
   --color-marca-800: #16335f;
   --color-marca-900: #0f2a4a;
   --color-marca-950: #0a1b31;
+  /* Acento verde-azulado (conferido, concluído, linha de destaque) */
+  --color-acento-50: #ecfbf6;
+  --color-acento-100: #d0f5e8;
+  --color-acento-300: #6fdcb7;
+  --color-acento-400: #34c79a;
+  --color-acento-500: #14a87f;
+  --color-acento-600: #0b8a68;
+  --color-acento-700: #0a6e54;
+  /* Amarelo de chamada: o próximo passo do fluxo de trabalho */
+  --color-chamada-300: #fde68a;
+  --color-chamada-400: #fcd34d;
+  --color-chamada-500: #f5b70a;
+  --color-chamada-600: #d99a00;
+  --color-chamada-950: #3a2a00;
 }
 
 :root {
@@ -23,7 +37,7 @@
 
 body {
   margin: 0;
-  background: #f4f6fa;
+  background: #eef2f8;
   color: #0f172a;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -38,6 +52,41 @@ body {
 .numero {
   font-variant-numeric: tabular-nums;
 }
+
+/* ===================================================================== identidade visual
+   Tabelas do sistema (só dentro da área principal; os documentos A4 ficam fora do layout e não mudam):
+   cabeçalho azul-marinho com texto branco, linhas alternadas e destaque ao passar o mouse. */
+main table thead th {
+  background: var(--color-marca-900);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.75rem;
+  border-color: var(--color-marca-800);
+  vertical-align: middle;
+}
+main table thead th:first-child { border-top-left-radius: 0.5rem; }
+main table thead th:last-child { border-top-right-radius: 0.5rem; }
+main table thead tr { border-bottom: 0; }
+main table tbody td { padding-left: 0.75rem; padding-right: 0.75rem; }
+main table tbody tr:nth-child(even) { background: #f6f8fc; }
+main table tbody tr:hover { background: var(--color-marca-50); }
+main table tfoot td, main table tfoot th { background: var(--color-marca-50); font-weight: 600; padding-left: 0.75rem; padding-right: 0.75rem; }
+
+/* Faixa do título da página: botão principal vira a chamada amarela (contraste no azul-marinho) */
+.faixa-pagina [data-variante='primario'] {
+  background: var(--color-chamada-500);
+  color: var(--color-marca-950);
+  font-weight: 700;
+}
+.faixa-pagina [data-variante='primario']:hover:not(:disabled) { background: var(--color-chamada-400); }
+.faixa-pagina [data-variante='secundario'] { background: rgb(255 255 255 / 0.08); color: #fff; border-color: rgb(255 255 255 / 0.35); }
+.faixa-pagina [data-variante='secundario']:hover:not(:disabled) { background: rgb(255 255 255 / 0.16); }
+.faixa-pagina label { color: var(--color-marca-100); }
+.faixa-pagina [data-variante='fantasma'] { color: var(--color-marca-100); }
+.faixa-pagina [data-variante='fantasma']:hover:not(:disabled) { background: rgb(255 255 255 / 0.1); color: #fff; }
 
 /* Impressão dos documentos emitidos (A4) */
 @page {
