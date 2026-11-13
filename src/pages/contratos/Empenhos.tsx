@@ -7,18 +7,18 @@ import { useSessao } from '@/auth/Sessao';
 import { CadastradoPor, useAutoria } from '@/lib/autoria';
 import { useBuscaAtrasada } from '@/components/ImagemPrivada';
 import { CampoBusca } from '@/components/ui/Abas';
-import { BuscaSelect } from '@/components/ui/BuscaSelect';
 import { BarraUso, CampoMoeda } from '@/components/ui/CampoMoeda';
 import { AreaTexto, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
 import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { brl, centavos, decimalDeCentavos, formatarData } from '@/lib/formatacao';
 import type { EmpenhoResumo } from '@/lib/tipos';
-import { dotacaoDoEmpenho, listarUnidadesAtendidas } from '@/services/cadastros';
+import { dotacaoDoEmpenho } from '@/services/cadastros';
 import {
   cancelarReforco, criarReforco, definirStatusEmpenho, emitirExtrato, listarDotacoesContrato, listarEmpenhos, listarNotas, listarReforcos,
   obterContrato, obterEmpenho, salvarEmpenho, unidadesDoEmpenho,
 } from '@/services/execucao';
+import { SeletorUnidadesAtendidas } from '@/components/SeletorUnidadesAtendidas';
 import { ClassificacaoEmpenho, classificacaoVazia, faltandoNaClassificacao, idsDaClassificacao, type ValorClassificacao } from './ClassificacaoEmpenho';
 import { AvisoVencido, SeletorContrato, SeloAtesto, SeloPagamento, documentoFornecedor } from './comum';
 
@@ -143,16 +143,8 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
         </div>
         {c && <p className="-mt-2 text-xs text-slate-500">Contrato: saldo {brl(c.saldo)} · já empenhado {brl(c.empenhado)} · vigência até {formatarData(c.data_fim_atual)}</p>}
 
-        <div>
-          <BuscaSelect rotulo="Unidades atendidas" valor={null} chave={['ua-opcoes', orgao?.id, unidades.length]} ajuda="Escolha uma ou várias."
-            aoMudar={(v, o) => { if (v && o && !unidades.some((u) => u.id === v)) setUnidades((x) => [...x, { id: v, nome: o.rotulo }]); }}
-            buscar={async (t) => (await listarUnidadesAtendidas({ tenantId: orgao!.id, busca: t, situacao: 'ATIVOS', limite: 20, offset: 0 })).itens
-              .filter((u) => !unidades.some((x) => x.id === u.id)).map((u) => ({ valor: u.id, rotulo: u.nome, detalhe: u.eh_grupo ? 'Grupo de rateio' : u.tipo }))} />
-          {unidades.length > 0 && <ul className="mt-2 flex flex-wrap gap-2">{unidades.map((u) => (
-            <li key={u.id} className="inline-flex items-center gap-1 rounded-lg bg-marca-50 px-2.5 py-1 text-sm text-marca-900 ring-1 ring-marca-200">
-              {u.nome}<button type="button" className="rounded p-0.5 hover:bg-marca-100" aria-label={`Tirar ${u.nome}`} onClick={() => setUnidades((x) => x.filter((y) => y.id !== u.id))}><X className="size-3.5" /></button>
-            </li>))}</ul>}
-        </div>
+        <SeletorUnidadesAtendidas valor={unidades} aoMudar={setUnidades}
+          ajuda="Marque quantas quiser: filtre por tipo e use “Marcar todas”, ou “+ unidades do grupo” para trazer todas as de um grupo." />
 
         <AreaTexto rotulo="Histórico" value={f.observacoes} onChange={set('observacoes')} maxLength={2000} rows={4}
           placeholder="Ex.: Memo, pregão, ata de registro de preço, ordem de fornecimento e descrição do objeto" />
