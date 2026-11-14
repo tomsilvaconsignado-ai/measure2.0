@@ -409,7 +409,7 @@ function Trilha() {
         </nav>
         <h2 className="text-xl font-semibold text-slate-900">{l.titulo}</h2>
         <p className="text-sm text-slate-600">{l.resumo}</p>
-        <p className="mt-1 flex flex-wrap gap-1">{l.publico.map((p) => <span key={p} className="rounded-full bg-marca-100 px-2 py-0.5 text-[11px] font-medium text-marca-800">{p}</span>)}</p>
+        <p className="mt-1 flex flex-wrap gap-1">{l.publico.map((p) => <span key={p} className="rounded-full bg-marca-100 px-2 py-0.5 text-xs font-medium text-marca-800">{p}</span>)}</p>
         <div className="mx-auto max-w-4xl">
           {l.conteudo}
           <ParaLembrar pontos={l.pontos} />

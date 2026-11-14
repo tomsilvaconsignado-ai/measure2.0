@@ -76,7 +76,7 @@ function Fundamentos({ c, editar }: { c: Catalogos; editar: (d: Record<string, u
             <span className="flex-1"><b>{citacao(f)}</b> <Selo>{f.regime === 'MUNICIPAL' ? 'Municipal' : REGIMES[f.regime as keyof typeof REGIMES] ?? f.regime}</Selo>
               {f.revisao_pendente && <Selo tom="alerta">revisão jurídica</Selo>} {f.tenant_id && <Selo tom="info">do órgão</Selo>}
               <span className="block text-xs text-slate-600">{f.texto}</span>
-              {(f.observacoes || f.vigencia_inicio || f.vigencia_fim) && <span className="block text-[11px] text-slate-500">{f.observacoes}{f.vigencia_inicio ? ` · vigente desde ${formatarData(f.vigencia_inicio)}` : ''}{f.vigencia_fim ? ` até ${formatarData(f.vigencia_fim)}` : ''}</span>}</span>
+              {(f.observacoes || f.vigencia_inicio || f.vigencia_fim) && <span className="block text-xs text-slate-500">{f.observacoes}{f.vigencia_inicio ? ` · vigente desde ${formatarData(f.vigencia_inicio)}` : ''}{f.vigencia_fim ? ` até ${formatarData(f.vigencia_fim)}` : ''}</span>}</span>
             {f.tenant_id && <Botao pequeno variante="fantasma" icone={<Pencil className="size-4" />} aria-label="Editar" onClick={() => editar({ ...f })} />}
           </li>
         ))}

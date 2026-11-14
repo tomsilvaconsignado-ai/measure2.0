@@ -121,7 +121,7 @@ export function Consolidado() {
                           <td className="numero py-2 pr-3">{l.matricula}</td>
                           <td className="py-2 pr-3"><span className="font-medium text-slate-900">{l.nome}</span>
                             <span className="block text-xs text-slate-500">{l.unidade_sigla ?? l.unidade_nome}</span>
-                            {feriasDe.has(l.servidor_id) && <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] text-sky-900"><Palmtree className="size-3" />Férias {feriasDe.get(l.servidor_id)}</span>}</td>
+                            {feriasDe.has(l.servidor_id) && <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-xs text-sky-900"><Palmtree className="size-3" />Férias {feriasDe.get(l.servidor_id)}</span>}</td>
                           <td className="py-2 pr-3 text-slate-700">{l.cargo ?? '—'}<span className="block text-xs text-slate-500">{l.funcao ?? ''}</span></td>
                           <td className="py-1.5 pr-3"><input type="number" min={0} max={999} disabled={ed} aria-label={`Atrasos de ${l.nome}`}
                             className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-50" value={v.atrasos ?? ''}

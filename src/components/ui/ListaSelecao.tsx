@@ -176,7 +176,7 @@ export function ListaSelecao({ value, defaultValue, onChange, disabled, children
               grupoAnterior = item.grupo;
               return (
                 <Fragment key={`${item.grupo ?? ''}|${item.valor}|${i}`}>
-                  {cabecalho && <li role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{cabecalho}</li>}
+                  {cabecalho && <li role="presentation" className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{cabecalho}</li>}
                   <li id={`${idLista}-${i}`} data-indice={i} role="option" aria-selected={marcado} aria-disabled={item.desabilitado || undefined}
                     onMouseDown={(e) => { e.preventDefault(); escolher(item); }} onMouseEnter={() => setAtivo(i)}
                     className={cx('flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm',

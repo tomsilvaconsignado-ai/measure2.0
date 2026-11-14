@@ -78,7 +78,7 @@ function Lista({ tenantId }: { tenantId: string }) {
                   <span className="min-w-0 flex-1">
                     <span className={cx('block text-sm', m.lida_em ? 'text-slate-700' : 'font-semibold text-slate-900')}>{m.titulo}</span>
                     {m.descricao && <span className="block text-xs text-slate-600">{m.descricao}</span>}
-                    <span className="mt-0.5 block text-[11px] text-slate-500">{MODULOS_NOTIFICACAO[m.modulo] ?? m.modulo}{m.contrato ? ` · Contrato nº ${m.contrato}` : ''} · {formatarDataHora(m.criado_em)}</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">{MODULOS_NOTIFICACAO[m.modulo] ?? m.modulo}{m.contrato ? ` · Contrato nº ${m.contrato}` : ''} · {formatarDataHora(m.criado_em)}</span>
                   </span>
                 </button>
               </li>
@@ -107,8 +107,8 @@ function Preferencias({ tenantId }: { tenantId: string }) {
               {q.data!.filter((p) => p.modulo === g).map((p) => (
                 <li key={p.categoria} className="flex items-center gap-3 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800">{p.nome}{p.obrigatoria && <span className="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600"><Lock className="size-3" />Obrigatória</span>}
-                      {!p.ativa && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-500">Desativada pela administração</span>}</p>
+                    <p className="text-sm font-medium text-slate-800">{p.nome}{p.obrigatoria && <span className="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-600"><Lock className="size-3" />Obrigatória</span>}
+                      {!p.ativa && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500">Desativada pela administração</span>}</p>
                     <p className="text-xs text-slate-500">{p.descricao}</p>
                   </div>
                   <label className="inline-flex shrink-0 items-center gap-2 text-xs text-slate-600">
@@ -145,7 +145,7 @@ function Dispositivos() {
                 <li key={d.id} className={cx('flex items-center gap-3 py-2.5', !d.ativo && 'opacity-60')}>
                   {/Android|iPhone/.test(d.dispositivo ?? '') ? <Smartphone className="size-5 text-slate-500" /> : <Laptop className="size-5 text-slate-500" />}
                   <div className="min-w-0 flex-1 text-sm">
-                    <p className="font-medium text-slate-800">{d.dispositivo ?? 'Aparelho'}{este && <span className="ml-2 rounded bg-marca-50 px-1.5 py-0.5 text-[11px] text-marca-700">este aparelho</span>}</p>
+                    <p className="font-medium text-slate-800">{d.dispositivo ?? 'Aparelho'}{este && <span className="ml-2 rounded bg-marca-50 px-1.5 py-0.5 text-xs text-marca-700">este aparelho</span>}</p>
                     <p className="text-xs text-slate-500">Autorizado em {formatarDataHora(d.criado_em)}{d.ultimo_envio ? ` · último envio ${formatarDataHora(d.ultimo_envio)}` : ''}{!d.ativo ? ' · desativado' : ''}</p>
                   </div>
                   {d.ativo && <Botao pequeno variante="fantasma" icone={<Trash2 className="size-4" />} aria-label="Revogar este aparelho" title="Revogar"

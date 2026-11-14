@@ -29,6 +29,10 @@
   --color-chamada-500: #f5b70a;
   --color-chamada-600: #d99a00;
   --color-chamada-950: #3a2a00;
+
+  /* Cinza dos textos de apoio um pouco mais escuro: contraste de 5,2:1 no branco e 4,6:1 no fundo da
+     página (antes 4,2:1 no fundo, abaixo do mínimo de 4,5:1 para texto pequeno) */
+  --color-slate-500: #5c6b80;
 }
 
 :root {
@@ -40,7 +44,28 @@ body {
   background: #eef2f8;
   color: #0f172a;
   font-family: var(--font-sans);
+  /* Inter com "l" de cauda e "I" com serifa: matrícula, CNPJ, códigos e números de contrato sem
+     confundir l, I e 1 */
+  font-feature-settings: 'cv05', 'cv08';
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Títulos: espaçamento mais justo e quebra de linha equilibrada */
+:where(h1, h2, h3) {
+  letter-spacing: -0.011em;
+  text-wrap: balance;
+}
+
+/* Tabelas: algarismos de largura igual, para valores e datas ficarem alinhados em coluna */
+:where(table) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Seleção de texto na cor institucional */
+::selection {
+  background: var(--color-marca-200);
+  color: var(--color-marca-950);
 }
 
 /* Foco sempre visível para navegação por teclado */
@@ -59,7 +84,7 @@ body {
 main table thead th {
   background: var(--color-marca-900);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

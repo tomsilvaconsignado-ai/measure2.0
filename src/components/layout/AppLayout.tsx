@@ -80,7 +80,7 @@ function Grupo({ titulo, children, recolhido = false }: { titulo: string; childr
     <div className="flex flex-col gap-0.5" role="group" aria-label={titulo}>
       {recolhido
         ? <div data-flip={'grupo:' + titulo} className="mx-3 mb-1.5 mt-3.5 h-px bg-white/10" aria-hidden />
-        : <p data-flip={'grupo:' + titulo} data-rotulo className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider text-acento-300">{titulo}</p>}
+        : <p data-flip={'grupo:' + titulo} data-rotulo className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wider text-acento-300">{titulo}</p>}
       {children}
     </div>
   );

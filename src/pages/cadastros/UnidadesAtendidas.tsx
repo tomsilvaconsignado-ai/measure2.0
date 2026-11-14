@@ -204,7 +204,7 @@ export function UnidadesAtendidas() {
               {q.data!.itens.map((u) => (
                 <li key={u.id} className="flex items-center gap-3 py-3">
                   <span className={cx('flex size-10 shrink-0 items-center justify-center rounded-lg', u.eh_grupo ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500')}>
-                    {u.eh_grupo ? <Layers className="size-5" /> : <span className="text-[11px] font-semibold">{u.tipo.slice(0, 4).toUpperCase()}</span>}
+                    {u.eh_grupo ? <Layers className="size-5" /> : <span className="text-xs font-semibold">{u.tipo.slice(0, 4).toUpperCase()}</span>}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">

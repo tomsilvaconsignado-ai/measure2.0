@@ -63,7 +63,7 @@ function ItemConferencia({ inv, item, aoMudar }: { inv: TInventario; item: TInve
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium"><span className="font-mono">{item.bem?.numero ?? item.numero_encontrado ?? '(sem número)'}</span> · {item.bem?.descricao ?? item.descricao_encontrada}</p>
           {item.bem && <p className="text-xs text-slate-500">{[item.bem.unidade, item.bem.local, item.bem.sala, item.bem.responsavel].filter(Boolean).join(' · ')} · cadastro: {CONSERVACAO[item.bem.conservacao]}</p>}
-          {item.conferido_em && <p className="text-xs text-slate-400">Conferido por {item.conferido_por} em {formatarDataHora(item.conferido_em)}</p>}
+          {item.conferido_em && <p className="text-xs text-slate-500">Conferido por {item.conferido_por} em {formatarDataHora(item.conferido_em)}</p>}
         </div>
         <Selo tom={tom}>{rot}</Selo>
       </div>

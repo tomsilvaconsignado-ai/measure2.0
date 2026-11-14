@@ -52,7 +52,7 @@ function Detalhe({ r, aoFechar }: { r: RegistroAuditoria | null; aoFechar: () =>
           </table>
         </div>
       ) : <p className="text-sm text-slate-600">Sem dados de campos para este evento.</p>}
-      <p className="mt-3 text-xs text-slate-400">Registro nº {r.id} · ID do item: {r.registro_id ?? '—'}</p>
+      <p className="mt-3 text-xs text-slate-500">Registro nº {r.id} · ID do item: {r.registro_id ?? '—'}</p>
     </Modal>
   );
 }

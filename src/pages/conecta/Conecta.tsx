@@ -256,7 +256,7 @@ function Documentos({ docs }: { docs: AnexoConecta[] }) {
         <li key={a.id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5">
           <FileText className="size-5 shrink-0 text-red-600" />
           <button className="min-w-0 flex-1 truncate text-left text-sm text-slate-800 hover:underline" onClick={() => void abrir(a, false)} title="Visualizar">{a.nome_arquivo}</button>
-          <span className="text-xs text-slate-400">{(a.tamanho / 1048576).toFixed(1).replace('.', ',')} MB</span>
+          <span className="text-xs text-slate-500">{(a.tamanho / 1048576).toFixed(1).replace('.', ',')} MB</span>
           <button className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={() => void abrir(a, true)} aria-label={`Baixar ${a.nome_arquivo}`}><Download className="size-4" /></button>
         </li>
       ))}
@@ -316,7 +316,7 @@ function ItemComentario({ c, publicacaoId, podeModerar, aoMudar, respostas, aoRe
           {editando ? <div className="mt-1.5"><CaixaComentario publicacaoId={publicacaoId} paiId={null} comentarioId={c.id} inicial={c.texto ?? ''}
             aoConcluir={() => { setEditando(false); aoMudar(); }} aoCancelar={() => setEditando(false)} /></div>
             : <p className="whitespace-pre-line break-words text-sm text-slate-800">{c.removido ? 'Comentário removido.' : c.texto}</p>}
-          {c.oculto && !c.removido && <p className="mt-1 text-[11px] font-medium text-amber-700">Oculto pela moderação</p>}
+          {c.oculto && !c.removido && <p className="mt-1 text-xs font-medium text-amber-700">Oculto pela moderação</p>}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-3 px-1 text-xs text-slate-500">
           <span title={formatarDataHora(c.criado_em)}>{tempoRelativo(c.criado_em)}{c.editado_em && ' · editado'}</span>
@@ -419,7 +419,7 @@ function CartaoPublicacao({ p, podeModerar, aoEditar, comentariosAbertos = false
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-900">{p.autor.nome}</p>
             <p className="truncate text-xs text-slate-500">{[p.autor.cargo, rotuloLotacao(p.autor.lotacao)].filter(Boolean).join(' · ') || 'Servidor'}</p>
-            <p className="text-xs text-slate-400" title={formatarDataHora(p.criado_em)}>{formatarDataHora(p.criado_em)}{p.editada_em && ' · editada'}</p>
+            <p className="text-xs text-slate-500" title={formatarDataHora(p.criado_em)}>{formatarDataHora(p.criado_em)}{p.editada_em && ' · editada'}</p>
           </div>
           <span className={cx('hidden size-9 shrink-0 items-center justify-center rounded-lg sm:flex', cor.icone)} aria-hidden><IconeCategoria c={p.categoria} tamanho="size-5" /></span>
           <Menu itens={[
@@ -512,7 +512,7 @@ function SinoConecta() {
                   onClick={async () => { setAberto(false); if (!m.lida_em) { await marcarMensagensLidas(orgao!.id, [m.id]).catch(() => undefined); void qc.invalidateQueries({ queryKey: ['mensagens'] }); } if (m.link) navegar(m.link); }}>
                   <span className={cx('block text-sm', !m.lida_em ? 'font-semibold text-slate-900' : 'text-slate-700')}>{m.titulo}</span>
                   {m.descricao && <span className="block truncate text-xs text-slate-500">{m.descricao}</span>}
-                  <span className="block text-[11px] text-slate-400">{tempoRelativo(m.criado_em)}</span>
+                  <span className="block text-xs text-slate-500">{tempoRelativo(m.criado_em)}</span>
                 </button></li>
               ))}
             </ul>
@@ -658,7 +658,7 @@ export function Conecta() {
                 <li key={c.id}><button onClick={() => { setAvancado(true); setFiltroId('todas'); setAvc({ ...avc, categoria_id: avc.categoria_id === c.id ? '' : c.id }); if (pubUnica) { params.delete('p'); setParams(params, { replace: true }); } }}
                   className={cx('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-slate-50', avc.categoria_id === c.id && 'bg-marca-50 font-medium')}>
                   <span className={cx('flex size-6 items-center justify-center rounded-md', (CORES_CATEGORIA[c.cor] ?? CORES_CATEGORIA.marca!).icone)}><IconeCategoria c={c} tamanho="size-3.5" /></span>
-                  <span className="flex-1 truncate">{c.nome}</span><span className="numero text-xs text-slate-400">{c.total}</span>
+                  <span className="flex-1 truncate">{c.nome}</span><span className="numero text-xs text-slate-500">{c.total}</span>
                 </button></li>
               ))}
             </ul>

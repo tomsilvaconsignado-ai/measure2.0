@@ -232,7 +232,7 @@ export function Paginacao({ pagina, total, porPagina, aoMudar }: { pagina: numbe
 }
 
 export function Avatar({ nome, url, tamanho = 'md' }: { nome: string; url?: string | null; tamanho?: 'sm' | 'md' | 'lg' }) {
-  const cls = { sm: 'size-7 text-[11px]', md: 'size-9 text-xs', lg: 'size-16 text-lg' }[tamanho];
+  const cls = { sm: 'size-7 text-xs', md: 'size-9 text-xs', lg: 'size-16 text-lg' }[tamanho];
   const ini = nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('') || '?';
   return url
     ? <img src={url} alt="" className={cx(cls, 'shrink-0 rounded-full object-cover ring-1 ring-slate-200')} />
@@ -253,5 +253,5 @@ export function PontoPendente({ className, rotulo }: { className?: string; rotul
 /** Contador âmbar de pendências (menu, abas) */
 export function ContadorPendente({ n, className }: { n: number; className?: string }) {
   if (!n) return null;
-  return <span className={cx('inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-5 text-amber-950', className)} title={`${n} pendente(s)`}><span aria-hidden>{n > 99 ? '99+' : n}</span><span className="sr-only">, {n} pendente(s)</span></span>;
+  return <span className={cx('inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 text-xs font-bold leading-5 text-amber-950', className)} title={`${n} pendente(s)`}><span aria-hidden>{n > 99 ? '99+' : n}</span><span className="sr-only">, {n} pendente(s)</span></span>;
 }

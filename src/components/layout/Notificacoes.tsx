@@ -68,7 +68,7 @@ export function Notificacoes() {
                     <span className="min-w-0 flex-1">
                       <span className={cx('block text-sm text-slate-900', !n.lida_em && 'font-semibold')}>{n.titulo}</span>
                       {n.descricao && <span className="block truncate text-xs text-slate-500">{n.descricao}</span>}
-                      <span className="block text-[11px] text-slate-400">{formatarDataHora(n.criado_em)}</span>
+                      <span className="block text-xs text-slate-500">{formatarDataHora(n.criado_em)}</span>
                     </span>
                     {!n.lida_em && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-marca-600" aria-label="não lida" />}
                   </button></li>

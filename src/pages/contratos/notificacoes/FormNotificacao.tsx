@@ -25,7 +25,7 @@ interface Form {
   prazo_texto: string; consequencias: string; manifestacao: string; observacoes: string; revisao_juridica: boolean; revisao_confirmada: boolean;
 }
 
-const Dado = ({ r, v }: { r: string; v: ReactNode }) => <div><dt className="text-[11px] uppercase tracking-wide text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
+const Dado = ({ r, v }: { r: string; v: ReactNode }) => <div><dt className="text-xs uppercase tracking-wide text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
 
 export function FormNotificacao() {
   const { orgao } = useSessao();

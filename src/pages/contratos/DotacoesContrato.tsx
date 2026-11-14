@@ -28,7 +28,7 @@ export function naturezaDaDotacao(d: Pick<DotacaoDetalhada, 'categoria_codigo' |
 
 /** Quadro com as classificações da dotação (preenchimento automático no empenho e no contrato) */
 export function ClassificacoesDaDotacao({ d }: { d: DotacaoDetalhada | DotacaoDoContrato }) {
-  const linha = (r: string, v: string | null | undefined) => (v ? <div><dt className="text-[11px] uppercase tracking-wide text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v}</dd></div> : null);
+  const linha = (r: string, v: string | null | undefined) => (v ? <div><dt className="text-xs uppercase tracking-wide text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v}</dd></div> : null);
   const cod = (c: string | null | undefined, t: string | null | undefined) => (c ? `${c}${t ? ` – ${t}` : ''}` : null);
   return (
     <dl className="grid gap-x-4 gap-y-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-3">
@@ -92,7 +92,7 @@ function SelecionarDotacoes({ contrato, jaVinculadas, aberto, aoFechar }: { cont
                 return (
                   <tr key={d.id} className={cx('cursor-pointer hover:bg-slate-50', marcadas.includes(d.id) && 'bg-marca-50')} onClick={() => alternar(d.id)}>
                     <td className="px-2 py-2"><input type="checkbox" className="size-4 accent-marca-700" checked={marcadas.includes(d.id)} onChange={() => alternar(d.id)} onClick={(e) => e.stopPropagation()} aria-label={`Selecionar ${d.codigo_completo}`} /></td>
-                    <td className="px-2 py-2">{d.exercicio ?? 'Qualquer'}{fora && <span className="block text-[11px] text-amber-700">fora da vigência</span>}</td>
+                    <td className="px-2 py-2">{d.exercicio ?? 'Qualquer'}{fora && <span className="block text-xs text-amber-700">fora da vigência</span>}</td>
                     <td className="numero px-2 py-2 font-mono text-xs">{d.codigo_completo}{d.descricao && <span className="block font-sans text-xs text-slate-500">{d.descricao}</span>}</td>
                     <td className="px-2 py-2">{d.acao_codigo}<span className="block text-xs text-slate-500">{d.acao_descricao}</span></td>
                     <td className="px-2 py-2">{naturezaDaDotacao(d)}<span className="block text-xs text-slate-500">{d.subelemento_descricao ?? d.elemento_descricao}</span></td>

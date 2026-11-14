@@ -259,7 +259,7 @@ function Tabela({ dados, porId, abrir }: { dados: Dados; porId: Map<string, Unid
 
 function MatrizModulos({ unidades, porId, abrir }: { unidades: UnidadeMonitorada[]; porId: Map<string, UnidadeMonitorada>; abrir: (id: string) => void }) {
   const nome = (u: UnidadeMonitorada | null) => (u?.sigla ?? u?.nome ?? '').toLowerCase();
-  const chave = (u: UnidadeMonitorada) => (u.tipo === 'DIRETORIA' ? `${nome(u)} ` : `${nome(ancestral(u, 'DIRETORIA', porId))}${nome(u)}`);
+  const chave = (u: UnidadeMonitorada) => (u.tipo === 'DIRETORIA' ? `${nome(u)}\u0000` : `${nome(ancestral(u, 'DIRETORIA', porId))}${nome(u)}`);
   unidades = [...unidades].sort((x, y) => chave(x).localeCompare(chave(y)));
   const usados = Object.keys(MODULOS).filter((m) => unidades.some((u) => u.modulos[m]));
   const colunas = usados.length ? usados : ['CONECTA', 'PATRIMONIO', 'CONTRATOS'];
@@ -316,7 +316,7 @@ function Historico({ tenantId, unidadeId, de, ate }: { tenantId: string; unidade
                 <span className="min-w-0 flex-1"><b className="font-medium text-slate-800">{e.servidor}</b>{e.matricula && <span className="text-xs text-slate-500"> (mat. {e.matricula})</span>}
                   <span className="text-slate-700"> · {e.tipo}</span></span>
                 <span className="text-xs text-slate-500">{[e.diretoria, e.coordenacao, e.setor].filter(Boolean).join(' › ') || 'sem lotação'}</span>
-                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{MODULOS[e.modulo] ?? e.modulo}</span>
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{MODULOS[e.modulo] ?? e.modulo}</span>
               </li>
             ))}
           </ol>

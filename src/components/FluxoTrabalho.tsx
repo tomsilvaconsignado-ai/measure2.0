@@ -32,7 +32,7 @@ export function FluxoTrabalho() {
             <Link to={p.para} className={cx('group flex h-full flex-col rounded-lg border-2 p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md',
               p.pendentes ? 'border-chamada-500 bg-chamada-300/30 hover:bg-chamada-300/50' : 'border-slate-200 bg-white hover:border-marca-400')}>
               <span className="flex items-center gap-1.5">
-                <span className={cx('flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold',
+                <span className={cx('flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold',
                   p.pendentes ? 'bg-chamada-500 text-marca-950' : 'bg-marca-900 text-white')}>{i + 1}</span>
                 <span className="text-sm font-bold text-marca-900">{p.titulo}</span>
                 {!!p.pendentes && <ContadorPendente n={p.pendentes} className="ml-auto" />}

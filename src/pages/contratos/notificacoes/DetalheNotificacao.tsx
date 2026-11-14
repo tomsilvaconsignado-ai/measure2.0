@@ -93,10 +93,10 @@ export function DetalheNotificacao() {
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Cartao titulo="Conteúdo da notificação">
           <dl className="mb-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-            <div><dt className="text-[11px] uppercase text-slate-500">Ocorrência</dt><dd>{n.tipo_nome ?? '—'}</dd></div>
-            <div><dt className="text-[11px] uppercase text-slate-500">Data / gravidade</dt><dd>{n.data_ocorrencia ? formatarData(n.data_ocorrencia) : '—'} · {GRAVIDADES[n.gravidade]}</dd></div>
-            <div><dt className="text-[11px] uppercase text-slate-500">Regime</dt><dd>{REGIMES[n.regime_juridico]}</dd></div>
-            <div><dt className="text-[11px] uppercase text-slate-500">Emissor</dt><dd>{n.emissor_nome ?? '—'}{n.emissor_papel && <span className="text-slate-500"> · {PAPEIS[n.emissor_papel]}</span>}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Ocorrência</dt><dd>{n.tipo_nome ?? '—'}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Data / gravidade</dt><dd>{n.data_ocorrencia ? formatarData(n.data_ocorrencia) : '—'} · {GRAVIDADES[n.gravidade]}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Regime</dt><dd>{REGIMES[n.regime_juridico]}</dd></div>
+            <div><dt className="text-xs uppercase text-slate-500">Emissor</dt><dd>{n.emissor_nome ?? '—'}{n.emissor_papel && <span className="text-slate-500"> · {PAPEIS[n.emissor_papel]}</span>}</dd></div>
           </dl>
           <div className="flex flex-col gap-4">
             <Secao n={1} titulo="Dos fatos">{n.local_ocorrencia && <b>Local: {n.local_ocorrencia}. </b>}{n.fatos || '—'}</Secao>
@@ -111,10 +111,10 @@ export function DetalheNotificacao() {
         <div className="flex flex-col gap-4">
           <Cartao titulo="Andamento">
             <dl className="mb-3 grid grid-cols-2 gap-2 text-sm">
-              <div><dt className="text-[11px] uppercase text-slate-500">Emitida em</dt><dd>{n.emitida_em ? formatarDataHora(n.emitida_em) : '—'}</dd></div>
-              <div><dt className="text-[11px] uppercase text-slate-500">Ciência</dt><dd>{n.data_ciencia ? formatarData(n.data_ciencia) : '—'}</dd></div>
-              <div><dt className="text-[11px] uppercase text-slate-500">Prazo concedido</dt><dd>{n.prazo_dias ? `${n.prazo_dias} dias ${n.prazo_tipo === 'UTEIS' ? 'úteis' : 'corridos'}` : '—'}</dd></div>
-              <div><dt className="text-[11px] uppercase text-slate-500">Data limite</dt><dd className={n.status === 'PRAZO_VENCIDO' ? 'font-semibold text-red-700' : ''}>{n.data_limite ? formatarData(n.data_limite) : 'conta da ciência'}</dd></div>
+              <div><dt className="text-xs uppercase text-slate-500">Emitida em</dt><dd>{n.emitida_em ? formatarDataHora(n.emitida_em) : '—'}</dd></div>
+              <div><dt className="text-xs uppercase text-slate-500">Ciência</dt><dd>{n.data_ciencia ? formatarData(n.data_ciencia) : '—'}</dd></div>
+              <div><dt className="text-xs uppercase text-slate-500">Prazo concedido</dt><dd>{n.prazo_dias ? `${n.prazo_dias} dias ${n.prazo_tipo === 'UTEIS' ? 'úteis' : 'corridos'}` : '—'}</dd></div>
+              <div><dt className="text-xs uppercase text-slate-500">Data limite</dt><dd className={n.status === 'PRAZO_VENCIDO' ? 'font-semibold text-red-700' : ''}>{n.data_limite ? formatarData(n.data_limite) : 'conta da ciência'}</dd></div>
             </dl>
             {n.pode_atuar && !finais.includes(n.status) && n.status !== 'RASCUNHO' ? (
               <div className="flex flex-col gap-2">

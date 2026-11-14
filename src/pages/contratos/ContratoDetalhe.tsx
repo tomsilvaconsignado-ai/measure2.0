@@ -195,7 +195,7 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
               <li key={d.id} className={cx('flex items-start gap-3 rounded-xl border border-l-4 p-3', info.cartao, d.fim ? 'border-slate-200 opacity-60' : 'border-slate-200 bg-white')}>
                 <FotoServidor caminho={null} nome={d.servidor_nome} />
                 <div className="min-w-0 flex-1">
-                  <span className={cx('inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide', info.selo)}>{PAPEIS[d.papel]}</span>
+                  <span className={cx('inline-block rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide', info.selo)}>{PAPEIS[d.papel]}</span>
                   <p className="mt-1 truncate text-sm font-medium text-slate-900">{d.servidor_nome}</p>
                   <p className="text-xs text-slate-500">Mat. {d.servidor_matricula}{d.servidor_cargo ? ` · ${d.servidor_cargo}` : ''}</p>
                   <p className="text-xs text-slate-500" title="Lotação do servidor no momento da designação (a lotação dele não muda)">Lotação: {d.lotacao_descricao ?? d.unidade_sigla ?? d.unidade_nome}</p>
@@ -203,7 +203,7 @@ function Responsaveis({ c }: { c: ContratoResumo }) {
                   {d.portaria && <p className="text-xs text-slate-500">{d.portaria}</p>}
                   {d.substitui_nome && <p className="text-xs text-slate-500">Substituiu {d.substitui_nome}</p>}
                   {d.fim && <p className="text-xs text-slate-500">{d.substituido_por_nome ? `Substituído(a) por ${d.substituido_por_nome}` : 'Encerrada'}{d.motivo_fim ? ` · ${d.motivo_fim}` : ''}{d.encerrado_por ? ` · por ${d.encerrado_por}` : ''}</p>}
-                  <p className="text-[11px] text-slate-400">Designado{d.designado_por ? ` por ${d.designado_por}` : ''} em {formatarDataHora(d.designado_em)}</p>
+                  <p className="text-xs text-slate-500">Designado{d.designado_por ? ` por ${d.designado_por}` : ''} em {formatarDataHora(d.designado_em)}</p>
                   {!d.tem_acesso && !d.fim && <p className="mt-1 text-xs text-amber-700">Sem acesso ao sistema: convide a pessoa com o e-mail institucional do cadastro.</p>}
                 </div>
                 {podeEditar && !d.fim && podeAlterar('contratos', autoria.data?.designacoes[d.id]) && <div className="flex flex-col">

@@ -129,7 +129,7 @@ export function ServidorCurriculo({ servidor, podeEditar }: { servidor: Servidor
               <h4 className="text-sm font-semibold text-slate-800">{rotulo}</h4>
               {podeEditar && <Botao pequeno variante="fantasma" icone={<Plus className="size-4" />} onClick={() => setEditando({ item: null, tipo })}>Incluir</Botao>}
             </div>
-            {!itens.length ? <p className="text-xs text-slate-400">Nenhum registro.</p> : (
+            {!itens.length ? <p className="text-xs text-slate-500">Nenhum registro.</p> : (
               <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
                 {itens.map((i) => (
                   <li key={i.id} className="flex items-start gap-2 px-3 py-2 text-sm">
