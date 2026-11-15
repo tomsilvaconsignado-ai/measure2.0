@@ -252,7 +252,7 @@ export function AppLayout() {
             )}
           </div>
 
-          <button type="button" data-orientacao="botao-orientacoes" onClick={abrirOrientacoes} title="Orientações desta tela" aria-label="Orientações desta tela"
+          <button type="button" data-orientacao="botao-orientacoes" onClick={abrirOrientacoes} title="Ajuda desta tela" aria-label="Ajuda desta tela"
             className="hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-marca-700 sm:inline-flex"><Compass className="size-5" /></button>
           <span data-orientacao="notificacoes" className="inline-flex"><Notificacoes /></span>
           <NavLink to="/meu-perfil" data-orientacao="perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50" title="Meu perfil">

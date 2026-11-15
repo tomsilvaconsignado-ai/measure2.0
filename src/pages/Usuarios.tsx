@@ -214,8 +214,8 @@ export function Usuarios() {
       return data as number;
     },
     onSuccess: (n, user) => toast.success(user
-      ? (n ? 'Balões de orientação reativados: no próximo acesso a pessoa verá as dicas de novo.' : 'Os balões dessa pessoa já estavam ligados.')
-      : (n ? `Balões de orientação reativados para ${n} pessoa(s).` : 'Todas as pessoas do seu escopo já estavam com os balões ligados.')),
+      ? (n ? 'Pronto! Na próxima vez que a pessoa entrar, os balões de ajuda aparecem de novo.' : 'Os balões de ajuda dessa pessoa já estavam ligados.')
+      : (n ? `Pronto! Os balões de ajuda voltaram para ${n} pessoa(s).` : 'Todo mundo do seu setor já estava com os balões de ajuda ligados.')),
     onError: (e) => toast.error(traduzirErro(e).mensagem),
   });
 
@@ -271,7 +271,7 @@ export function Usuarios() {
               <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg" onMouseLeave={() => setMenu(null)}>
                 {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setConvidando({ email: u.email }); setMenu(null); }}><Plus className="size-4" />Conceder outro acesso</button>}
                 {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reenviar.mutate(u.id); setMenu(null); }}><MailPlus className="size-4" />{u.ultimo_acesso ? 'Enviar link de nova senha' : 'Reenviar convite'}</button>}
-                {podeEditar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reativarOrientacoes.mutate(u.id); setMenu(null); }}><Compass className="size-4" />Reativar balões de orientação</button>}
+                {podeEditar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reativarOrientacoes.mutate(u.id); setMenu(null); }}><Compass className="size-4" />Ligar de novo os balões de ajuda</button>}
                 {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'conta', usuario: u }); setMenu(null); }}><ShieldAlert className="size-4" />{u.ativo ? 'Suspender a conta inteira' : 'Reativar a conta'}</button>}
                 {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'plataforma', usuario: u }); setMenu(null); }}><ShieldCheck className="size-4" />{u.is_platform_admin ? 'Remover admin. da plataforma' : 'Tornar admin. da plataforma'}</button>}
               </div>
@@ -287,7 +287,7 @@ export function Usuarios() {
       <CabecalhoPagina titulo="Usuários e acessos" descricao={`Pessoas com vínculo em ${orgao.nome_curto}, conforme o seu escopo.`}
         acoes={(podeCriar || podeEditar) && <>
           {podeEditar && <Botao variante="secundario" icone={<Compass className="size-4" />} carregando={reativarOrientacoes.isPending && reativarOrientacoes.variables === null}
-            title="Volta a mostrar os balões de orientação para todas as pessoas do seu escopo" onClick={() => reativarOrientacoes.mutate(null)}>Reativar balões de todos</Botao>}
+            title="Liga de novo os balões de ajuda para todo mundo do seu setor" onClick={() => reativarOrientacoes.mutate(null)}>Ligar balões de ajuda para todos</Botao>}
           {podeCriar && <Botao variante="secundario" icone={<Mail className="size-4" />} onClick={() => void abrirEmLote()}>Convidar quem não acessou</Botao>}
           {podeCriar && <Botao icone={<UserPlus className="size-4" />} onClick={() => setConvidando({})}>Convidar usuário</Botao>}
         </>} />

@@ -53,7 +53,7 @@ export function MeuPerfil() {
       // ligou de novo: volta a perguntar já neste acesso
       if (ligar) { try { sessionStorage.removeItem('measure.orientacao.decisao'); sessionStorage.removeItem('measure.orientacao.vistos'); } catch { /* sem armazenamento */ } }
     },
-    onSuccess: async (_, ligar) => { await recarregar(); toast.success(ligar ? 'Balões de orientação ligados.' : 'Balões de orientação desligados.'); },
+    onSuccess: async (_, ligar) => { await recarregar(); toast.success(ligar ? 'Pronto, os balões de ajuda voltaram.' : 'Pronto, os balões de ajuda foram desligados.'); },
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
 
@@ -105,11 +105,11 @@ export function MeuPerfil() {
           </Cartao>
 
           <div data-orientacao="perfil-orientacoes">
-            <Cartao titulo={<span className="inline-flex items-center gap-2"><Compass className="size-4" />Balões de orientação</span>}>
+            <Cartao titulo={<span className="inline-flex items-center gap-2"><Compass className="size-4" />Balões de ajuda</span>}>
               <p className="text-sm text-slate-600">
                 {orientacoesLigadas
-                  ? 'Ligados: a cada acesso perguntamos se você quer ver as dicas das telas, de acordo com o seu papel.'
-                  : 'Desligados: as dicas não aparecem sozinhas. Você ainda pode abrir as dicas de qualquer tela pelo botão de bússola no topo.'}
+                  ? 'Ligados: toda vez que você entrar, vamos perguntar se quer ver as dicas das telas.'
+                  : 'Desligados: as dicas não aparecem sozinhas. Se precisar, toque na bússola lá em cima para ver a ajuda da tela.'}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Selo tom={orientacoesLigadas ? 'sucesso' : 'neutro'}>{orientacoesLigadas ? 'Ligados' : 'Desligados'}</Selo>

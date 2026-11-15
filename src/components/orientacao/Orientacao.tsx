@@ -205,7 +205,7 @@ export function Orientacao() {
       const { error } = await supabase.rpc('definir_minhas_orientacoes', { p_ativas: false });
       if (error) throw error;
       await recarregar();
-      toast.success('Balões de orientação desligados. Para ligar de novo, vá em Meu perfil.');
+      toast.success('Pronto, os balões de ajuda não vão mais aparecer. Se quiser de volta, é só ir em Meu perfil.');
     } catch (e) { toast.error(mensagemDeErro(e)); }
   };
 
@@ -222,12 +222,12 @@ export function Orientacao() {
               <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-marca-50 text-marca-700"><Compass className="size-6" aria-hidden /></span>
               <div className="min-w-0">
                 <p id="orientacao-pergunta" className="font-semibold text-slate-900">
-                  {primeiraVez ? `Boas-vindas ao MEASURE${nome ? `, ${nome}` : ''}!` : 'Quer continuar vendo os balões de orientação?'}
+                  {primeiraVez ? `Boas-vindas ao MEASURE${nome ? `, ${nome}` : ''}!` : 'Quer ver os balões de ajuda de novo?'}
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
                   {primeiraVez
-                    ? 'Quer que a gente mostre, com balões, onde fica cada coisa nas telas que você abrir?'
-                    : 'Eles mostram as dicas de cada tela que você abrir neste acesso, de acordo com o seu papel.'}
+                    ? 'Quer que a gente mostre, com balõezinhos, para que serve cada coisa nas telas?'
+                    : 'Eles explicam, de um jeito simples, cada tela que você abrir.'}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button className="rounded-lg bg-marca-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-marca-800" onClick={() => decidir('sim')}>Sim, mostrar</button>
@@ -263,11 +263,11 @@ export function Orientacao() {
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-marca-50 text-sm font-bold text-marca-700">{ativo.i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-acento-600">
-                      {ativo.roteiros[ativo.r].chave === 'geral' ? 'Conhecendo o sistema' : 'Nesta tela'} · {ativo.i + 1} de {ativo.passos.length}
+                      {ativo.roteiros[ativo.r].chave === 'geral' ? 'Conhecendo o sistema' : 'Dica desta tela'} · {ativo.i + 1} de {ativo.passos.length}
                     </p>
                     <p id="orientacao-titulo" className="mt-0.5 font-semibold text-slate-900">{passo.titulo}</p>
                   </div>
-                  <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={fechar} aria-label="Fechar orientações desta tela"><X className="size-4" /></button>
+                  <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={fechar} aria-label="Fechar a ajuda desta tela"><X className="size-4" /></button>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700">{typeof passo.texto === 'function' ? passo.texto(ctx) : passo.texto}</p>
                 <div className="mt-3 flex items-center gap-1" aria-hidden>
