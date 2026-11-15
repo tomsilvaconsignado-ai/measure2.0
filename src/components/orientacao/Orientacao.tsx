@@ -4,7 +4,7 @@
 //   * "Agora não": nada neste acesso; no próximo, pergunta de novo.
 //   * "Não mostrar mais": desliga no perfil (banco). Reativa em Meu perfil ou pela administração.
 // O botão de orientações no cabeçalho mostra as dicas da tela atual a qualquer momento.
-import { ArrowLeft, ArrowRight, Check, Compass, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Compass, EyeOff, Lightbulb, Sparkles, X } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -212,29 +212,47 @@ export function Orientacao() {
   const primeiraVez = !perfil?.orientacoes_alteradas_em && !vistos().length;
   const nome = (perfil?.nome || '').split(' ')[0];
 
+  const ultimo = !!ativo && ativo.i + 1 >= ativo.passos.length && ativo.r + 1 >= (ativo?.roteiros.length ?? 0);
+  const geral = ativo?.roteiros[ativo.r].chave === 'geral';
+  const progresso = ativo ? ((ativo.i + 1) / ativo.passos.length) * 100 : 0;
+
   return (
     <>
       {perguntar && !ativo && (
-        <div role="dialog" aria-labelledby="orientacao-pergunta" className="orientacao-pergunta fixed inset-x-3 bottom-3 z-50 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[380px]">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="h-1 bg-gradient-to-r from-marca-700 via-acento-500 to-chamada-400" aria-hidden />
-            <div className="flex gap-3 p-4">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-marca-50 text-marca-700"><Compass className="size-6" aria-hidden /></span>
-              <div className="min-w-0">
-                <p id="orientacao-pergunta" className="font-semibold text-slate-900">
-                  {primeiraVez ? `Boas-vindas ao MEASURE${nome ? `, ${nome}` : ''}!` : 'Quer ver os balões de ajuda de novo?'}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  {primeiraVez
-                    ? 'Quer que a gente mostre, com balõezinhos, para que serve cada coisa nas telas?'
-                    : 'Eles explicam, de um jeito simples, cada tela que você abrir.'}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="rounded-lg bg-marca-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-marca-800" onClick={() => decidir('sim')}>Sim, mostrar</button>
-                  <button className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => decidir('agora-nao')}>Agora não</button>
+        <div role="dialog" aria-labelledby="orientacao-pergunta" className="orientacao-pergunta fixed inset-x-3 bottom-3 z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[390px]">
+          <div className="overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-12px_rgba(15,42,74,0.45)] ring-1 ring-slate-900/5">
+            {/* cabeçalho ilustrado */}
+            <div className="orientacao-capa relative overflow-hidden px-5 pb-5 pt-5 text-white">
+              <span className="orientacao-brilho" style={{ top: 14, right: 56 }} aria-hidden />
+              <span className="orientacao-brilho pequeno" style={{ top: 44, right: 26 }} aria-hidden />
+              <span className="orientacao-brilho pequeno" style={{ bottom: 18, right: 92 }} aria-hidden />
+              <div className="relative flex items-center gap-3.5">
+                <span className="orientacao-icone flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
+                  <Compass className="size-8" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ring-1 ring-white/20">
+                    <Sparkles className="size-3" aria-hidden />Leva menos de 1 minuto
+                  </span>
+                  <p id="orientacao-pergunta" className="mt-1.5 text-lg font-bold leading-snug">
+                    {primeiraVez ? `Boas-vindas ao MEASURE${nome ? `, ${nome}` : ''}!` : `Oi${nome ? `, ${nome}` : ''}! Quer ver os balões de ajuda?`}
+                  </p>
                 </div>
-                <button className="mt-2 text-xs text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline" onClick={() => void naoMostrarMais()}>
-                  Não mostrar mais
+              </div>
+            </div>
+            <div className="px-5 pb-5 pt-4">
+              <p className="text-[15px] leading-relaxed text-slate-600">
+                {primeiraVez
+                  ? 'Quer que a gente mostre, com balõezinhos, para que serve cada coisa nas telas?'
+                  : 'Eles explicam, de um jeito simples, cada tela que você abrir.'}
+              </p>
+              <button className="orientacao-botao-principal mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[15px] font-semibold text-white" onClick={() => decidir('sim')}>
+                <Sparkles className="size-4" aria-hidden />Sim, mostrar a ajuda
+              </button>
+              <div className="mt-2.5 flex items-center justify-between gap-2">
+                <button className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" onClick={() => decidir('agora-nao')}>Agora não</button>
+                <button className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-400 hover:bg-slate-50 hover:text-slate-700" onClick={() => void naoMostrarMais()}>
+                  <EyeOff className="size-3.5" aria-hidden />Não mostrar mais
                 </button>
               </div>
             </div>
@@ -246,9 +264,9 @@ export function Orientacao() {
         <div className="fixed inset-0 z-[60]" aria-live="polite">
           {/* fundo escurecido com "recorte" iluminado sobre o elemento */}
           {alvo && rect ? (
-            <div className="orientacao-foco pointer-events-none fixed rounded-xl"
-              style={{ top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12 }} aria-hidden />
-          ) : <div className="fixed inset-0 bg-marca-950/55" aria-hidden />}
+            <div className="orientacao-foco pointer-events-none fixed rounded-2xl"
+              style={{ top: rect.top - 8, left: rect.left - 8, width: rect.width + 16, height: rect.height + 16 }} aria-hidden />
+          ) : <div className="orientacao-veu fixed inset-0" aria-hidden />}
 
           <div ref={balaoRef} role="dialog" aria-modal="true" aria-labelledby="orientacao-titulo"
             className={cx('orientacao-balao fixed', celular ? 'inset-x-3 bottom-3' : '')}
@@ -256,39 +274,42 @@ export function Orientacao() {
             {!celular && pos?.seta && (
               <span className={cx('orientacao-seta', `seta-${pos.seta}`)} style={pos.seta === 'esquerda' ? { top: pos.setaPos } : { left: pos.setaPos }} aria-hidden />
             )}
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-              <div className="h-1 bg-gradient-to-r from-marca-700 via-acento-500 to-chamada-400" aria-hidden />
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-marca-50 text-sm font-bold text-marca-700">{ativo.i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-acento-600">
-                      {ativo.roteiros[ativo.r].chave === 'geral' ? 'Conhecendo o sistema' : 'Dica desta tela'} · {ativo.i + 1} de {ativo.passos.length}
-                    </p>
-                    <p id="orientacao-titulo" className="mt-0.5 font-semibold text-slate-900">{passo.titulo}</p>
-                  </div>
-                  <button className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={fechar} aria-label="Fechar a ajuda desta tela"><X className="size-4" /></button>
-                </div>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{typeof passo.texto === 'function' ? passo.texto(ctx) : passo.texto}</p>
-                <div className="mt-3 flex items-center gap-1" aria-hidden>
-                  {ativo.passos.map((_, k) => <span key={k} className={cx('h-1.5 rounded-full transition-all', k === ativo.i ? 'w-5 bg-marca-600' : 'w-1.5 bg-slate-200')} />)}
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  {!ativo.manual && (
-                    <button className="mr-auto text-xs text-slate-500 hover:text-slate-800 hover:underline" onClick={() => void naoMostrarMais()}>Não mostrar mais</button>
-                  )}
-                  {ativo.manual && <span className="mr-auto" />}
-                  {ativo.i > 0 && (
-                    <button className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" onClick={voltar}>
-                      <ArrowLeft className="size-4" aria-hidden />Anterior
-                    </button>
-                  )}
-                  <button ref={proximoRef} className="inline-flex items-center gap-1 rounded-lg bg-marca-700 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-marca-800" onClick={avancar}>
-                    {ativo.i + 1 < ativo.passos.length || ativo.r + 1 < ativo.roteiros.length
-                      ? <>Próximo<ArrowRight className="size-4" aria-hidden /></>
-                      : <>Entendi<Check className="size-4" aria-hidden /></>}
+            <div className="overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-12px_rgba(15,42,74,0.5)] ring-1 ring-slate-900/5">
+              {/* cabeçalho: tipo da dica, contador e fechar */}
+              <div className="orientacao-capa relative flex items-center gap-2.5 px-4 py-3 text-white">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+                  {geral ? <Compass className="size-[18px]" aria-hidden /> : <Lightbulb className="size-[18px]" aria-hidden />}
+                </span>
+                <p className="flex-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/85">
+                  {geral ? 'Conhecendo o sistema' : 'Dica desta tela'}
+                </p>
+                <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-white/20">
+                  {ativo.i + 1}<span className="text-white/60"> / {ativo.passos.length}</span>
+                </span>
+                <button className="-mr-1 rounded-lg p-1.5 text-white/70 hover:bg-white/15 hover:text-white" onClick={fechar} aria-label="Fechar a ajuda desta tela"><X className="size-4" /></button>
+                {/* progresso */}
+                <span className="absolute inset-x-0 bottom-0 h-[3px] bg-white/15" aria-hidden>
+                  <span className="block h-full rounded-r-full bg-gradient-to-r from-acento-400 to-chamada-400 transition-[width] duration-500 ease-out" style={{ width: `${progresso}%` }} />
+                </span>
+              </div>
+
+              <div key={`${ativo.r}-${ativo.i}`} className="orientacao-conteudo px-5 pb-4 pt-4">
+                <p id="orientacao-titulo" className="text-[17px] font-bold leading-snug text-slate-900">{passo.titulo}</p>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">{typeof passo.texto === 'function' ? passo.texto(ctx) : passo.texto}</p>
+              </div>
+
+              <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/70 px-4 py-3">
+                {!ativo.manual
+                  ? <button className="mr-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-1.5 py-1 text-xs text-slate-400 hover:text-slate-700" onClick={() => void naoMostrarMais()}><EyeOff className="size-3.5" aria-hidden />Não mostrar mais</button>
+                  : <span className="mr-auto hidden text-[11px] text-slate-400 sm:inline">← → para navegar · Esc fecha</span>}
+                {ativo.i > 0 && (
+                  <button className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm" onClick={voltar}>
+                    <ArrowLeft className="size-4" aria-hidden />Voltar
                   </button>
-                </div>
+                )}
+                <button ref={proximoRef} className="orientacao-botao-principal inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white" onClick={avancar}>
+                  {ultimo ? <>Entendi<Check className="size-4" aria-hidden /></> : <>Próximo<ArrowRight className="size-4" aria-hidden /></>}
+                </button>
               </div>
             </div>
           </div>

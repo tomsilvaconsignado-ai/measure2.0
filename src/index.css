@@ -155,22 +155,56 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
   .menu-lateral, .menu-alca, .menu-seta { transition: none; }
 }
 
-/* ---------------------------------------------------------------- balões de orientação (tour) */
+/* ---------------------------------------------------------------- balões de ajuda (tour) */
+/* cabeçalho em degradê da marca, com um brilho suave */
+.orientacao-capa {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(52 211 166 / .28), transparent 55%),
+    radial-gradient(90% 120% at 0% 100%, rgb(245 183 10 / .18), transparent 60%),
+    linear-gradient(135deg, var(--color-marca-900, #0f2a4a), var(--color-marca-700, #1a3f80) 60%, var(--color-marca-600, #1f4f9f));
+}
+.orientacao-brilho { position: absolute; width: 9px; height: 9px; background: #fff; opacity: .8; pointer-events: none;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: orientacao-cintila 2.8s ease-in-out infinite; }
+.orientacao-brilho.pequeno { width: 6px; height: 6px; animation-delay: 1.1s; }
+@keyframes orientacao-cintila { 0%, 100% { transform: scale(.6) rotate(0); opacity: .35; } 50% { transform: scale(1.1) rotate(45deg); opacity: .95; } }
+.orientacao-icone { animation: orientacao-flutua 3.4s ease-in-out infinite; }
+@keyframes orientacao-flutua { 50% { transform: translateY(-3px) rotate(-6deg); } }
+
+.orientacao-botao-principal {
+  background: linear-gradient(135deg, var(--color-marca-700, #1a3f80), var(--color-marca-500, #2f66bd));
+  box-shadow: 0 8px 18px -8px rgb(31 79 159 / .7), inset 0 1px 0 rgb(255 255 255 / .18);
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+.orientacao-botao-principal:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 12px 22px -8px rgb(31 79 159 / .75), inset 0 1px 0 rgb(255 255 255 / .2); }
+.orientacao-botao-principal:active { transform: translateY(0); }
+.orientacao-botao-principal:focus-visible { outline: 3px solid var(--color-acento-400, #34d3a6); outline-offset: 2px; }
+
+/* elemento em destaque: recorte iluminado com contorno verde suave */
 .orientacao-foco {
-  box-shadow: 0 0 0 9999px rgb(10 30 56 / 0.58), 0 0 0 3px var(--color-acento-400, #34d3a6), 0 0 22px 4px rgb(52 211 166 / 0.45);
-  transition: top .28s cubic-bezier(.22,1,.36,1), left .28s cubic-bezier(.22,1,.36,1), width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1);
-  animation: orientacao-pulso 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 9999px rgb(9 24 46 / .62), 0 0 0 2px rgb(255 255 255 / .95), 0 0 0 6px rgb(52 211 166 / .55), 0 0 28px 8px rgb(52 211 166 / .35);
+  transition: top .35s cubic-bezier(.22,1,.36,1), left .35s cubic-bezier(.22,1,.36,1), width .35s cubic-bezier(.22,1,.36,1), height .35s cubic-bezier(.22,1,.36,1);
+  animation: orientacao-pulso 2.6s ease-in-out infinite;
 }
 @keyframes orientacao-pulso {
-  50% { box-shadow: 0 0 0 9999px rgb(10 30 56 / 0.58), 0 0 0 3px var(--color-acento-400, #34d3a6), 0 0 30px 9px rgb(52 211 166 / 0.3); }
+  50% { box-shadow: 0 0 0 9999px rgb(9 24 46 / .62), 0 0 0 2px rgb(255 255 255 / .95), 0 0 0 9px rgb(52 211 166 / .3), 0 0 36px 12px rgb(52 211 166 / .22); }
 }
-.orientacao-balao { animation: orientacao-entra .32s cubic-bezier(.22,1,.36,1) both; transition: top .28s cubic-bezier(.22,1,.36,1), left .28s cubic-bezier(.22,1,.36,1); }
-.orientacao-pergunta { animation: orientacao-entra .4s cubic-bezier(.22,1,.36,1) both; }
-@keyframes orientacao-entra { from { opacity: 0; transform: translateY(10px) scale(.98); } }
-.orientacao-seta { position: absolute; width: 14px; height: 14px; background: #fff; border: 1px solid var(--color-slate-200, #e2e8f0); transform: rotate(45deg); z-index: 1; }
-.orientacao-seta.seta-cima { top: -7px; margin-left: -7px; border-right: 0; border-bottom: 0; background: var(--color-marca-700, #1a3f80); border-color: var(--color-marca-700, #1a3f80); }
-.orientacao-seta.seta-baixo { bottom: -7px; margin-left: -7px; border-left: 0; border-top: 0; }
-.orientacao-seta.seta-esquerda { left: -7px; margin-top: -7px; border-right: 0; border-top: 0; }
+.orientacao-veu { background: rgb(9 24 46 / .62); backdrop-filter: blur(2px); animation: orientacao-aparece .3s ease both; }
+@keyframes orientacao-aparece { from { opacity: 0; } }
+
+.orientacao-balao { animation: orientacao-entra .38s cubic-bezier(.22,1,.36,1) both;
+  transition: top .35s cubic-bezier(.22,1,.36,1), left .35s cubic-bezier(.22,1,.36,1); }
+.orientacao-pergunta { animation: orientacao-entra .5s cubic-bezier(.22,1,.36,1) both; }
+@keyframes orientacao-entra { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+/* o texto de cada passo entra suave ao avançar */
+.orientacao-conteudo { animation: orientacao-texto .35s ease both; }
+@keyframes orientacao-texto { from { opacity: 0; transform: translateX(8px); } }
+
+/* seta do balão, na cor da parte do balão em que encosta */
+.orientacao-seta { position: absolute; width: 16px; height: 16px; transform: rotate(45deg); z-index: 1; border-radius: 3px; }
+.orientacao-seta.seta-cima { top: -7px; margin-left: -8px; background: var(--color-marca-800, #163a73); }
+.orientacao-seta.seta-esquerda { left: -7px; margin-top: -8px; background: var(--color-marca-900, #0f2a4a); }
+.orientacao-seta.seta-baixo { bottom: -7px; margin-left: -8px; background: #f8fafc; box-shadow: 2px 2px 0 0 rgb(15 23 42 / .05); }
+
 @media (prefers-reduced-motion: reduce) {
-  .orientacao-foco, .orientacao-balao, .orientacao-pergunta { animation: none; transition: none; }
+  .orientacao-foco, .orientacao-balao, .orientacao-pergunta, .orientacao-conteudo, .orientacao-icone, .orientacao-brilho, .orientacao-veu { animation: none; transition: none; }
 }
