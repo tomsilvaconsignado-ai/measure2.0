@@ -27,6 +27,9 @@ export interface Perfil {
   ativo: boolean;
   ultimo_acesso: string | null;
   criado_em: string;
+  /** balões de orientação ligados (a pessoa desliga; a administração reativa) */
+  orientacoes_ativas?: boolean;
+  orientacoes_alteradas_em?: string | null;
 }
 
 export interface VinculoContexto {

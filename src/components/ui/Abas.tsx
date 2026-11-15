@@ -20,7 +20,7 @@ export function Abas<T extends string>({ abas, ativa, aoMudar }: { abas: Array<{
 /** Campo de busca das listagens (a espera entre teclas fica com useBuscaAtrasada) */
 export function CampoBusca({ valor, aoMudar, placeholder, rotulo }: { valor: string; aoMudar: (v: string) => void; placeholder: string; rotulo: string }) {
   return (
-    <div className="relative w-full">
+    <div data-orientacao="busca" className="relative w-full">
       <svg className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
       <input className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm shadow-sm transition-colors hover:border-slate-400 focus:border-marca-600 focus:outline-none focus:ring-2 focus:ring-marca-100" placeholder={placeholder} value={valor}
         onChange={(e) => aoMudar(e.target.value)} aria-label={rotulo} />

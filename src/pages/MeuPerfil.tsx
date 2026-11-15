@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Camera, KeyRound } from 'lucide-react';
+import { Camera, Compass, KeyRound } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -11,6 +11,7 @@ import { atualizarMeuPerfil, definirVinculoPadrao, enviarMinhaFoto, urlArquivo }
 import { MeuCadastroServidor } from '@/components/PreCadastro';
 import { regraSenha } from './Acesso';
 import { CartaoDuasEtapas } from '@/auth/DuasEtapas';
+import { abrirOrientacoes } from '@/components/orientacao/Orientacao';
 
 export function MeuPerfil() {
   const { contexto, recarregar, mfa } = useSessao();
@@ -41,6 +42,18 @@ export function MeuPerfil() {
   const padrao = useMutation({
     mutationFn: (id: string) => definirVinculoPadrao(id),
     onSuccess: async () => { await recarregar(); toast.success('Órgão padrão definido.'); },
+    onError: (e) => toast.error(mensagemDeErro(e)),
+  });
+
+  const orientacoesLigadas = perfil.orientacoes_ativas !== false;
+  const orientacoes = useMutation({
+    mutationFn: async (ligar: boolean) => {
+      const { error } = await supabase.rpc('definir_minhas_orientacoes', { p_ativas: ligar });
+      if (error) throw error;
+      // ligou de novo: volta a perguntar já neste acesso
+      if (ligar) { try { sessionStorage.removeItem('measure.orientacao.decisao'); sessionStorage.removeItem('measure.orientacao.vistos'); } catch { /* sem armazenamento */ } }
+    },
+    onSuccess: async (_, ligar) => { await recarregar(); toast.success(ligar ? 'Balões de orientação ligados.' : 'Balões de orientação desligados.'); },
     onError: (e) => toast.error(mensagemDeErro(e)),
   });
 
@@ -90,6 +103,23 @@ export function MeuPerfil() {
             )}
             <p className="mt-4 text-xs text-slate-500">Conta criada em {formatarDataHora(perfil.criado_em)}.</p>
           </Cartao>
+
+          <div data-orientacao="perfil-orientacoes">
+            <Cartao titulo={<span className="inline-flex items-center gap-2"><Compass className="size-4" />Balões de orientação</span>}>
+              <p className="text-sm text-slate-600">
+                {orientacoesLigadas
+                  ? 'Ligados: a cada acesso perguntamos se você quer ver as dicas das telas, de acordo com o seu papel.'
+                  : 'Desligados: as dicas não aparecem sozinhas. Você ainda pode abrir as dicas de qualquer tela pelo botão de bússola no topo.'}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Selo tom={orientacoesLigadas ? 'sucesso' : 'neutro'}>{orientacoesLigadas ? 'Ligados' : 'Desligados'}</Selo>
+                <Botao pequeno variante="secundario" carregando={orientacoes.isPending} onClick={() => orientacoes.mutate(!orientacoesLigadas)}>
+                  {orientacoesLigadas ? 'Desligar' : 'Ligar de novo'}
+                </Botao>
+                <Botao pequeno variante="fantasma" icone={<Compass className="size-4" />} onClick={abrirOrientacoes}>Ver as dicas desta tela</Botao>
+              </div>
+            </Cartao>
+          </div>
 
           <Cartao titulo={<span className="inline-flex items-center gap-2"><KeyRound className="size-4" />Trocar senha</span>}>
             <form className="flex flex-col gap-4" onSubmit={enviarSenha} noValidate>

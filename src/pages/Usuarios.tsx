@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, MailPlus, MoreHorizontal, Plus, Search, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
+import { Compass, Mail, MailPlus, MoreHorizontal, Plus, Search, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -206,10 +206,23 @@ export function Usuarios() {
     onSuccess: (r) => toast.success(r.tipo === 'ativacao' ? 'Link de ativação reenviado por e-mail.' : 'Link para criar nova senha enviado por e-mail.'),
     onError: (e) => toast.error(traduzirErro(e).mensagem),
   });
+  // balões de orientação: reativa para uma pessoa (user) ou para todas do seu escopo (user nulo)
+  const reativarOrientacoes = useMutation({
+    mutationFn: async (user: string | null) => {
+      const { data, error } = await supabase.rpc('reativar_orientacoes', { p_tenant: orgao!.id, p_user: user });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (n, user) => toast.success(user
+      ? (n ? 'Balões de orientação reativados: no próximo acesso a pessoa verá as dicas de novo.' : 'Os balões dessa pessoa já estavam ligados.')
+      : (n ? `Balões de orientação reativados para ${n} pessoa(s).` : 'Todas as pessoas do seu escopo já estavam com os balões ligados.')),
+    onError: (e) => toast.error(traduzirErro(e).mensagem),
+  });
 
   if (!orgao) return <SemPermissao texto="Escolha um órgão para ver os usuários." />;
   if (!pode('usuarios', 'ler')) return <SemPermissao />;
   const podeCriar = pode('usuarios', 'criar');
+  const podeEditar = pode('usuarios', 'editar') || ehPlataforma;
   const filtrosAtivos = !!(busca || papel || coordenacao || situacao !== 'ATIVOS');
   const meuId = contexto?.perfil?.id;
   // pendentes da lista filtrada (até 100 por vez): contas ativas que nunca entraram
@@ -250,7 +263,7 @@ export function Usuarios() {
           </ul>
           <p className="mt-1 text-xs text-slate-500">Último acesso: {formatarDataHora(u.ultimo_acesso)}</p>
         </div>
-        {!ehEu && (podeCriar || ehPlataforma) && (
+        {!ehEu && (podeCriar || podeEditar) && (
           <div className="relative">
             <Botao pequeno variante="fantasma" icone={<MoreHorizontal className="size-4" />} aria-label={`Ações para ${u.email}`}
               onClick={() => setMenu(menu === chaveMenu ? null : chaveMenu)} />
@@ -258,6 +271,7 @@ export function Usuarios() {
               <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-lg" onMouseLeave={() => setMenu(null)}>
                 {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setConvidando({ email: u.email }); setMenu(null); }}><Plus className="size-4" />Conceder outro acesso</button>}
                 {podeCriar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reenviar.mutate(u.id); setMenu(null); }}><MailPlus className="size-4" />{u.ultimo_acesso ? 'Enviar link de nova senha' : 'Reenviar convite'}</button>}
+                {podeEditar && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { reativarOrientacoes.mutate(u.id); setMenu(null); }}><Compass className="size-4" />Reativar balões de orientação</button>}
                 {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'conta', usuario: u }); setMenu(null); }}><ShieldAlert className="size-4" />{u.ativo ? 'Suspender a conta inteira' : 'Reativar a conta'}</button>}
                 {ehPlataforma && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setAcao({ tipo: 'plataforma', usuario: u }); setMenu(null); }}><ShieldCheck className="size-4" />{u.is_platform_admin ? 'Remover admin. da plataforma' : 'Tornar admin. da plataforma'}</button>}
               </div>
@@ -271,13 +285,15 @@ export function Usuarios() {
   return (
     <>
       <CabecalhoPagina titulo="Usuários e acessos" descricao={`Pessoas com vínculo em ${orgao.nome_curto}, conforme o seu escopo.`}
-        acoes={podeCriar && <>
-          <Botao variante="secundario" icone={<Mail className="size-4" />} onClick={() => void abrirEmLote()}>Convidar quem não acessou</Botao>
-          <Botao icone={<UserPlus className="size-4" />} onClick={() => setConvidando({})}>Convidar usuário</Botao>
+        acoes={(podeCriar || podeEditar) && <>
+          {podeEditar && <Botao variante="secundario" icone={<Compass className="size-4" />} carregando={reativarOrientacoes.isPending && reativarOrientacoes.variables === null}
+            title="Volta a mostrar os balões de orientação para todas as pessoas do seu escopo" onClick={() => reativarOrientacoes.mutate(null)}>Reativar balões de todos</Botao>}
+          {podeCriar && <Botao variante="secundario" icone={<Mail className="size-4" />} onClick={() => void abrirEmLote()}>Convidar quem não acessou</Botao>}
+          {podeCriar && <Botao icone={<UserPlus className="size-4" />} onClick={() => setConvidando({})}>Convidar usuário</Botao>}
         </>} />
       <Cartao>
         <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_14rem_12rem_10rem_auto] sm:items-end">
-          <div className="relative">
+          <div className="relative" data-orientacao="busca">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm" placeholder="Buscar por nome ou e-mail"
               value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar usuário" />

@@ -149,7 +149,7 @@ export function Cartao({ children, className, titulo, acoes }: { children: React
 /** Título da página: faixa azul-marinho com linha de acento; o botão principal vira a chamada amarela. */
 export function CabecalhoPagina({ titulo, descricao, acoes }: { titulo: string; descricao?: ReactNode; acoes?: ReactNode }) {
   return (
-    <div className="faixa-pagina relative mb-5 overflow-hidden rounded-xl bg-gradient-to-r from-marca-950 via-marca-900 to-marca-800 px-5 py-4 shadow-md sm:px-6 sm:py-5">
+    <div data-orientacao="pagina-titulo" className="faixa-pagina relative mb-5 overflow-hidden rounded-xl bg-gradient-to-r from-marca-950 via-marca-900 to-marca-800 px-5 py-4 shadow-md sm:px-6 sm:py-5">
       <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-white/5" aria-hidden />
       <div className="relative flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
@@ -157,7 +157,7 @@ export function CabecalhoPagina({ titulo, descricao, acoes }: { titulo: string; 
           <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-acento-400 to-chamada-400" aria-hidden />
           {descricao && <div className="mt-2 text-sm text-marca-100 [&_a]:text-chamada-300 [&_a:hover]:text-white">{descricao}</div>}
         </div>
-        {acoes && <div className="flex flex-wrap items-center gap-2 [&_a:not([data-variante])]:text-chamada-300 [&_button:not([data-variante])]:text-marca-50">{acoes}</div>}
+        {acoes && <div data-orientacao="pagina-acoes" className="flex flex-wrap items-center gap-2 [&_a:not([data-variante])]:text-chamada-300 [&_button:not([data-variante])]:text-marca-50">{acoes}</div>}
       </div>
     </div>
   );

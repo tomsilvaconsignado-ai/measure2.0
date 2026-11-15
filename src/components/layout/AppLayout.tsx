@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel, Compass,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -16,6 +16,7 @@ import { usePendencias } from '../Pendencias';
 import { FocoCoordenacao } from './FocoCoordenacao';
 import { Marca, Simbolo } from './Marca';
 import { Notificacoes } from './Notificacoes';
+import { Orientacao, abrirOrientacoes } from '../orientacao/Orientacao';
 import { definirOrgaoMonitorado, LimiteDeErro } from '@/lib/monitoramento';
 import type { Recurso } from '@/lib/tipos';
 
@@ -61,7 +62,7 @@ const GESTAO: Item[] = [
 function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean }) {
   return (
     <NavLink to={item.para} onClick={aoNavegar} end={['/', '/ajuda', '/conecta'].includes(item.para)}
-      data-flip={item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
+      data-flip={item.para} data-orientacao={'menu:' + item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
       className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
         // item ativo: fundo claro e barra de acento verde à esquerda
         isActive ? 'bg-white/15 font-semibold text-white shadow-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-acento-400'
@@ -162,7 +163,7 @@ export function AppLayout() {
   const cadastros = CADASTROS.filter((i) => !i.recurso || pode(i.recurso, 'ler'));
 
   const menuLateral = (rec: boolean) => (
-    <nav className="flex h-full flex-col bg-gradient-to-b from-marca-950 via-marca-900 to-marca-950 px-3 pb-4 text-white" aria-label="Menu principal">
+    <nav data-orientacao="menu" className="flex h-full flex-col bg-gradient-to-b from-marca-950 via-marca-900 to-marca-950 px-3 pb-4 text-white" aria-label="Menu principal">
       <div className="flex h-16 items-center justify-between px-2" style={rec ? { width: LARGURA_RECOLHIDO - 24 } : undefined}>
         {rec ? <Simbolo clara className="h-7 w-auto" /> : <span data-rotulo><Marca clara /></span>}
         <button className="rounded-md p-1 text-marca-200 hover:bg-white/10 lg:hidden" onClick={fecharMenu} aria-label="Fechar menu"><X className="size-5" /></button>
@@ -219,10 +220,10 @@ export function AppLayout() {
       <header ref={cabecalhoRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <span className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-marca-900 via-acento-500 to-chamada-400" aria-hidden />
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
-          <button className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setMenuAberto(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
+          <button data-orientacao="menu-celular" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setMenuAberto(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
 
           <div className="relative min-w-0 flex-1">
-            <button className="flex max-w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
+            <button data-orientacao="orgao" className="flex max-w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
               onClick={() => setOrgaosAbertos((v) => !v)} aria-expanded={orgaosAbertos} aria-haspopup="listbox">
               {logo.data
                 ? <img src={logo.data} alt="" className="size-9 shrink-0 rounded object-contain" />
@@ -251,8 +252,10 @@ export function AppLayout() {
             )}
           </div>
 
-          <Notificacoes />
-          <NavLink to="/meu-perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50" title="Meu perfil">
+          <button type="button" data-orientacao="botao-orientacoes" onClick={abrirOrientacoes} title="Orientações desta tela" aria-label="Orientações desta tela"
+            className="hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-marca-700 sm:inline-flex"><Compass className="size-5" /></button>
+          <span data-orientacao="notificacoes" className="inline-flex"><Notificacoes /></span>
+          <NavLink to="/meu-perfil" data-orientacao="perfil" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50" title="Meu perfil">
             <Avatar nome={perfil.nome || perfil.email} url={foto.data} />
             <span className="hidden max-w-40 truncate text-sm text-slate-700 md:block">{perfil.nome || perfil.email}</span>
           </NavLink>
@@ -283,6 +286,7 @@ export function AppLayout() {
       <main ref={principalRef} className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <LimiteDeErro key={local.pathname}><Suspense fallback={<Carregando />}><Outlet /></Suspense></LimiteDeErro>
       </main>
+      <Orientacao />
     </div>
   );
 }
