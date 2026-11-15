@@ -1,7 +1,7 @@
 // Minhas notificações: histórico completo (com filtros), preferências de PUSH por categoria e os aparelhos
 // autorizados — com o passo a passo para instalar o aplicativo e ativar as notificações.
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, BellOff, BellRing, CheckCheck, Laptop, Lock, Smartphone, Trash2 } from 'lucide-react';
+import { Bell, BellOff, BellRing, CheckCheck, Laptop, Lock, Mail, Smartphone, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -13,7 +13,8 @@ import { formatarDataHora } from '@/lib/formatacao';
 import { PERIODOS, intervalo, type Periodo } from '@/lib/monitoramentoOrganizacional';
 import { ativarPush, desativarPushNesteAparelho, endpointAtual, situacaoPush, type SituacaoPush } from '@/lib/push';
 import {
-  MODULOS_NOTIFICACAO, historicoNotificacoes, marcarMensagensLidas, meusDispositivos, minhasPreferencias, revogarDispositivo, salvarPreferencia, type Mensagem,
+  MODULOS_NOTIFICACAO, historicoNotificacoes, marcarMensagensLidas, meusDispositivos, minhasPreferencias, minhasPreferenciasEmail, revogarDispositivo, salvarPreferencia,
+  salvarPreferenciaEmail, type Mensagem,
 } from '@/services/notificacoes';
 
 type Aba = 'notificacoes' | 'preferencias' | 'dispositivos';
@@ -93,12 +94,16 @@ function Lista({ tenantId }: { tenantId: string }) {
 function Preferencias({ tenantId }: { tenantId: string }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['preferencias-notificacao', tenantId], queryFn: () => minhasPreferencias(tenantId) });
+  const qe = useQuery({ queryKey: ['preferencias-email', tenantId], queryFn: () => minhasPreferenciasEmail(tenantId) });
+  const email = new Map((qe.data ?? []).map((x) => [x.categoria, x]));
+  const emailNoOrgao = qe.data?.[0]?.orgao_ativo ?? true;
   if (q.isLoading) return <Carregando />;
   if (q.isError) return <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} />;
   const grupos = [...new Set(q.data!.map((p) => p.modulo))];
   return (
     <Cartao className="p-3 sm:p-4">
-      <p className="mb-4 text-sm text-slate-600">Escolha o que chega por PUSH no celular ou computador. Tudo continua registrado aqui na central, mesmo desligado. As marcadas como obrigatórias foram definidas pela administração.</p>
+      <p className="mb-4 text-sm text-slate-600">Escolha o que chega por PUSH no celular ou computador e, nos contratos em que você é gestor, fiscal ou suplente, também por e-mail. Tudo continua registrado aqui na central, mesmo desligado. As marcadas como obrigatórias foram definidas pela administração.</p>
+      {!emailNoOrgao && <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">O envio de avisos por e-mail está desligado pela administração do órgão.</p>}
       <div className="flex flex-col gap-5">
         {grupos.map((g) => (
           <div key={g}>
@@ -119,6 +124,17 @@ function Preferencias({ tenantId }: { tenantId: string }) {
                       }} />
                     PUSH
                   </label>
+                  {email.has(p.categoria) && (
+                    <label className="inline-flex shrink-0 items-center gap-2 text-xs text-slate-600">
+                      <input type="checkbox" role="switch" className="size-4 accent-marca-700" checked={emailNoOrgao && email.get(p.categoria)!.email}
+                        disabled={!emailNoOrgao || email.get(p.categoria)!.obrigatoria || !p.ativa}
+                        onChange={async (e) => {
+                          try { await salvarPreferenciaEmail(p.categoria, e.target.checked); await qc.invalidateQueries({ queryKey: ['preferencias-email'] }); }
+                          catch (err) { toast.error(mensagemDeErro(err)); }
+                        }} />
+                      <Mail className="size-3.5" aria-hidden />E-mail
+                    </label>
+                  )}
                 </li>
               ))}
             </ul>

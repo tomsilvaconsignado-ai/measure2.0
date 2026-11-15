@@ -2,10 +2,11 @@
 // Explica, em linguagem simples, o que o sistema faz e o que muda no dia a dia de cada perfil.
 // Os prints são de um órgão de EXEMPLO, com dados fictícios (nenhum dado real de pessoas ou empresas).
 import {
-  ArrowRight, BarChart3, Banknote, Bell, BookOpen, CalendarCheck2, CheckCircle2, ClipboardCheck, FileCheck2, FileSpreadsheet, FileText, Gavel,
-  GraduationCap, History, Home, KeyRound, Lock, MessagesSquare, Package, Receipt, ShieldCheck, Smartphone, Sparkles, Users, Wallet, X, XCircle, ZoomIn,
+  ArrowRight, BarChart3, Banknote, Bell, BookOpen, CalendarCheck2, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSpreadsheet,
+  FileText, Gavel, GraduationCap, History, Home, KeyRound, Lock, Mail, MessagesSquare, Package, Receipt, ShieldCheck, Smartphone, Sparkles, Users, Wallet, Wand2,
+  X, XCircle, ZoomIn,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cx } from '@/components/ui/basicos';
 
@@ -60,12 +61,65 @@ function Bloco({ id, icone, sobre, titulo, texto, itens, prints, abrir, invertid
   );
 }
 
+// Slides do "papel pronto": o sistema monta o atesto e o checklist com os dados que já tem
+const SLIDES: Array<Print & { passo: string; titulo: string; texto: string }> = [
+  { arquivo: 'slide-atesto', legenda: 'Texto de atesto gerado automaticamente', passo: '1', titulo: 'O texto de atesto já vem escrito',
+    texto: 'Número e valor da nota (também por extenso), contrato, empresa, vigência, objeto, local do serviço e mês de referência: o MEASURE preenche tudo no modelo do órgão. É só conferir, copiar e atestar.' },
+  { arquivo: 'slide-checklist', legenda: 'Checklist da nota com os dados preenchidos', passo: '2', titulo: 'O checklist vem montado',
+    texto: 'Os dados da nota e do contrato aparecem sozinhos e os itens já vêm marcados como no modelo. Você só confere o que mudou e escolhe quem assina.' },
+  { arquivo: 'slide-checklist-doc', legenda: 'Checklist emitido, pronto para imprimir ou salvar em PDF', passo: '3', titulo: 'Documento pronto para assinar',
+    texto: 'Um clique gera o formulário de análise dos documentos no padrão do órgão, com cabeçalho, itens, responsável e matrícula. Imprima ou salve em PDF.' },
+];
+
+function Slides({ abrir }: { abrir: (p: Print) => void }) {
+  const [i, setI] = useState(0);
+  const toque = useRef<number | null>(null);
+  const ir = (n: number) => setI((n + SLIDES.length) % SLIDES.length);
+  const s = SLIDES[i]!;
+  return (
+    <div className="overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-28px_rgba(15,42,74,0.55)] ring-1 ring-slate-200"
+      onKeyDown={(e) => { if (e.key === 'ArrowRight') ir(i + 1); if (e.key === 'ArrowLeft') ir(i - 1); }}>
+      {/* passos */}
+      <div className="grid grid-cols-3 border-b border-slate-200 bg-slate-50" role="tablist" aria-label="Etapas">
+        {SLIDES.map((x, k) => (
+          <button key={x.arquivo} role="tab" aria-selected={k === i} onClick={() => setI(k)}
+            className={cx('relative flex items-center justify-center gap-2 px-2 py-3 text-xs font-semibold transition sm:text-sm',
+              k === i ? 'bg-white text-marca-800' : 'text-slate-500 hover:text-slate-800')}>
+            <span className={cx('flex size-6 shrink-0 items-center justify-center rounded-full text-xs', k === i ? 'bg-marca-700 text-white' : 'bg-slate-200 text-slate-600')}>{x.passo}</span>
+            <span className="hidden sm:inline">{['Atesto', 'Checklist', 'Documento'][k]}</span>
+            {k === i && <span className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-acento-400 to-chamada-400" aria-hidden />}
+          </button>
+        ))}
+      </div>
+      <div className="grid items-center gap-6 p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:gap-10">
+        <div key={s.arquivo} className="orientacao-conteudo">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-acento-600">Passo {s.passo} de {SLIDES.length}</p>
+          <h3 className="mt-2 text-2xl font-extrabold leading-tight text-slate-900">{s.titulo}</h3>
+          <p className="mt-3 text-[15px] leading-relaxed text-slate-600">{s.texto}</p>
+          <div className="mt-6 flex items-center gap-2">
+            <button onClick={() => ir(i - 1)} aria-label="Slide anterior" className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200"><ChevronLeft className="size-5" /></button>
+            <button onClick={() => ir(i + 1)} aria-label="Próximo slide" className="flex size-10 items-center justify-center rounded-full bg-marca-700 text-white hover:bg-marca-800"><ChevronRight className="size-5" /></button>
+            <span className="ml-2 flex gap-1.5" aria-hidden>
+              {SLIDES.map((x, k) => <span key={x.arquivo} className={cx('h-2 rounded-full transition-all', k === i ? 'w-6 bg-marca-700' : 'w-2 bg-slate-300')} />)}
+            </span>
+          </div>
+        </div>
+        <div onTouchStart={(e) => { toque.current = e.touches[0]?.clientX ?? null; }}
+          onTouchEnd={(e) => { const x0 = toque.current; const x1 = e.changedTouches[0]?.clientX; if (x0 != null && x1 != null && Math.abs(x1 - x0) > 40) ir(i + (x1 < x0 ? 1 : -1)); toque.current = null; }}>
+          <div className="mx-auto max-w-xl"><Imagem key={s.arquivo} print={s} abrir={abrir} destaque /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ANTES_DEPOIS: Array<[string, string]> = [
   ['Contratos espalhados em planilhas e pastas', 'Todos os contratos num lugar só, com saldo calculado sozinho'],
   ['Descobrir o saldo fazendo conta na calculadora', 'Valor usado, empenhado, pago e o que sobra, sempre atualizados'],
-  ['Contrato vence e ninguém percebe a tempo', 'Aviso no sistema e no celular antes de vencer'],
-  ['Atesto escrito à mão, cada um de um jeito', 'Texto de atesto pronto, no modelo do órgão, com nome e data registrados'],
-  ['Checklist da nota montado do zero toda vez', 'Checklist gerado com os dados da nota já preenchidos'],
+  ['Contrato vence e ninguém percebe a tempo', 'Aviso no sistema, no celular e por e-mail antes de vencer'],
+  ['Responsável só fica sabendo da nota quando perguntam', 'Gestor, fiscal e suplente recebem por e-mail cada novidade do contrato'],
+  ['Atesto escrito à mão, cada um de um jeito', 'Texto de atesto gerado automaticamente, no modelo do órgão'],
+  ['Checklist da nota montado do zero toda vez', 'Checklist gerado automaticamente, com os dados da nota já preenchidos'],
   ['Pagamento sem ordem clara', 'Fila de pagamento na ordem da lei, separada por fonte de recurso'],
   ['Frequência dos servidores em papel', 'Consolidado mensal com atrasos, faltas e justificativas, pronto para imprimir'],
   ['Não dá para saber quem mudou o quê', 'Tudo registrado: quem fez, quando e por quê'],
@@ -78,7 +132,7 @@ const PERFIS = [
   },
   {
     icone: <ClipboardCheck className="size-6" aria-hidden />, titulo: 'Gestor e fiscal', subtitulo: 'Quem acompanha o contrato',
-    itens: ['Vê só os contratos em que foi designado, em "Meus contratos"', 'Recebe aviso quando chega nota para conferir', 'Atesta com texto pronto, no modelo do órgão', 'Registra notificações e ocorrências com a empresa', 'Tem um curso curtinho sobre a função de fiscal'],
+    itens: ['Vê só os contratos em que foi designado, em "Meus contratos"', 'Recebe por e-mail e no celular cada novidade do contrato', 'Atesta com o texto gerado pelo sistema, no modelo do órgão', 'Registra notificações e ocorrências com a empresa', 'Tem um curso curtinho sobre a função de fiscal'],
   },
   {
     icone: <BarChart3 className="size-6" aria-hidden />, titulo: 'Chefias', subtitulo: 'Secretário, diretor, coordenador e gestão',
@@ -148,8 +202,8 @@ export function PorQueMeasure() {
         <div className="relative mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             [<Wallet key="w" className="size-5" />, 'Saldo sempre certo', 'Calculado sozinho a cada nota'],
-            [<Bell key="b" className="size-5" />, 'Avisos na hora', 'No sistema e no celular'],
-            [<FileCheck2 key="f" className="size-5" />, 'Documentos prontos', 'Atesto, checklist e extratos'],
+            [<Bell key="b" className="size-5" />, 'Avisos na hora', 'No sistema, no celular e por e-mail'],
+            [<FileCheck2 key="f" className="size-5" />, 'Documentos prontos', 'Atesto e checklist gerados sozinhos'],
             [<ShieldCheck key="s" className="size-5" />, 'Seguro e registrado', 'Cada passo fica guardado'],
           ].map(([icone, titulo, sub]) => (
             <div key={String(titulo)} className="flex items-center gap-3 rounded-2xl bg-white/[0.07] p-4 ring-1 ring-white/15 backdrop-blur">
@@ -219,9 +273,19 @@ export function PorQueMeasure() {
           itens={['Valor global, empenhado, usado, pago e saldo atualizados a cada nota', 'Aditivos de valor e de prazo já entram na conta', 'Gestor, fiscal e suplente designados com portaria', 'Contratos perto do vencimento destacados na lista']}
           prints={[{ arquivo: 'contrato', legenda: 'Ficha do contrato: etapas, saldo e execução financeira' }, { arquivo: 'contratos', legenda: 'Lista de contratos com o saldo de cada um' }]} abrir={abrir} />
         <Bloco icone={<Receipt className="size-3.5" />} sobre="Notas e atesto" cor="chamada" titulo="Nota lançada, conferida e atestada em poucos cliques"
-          texto="A nota é lançada ligada ao contrato e ao empenho. Quem foi designado para acompanhar recebe o aviso, confere e atesta com o texto pronto no modelo do órgão. O atesto fica registrado com o nome e a data."
-          itens={['Notas esperando o seu atesto em destaque', 'Texto de atesto pronto, que pode ser copiado para o processo', 'Aviso de responsabilidade antes de atestar', 'Checklist da nota gerado com os dados já preenchidos']}
+          texto="A nota é lançada ligada ao contrato e ao empenho. Na mesma hora, gestor, fiscal e suplente recebem o aviso por e-mail. Quem confere encontra o texto de atesto já escrito pelo sistema, no modelo do órgão, e o atesto fica registrado com o nome e a data."
+          itens={['Notas esperando o seu atesto em destaque', 'Texto de atesto gerado automaticamente, pronto para copiar no processo', 'Checklist da nota gerado automaticamente, com os dados já preenchidos', 'Aviso de responsabilidade antes de atestar']}
           prints={[{ arquivo: 'atesto', legenda: 'Atesto da nota com o texto pronto no modelo do órgão' }, { arquivo: 'notas', legenda: 'Notas com a situação de atesto e de pagamento' }]} abrir={abrir} />
+        <section className="py-10">
+          <div className="mx-auto mb-6 max-w-3xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-acento-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-acento-700 ring-1 ring-acento-100">
+              <Wand2 className="size-3.5" aria-hidden />Papel pronto, sem digitar
+            </span>
+            <h3 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-[28px]">O sistema escreve o atesto e monta o checklist para você</h3>
+            <p className="mt-2 text-[15px] text-slate-600">Veja, passo a passo, o que o MEASURE gera sozinho a partir dos dados que já estão cadastrados.</p>
+          </div>
+          <Slides abrir={abrir} />
+        </section>
         <Bloco invertido icone={<Banknote className="size-3.5" />} sobre="Pagamentos" titulo="Fila de pagamento na ordem certa"
           texto="As notas atestadas entram numa fila, separada por fonte de recurso, na ordem do atesto, como pede a Lei 14.133/2021 (art. 141). É só dar baixa de cima para baixo, com as retenções e a data."
           itens={['Fila separada por fonte de recurso, com a posição de cada nota', 'Quantos dias cada nota está esperando', 'Pagamento parcial e retenções calculados', 'Total a pagar sempre à vista']}
@@ -234,9 +298,13 @@ export function PorQueMeasure() {
           texto="Para quem decide: contratos vigentes e a vencer, quanto foi empenhado, usado e pago no ano, notas emitidas por mês e o consumo por ação do orçamento. Tudo calculado na hora."
           itens={['Gráficos de execução orçamentária e de notas por mês', 'Contratos perto do vencimento com o saldo de cada um', 'Pendências de atesto e de pagamento em destaque', 'Cada chefia vê o próprio setor e os que ficam abaixo dele']}
           prints={[{ arquivo: 'painel', legenda: 'Painel gerencial com indicadores e gráficos' }]} abrir={abrir} />
-        <Bloco icone={<Bell className="size-3.5" />} sobre="Avisos" cor="chamada" titulo="O sistema avisa antes de virar problema"
-          texto="Nota para conferir, contrato perto de vencer, empenho com pouco saldo: o aviso aparece no sininho e pode chegar no celular, mesmo com o sistema fechado."
-          itens={['Avisos de atesto, vencimento, pagamento e saldo baixo', 'Notificação no celular ou no computador', 'Um toque no aviso leva direto para a tela certa']}
+        <Bloco icone={<Mail className="size-3.5" />} sobre="E-mail aos responsáveis" cor="chamada" titulo="Cada novidade do contrato chega no e-mail de quem é responsável"
+          texto={<>Toda informação nova incluída no contrato (nota recebida, atesto, pagamento, aditivo, mudança de vigência, troca de responsável, documento anexado) gera na hora um <b>e-mail</b> para o gestor, o fiscal e o suplente designados. Ninguém precisa ficar perguntando: o aviso vai até a pessoa.</>}
+          itens={['E-mail automático para gestor, fiscal e suplente do contrato', 'Mostra o que aconteceu, o número do contrato e um botão para abrir direto no sistema', 'Cada pessoa escolhe quais avisos quer receber; os importantes sempre chegam', 'A administração acompanha os envios e pode ligar ou desligar o e-mail do órgão']}
+          prints={[{ arquivo: 'slide-email', legenda: 'E-mail que o responsável recebe quando chega uma nota nova' }]} abrir={abrir} />
+        <Bloco invertido icone={<Bell className="size-3.5" />} sobre="Avisos" titulo="O sistema avisa antes de virar problema"
+          texto="Nota para conferir, contrato perto de vencer, empenho com pouco saldo: o aviso aparece no sininho, chega no celular mesmo com o sistema fechado e vai por e-mail para os responsáveis."
+          itens={['Avisos de atesto, vencimento, pagamento e saldo baixo', 'Notificação no celular, no computador e por e-mail', 'Um toque no aviso leva direto para a tela certa']}
           prints={[{ arquivo: 'avisos', legenda: 'Avisos no sininho do sistema' }, { arquivo: 'meus-contratos', legenda: '"Meus contratos": o que o gestor e o fiscal acompanham' }]} abrir={abrir} />
       </div>
 

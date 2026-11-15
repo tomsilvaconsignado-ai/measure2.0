@@ -47,6 +47,15 @@ export async function salvarPreferencia(categoria: string, push: boolean) {
   falhou(await supabase.rpc('salvar_preferencia_notificacao', { p_categoria: categoria, p_push: push }));
 }
 
+export interface PreferenciaEmail { categoria: string; obrigatoria: boolean; email: boolean; orgao_ativo: boolean }
+/** Avisos de contrato por e-mail (só categorias de contratos) */
+export async function minhasPreferenciasEmail(tenantId: string) {
+  return falhou(await supabase.rpc('minhas_preferencias_email', { p_tenant: tenantId })) as PreferenciaEmail[];
+}
+export async function salvarPreferenciaEmail(categoria: string, email: boolean) {
+  falhou(await supabase.rpc('salvar_preferencia_email', { p_categoria: categoria, p_email: email }));
+}
+
 export interface Dispositivo { id: string; dispositivo: string | null; criado_em: string; ultimo_envio: string | null; ativo: boolean; endpoint_final: string }
 export async function meusDispositivos() {
   return falhou(await supabase.rpc('minhas_inscricoes_push')) as Dispositivo[];
@@ -83,4 +92,12 @@ export async function salvarConfigNotificacoes(tenantId: string, categorias: Cat
     p_tenant: tenantId, p_categorias: categorias.map((c) => ({ codigo: c.codigo, ativa: c.ativa, obrigatoria: c.obrigatoria })),
     p_vencimento_dias: vencimentoDias, p_lembrete_atesto: lembreteAtesto,
   }));
+}
+
+export interface SituacaoEmail { ativo: boolean; configurado: boolean; enviados: number; pendentes: number; falhas: number; descartados: number; ultimo_erro: string | null }
+export async function situacaoEmail(tenantId: string, de: string, ate: string) {
+  return falhou(await supabase.rpc('email_situacao', { p_tenant: tenantId, p_de: de, p_ate: ate })) as SituacaoEmail;
+}
+export async function salvarEmailDoOrgao(tenantId: string, ativo: boolean) {
+  falhou(await supabase.rpc('salvar_email_notificacoes', { p_tenant: tenantId, p_ativo: ativo }));
 }

@@ -2,7 +2,7 @@
 // módulo, falhas com reprocessamento, histórico por servidor/contrato/período e a configuração
 // (categorias ativas e obrigatórias, antecedências do vencimento e lembrete de atesto).
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, RotateCcw, Save, Settings2 } from 'lucide-react';
+import { Mail, RefreshCw, RotateCcw, Save, Settings2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -13,7 +13,7 @@ import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
 import { PERIODOS, intervalo, type Periodo } from '@/lib/monitoramentoOrganizacional';
 import {
-  MODULOS_NOTIFICACAO, historicoAdmin, painelNotificacoes, reprocessarFalhas, salvarConfigNotificacoes, type CategoriaConfig, type PainelNotificacoes as Dados,
+  MODULOS_NOTIFICACAO, historicoAdmin, painelNotificacoes, reprocessarFalhas, salvarConfigNotificacoes, salvarEmailDoOrgao, situacaoEmail, type CategoriaConfig, type PainelNotificacoes as Dados,
 } from '@/services/notificacoes';
 import { SeletorContrato } from '@/pages/contratos/comum';
 
@@ -58,6 +58,7 @@ export function PainelNotificacoes() {
           <Numero titulo="Usuários com PUSH ativo" valor={d.usuarios_com_push} />
           <Numero titulo="Aparelhos cadastrados" valor={d.dispositivos} />
         </div>
+        <EmailResponsaveis tenantId={orgao.id} de={de} ate={ate} />
         <Abas<Aba> ativa={aba} aoMudar={setAba} abas={[{ id: 'resumo', rotulo: 'Eventos por módulo' }, { id: 'historico', rotulo: 'Histórico e falhas', alerta: d.push_falhas || undefined },
           { id: 'configuracao', rotulo: 'Configuração' }]} />
         {aba === 'resumo' && <Resumo d={d} />}
@@ -65,6 +66,44 @@ export function PainelNotificacoes() {
         {aba === 'configuracao' && <Configuracao tenantId={orgao.id} d={d} />}
       </>}
     </>
+  );
+}
+
+function EmailResponsaveis({ tenantId, de, ate }: { tenantId: string; de: string; ate: string }) {
+  const qc = useQueryClient();
+  const [salvando, setSalvando] = useState(false);
+  const q = useQuery({ queryKey: ['situacao-email', tenantId, de, ate], queryFn: () => situacaoEmail(tenantId, de, ate), refetchInterval: 60_000 });
+  const e = q.data;
+  if (!e) return null;
+  const resumo = [`${e.enviados} enviado(s)`, e.pendentes ? `${e.pendentes} na fila` : '', e.falhas ? `${e.falhas} com falha` : ''].filter(Boolean).join(', ');
+  return (
+    <Cartao className="mb-6 p-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-marca-50 text-marca-700"><Mail className="size-5" aria-hidden /></span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-slate-900">E-mail aos responsáveis pelo contrato</p>
+          <p className="text-sm text-slate-600">
+            {!e.ativo ? 'Desligado: os responsáveis recebem os avisos só na central e no PUSH.'
+              : !e.configurado ? 'O envio de e-mail ainda não foi configurado no servidor. Os avisos ficam na central e no PUSH.'
+              : `Gestor, fiscal e suplente recebem por e-mail cada novidade dos contratos. No período: ${resumo}.`}
+          </p>
+          {e.falhas > 0 && e.ultimo_erro && <p className="mt-1 text-xs text-amber-700">Último erro: {e.ultimo_erro}</p>}
+        </div>
+        <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input type="checkbox" role="switch" className="size-4 accent-marca-700" checked={e.ativo} disabled={salvando}
+            onChange={async (ev) => {
+              const ligar = ev.target.checked;
+              setSalvando(true);
+              try {
+                await salvarEmailDoOrgao(tenantId, ligar);
+                toast.success(ligar ? 'Envio por e-mail ligado.' : 'Envio por e-mail desligado.');
+                await qc.invalidateQueries({ queryKey: ['situacao-email'] });
+              } catch (err) { toast.error(mensagemDeErro(err)); } finally { setSalvando(false); }
+            }} />
+          Enviar por e-mail
+        </label>
+      </div>
+    </Cartao>
   );
 }
 
