@@ -72,6 +72,7 @@ const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServi
 const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Consolidado');
 const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
 const Capacitacao = pagina(() => import('@/pages/ajuda/Capacitacao'), 'Capacitacao');
+const PorQueMeasure = pagina(() => import('@/pages/ajuda/PorQueMeasure'), 'PorQueMeasure');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
 const Monitoramento = pagina(() => import('@/pages/plataforma/Monitoramento'), 'Monitoramento');
@@ -169,6 +170,7 @@ export function App() {
         <Route path="servidores/consolidado" element={<ModuloServidores><Consolidado /></ModuloServidores>} />
         <Route path="ajuda" element={<Ajuda />} />
         <Route path="ajuda/capacitacao" element={<Capacitacao />} />
+        <Route path="ajuda/por-que-usar" element={<PorQueMeasure />} />
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel, Compass,
+  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel, Compass, Sparkles,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -192,6 +192,7 @@ export function AppLayout() {
         <Grupo titulo="Suporte" recolhido={rec}>
           {orgao && <Link item={{ para: '/minhas-notificacoes', rotulo: 'Minhas notificações', icone: <Bell className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
           <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
+          <Link item={{ para: '/ajuda/por-que-usar', rotulo: 'Por que usar o MEASURE', icone: <Sparkles className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
           <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
         </Grupo>
       </div>

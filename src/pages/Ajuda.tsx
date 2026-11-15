@@ -1,5 +1,5 @@
 // Manual do usuário dentro do sistema: passo a passo por módulo, com busca.
-import { ChevronDown, GraduationCap } from 'lucide-react';
+import { ChevronDown, GraduationCap, Sparkles } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CampoBusca } from '@/components/ui/Abas';
@@ -160,6 +160,14 @@ export function Ajuda() {
   return (
     <>
       <CabecalhoPagina titulo="Ajuda e manual do usuário" descricao="Passo a passo de cada módulo. Você vê no menu apenas o que o seu papel permite." />
+      <Link to="/ajuda/por-que-usar" className="group mb-4 flex flex-wrap items-center gap-4 overflow-hidden rounded-2xl bg-gradient-to-r from-marca-900 via-marca-800 to-marca-600 p-5 text-white shadow-lg hover:shadow-xl">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25"><Sparkles className="size-6" aria-hidden /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-bold">Por que usar o MEASURE</span>
+          <span className="block text-sm text-marca-100">Conheça as funcionalidades, com telas do sistema, e veja o que muda no dia a dia do administrativo, dos gestores, dos fiscais e das chefias.</span>
+        </span>
+        <span className="rounded-xl bg-chamada-400 px-4 py-2 text-sm font-bold text-marca-950 group-hover:bg-chamada-300">Conhecer →</span>
+      </Link>
       <Link to="/ajuda/capacitacao" className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-marca-300 bg-marca-50 p-4 hover:bg-marca-100">
         <GraduationCap className="size-8 shrink-0 text-marca-700" aria-hidden />
         <span className="min-w-0 flex-1">
