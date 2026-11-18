@@ -113,6 +113,36 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
 .faixa-pagina [data-variante='fantasma'] { color: var(--color-marca-100); }
 .faixa-pagina [data-variante='fantasma']:hover:not(:disabled) { background: rgb(255 255 255 / 0.1); color: #fff; }
 
+/* ===================================================================== campos de digitação
+   Os campos se destacam do cartão branco: fundo azulado de "área para preencher", borda mais firme e uma
+   leve sombra interna. Ao digitar, o campo fica branco com contorno azul-marinho, para mostrar onde está o cursor. */
+:root {
+  --campo-fundo: #edf2f9;
+  --campo-fundo-hover: #e6edf7;
+  --campo-borda: #a9b8cc;
+  --campo-sombra: inset 0 1px 2px rgb(15 42 74 / 0.07);
+}
+:where(input:is(:not([type]), [type='text'], [type='search'], [type='email'], [type='tel'], [type='number'], [type='password'], [type='url'],
+  [type='date'], [type='month'], [type='time'], [type='datetime-local']), textarea, select, [data-variante='campo']) {
+  background-color: var(--campo-fundo);
+  border-color: var(--campo-borda);
+  box-shadow: var(--campo-sombra);
+  transition: background-color 120ms, border-color 120ms, box-shadow 120ms;
+}
+:where(input:is(:not([type]), [type='text'], [type='search'], [type='email'], [type='tel'], [type='number'], [type='password'], [type='url'],
+  [type='date'], [type='month'], [type='time'], [type='datetime-local']), textarea, select, [data-variante='campo']):where(:not(:disabled, :focus, [aria-expanded='true'])):hover { background-color: var(--campo-fundo-hover); border-color: var(--color-marca-400); }
+:where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']), textarea, select):focus,
+[data-variante='campo'][aria-expanded='true'], [data-variante='campo']:focus-visible {
+  background-color: #fff;
+  border-color: var(--color-marca-600);
+  box-shadow: 0 0 0 3px var(--color-marca-100);
+  outline: none;
+}
+:where(input, textarea, select, [data-variante='campo'])[aria-invalid='true'] { background-color: #fdf3f3; border-color: #dc2626; }
+:where(input, textarea, select, [data-variante='campo']):disabled { background-color: #e4e8ee; border-color: #cbd5e1; box-shadow: none; color: var(--color-slate-500); }
+/* a busca dentro da lista aberta já fica sobre fundo branco: mantém o tom claro */
+[role='listbox'] input, [role='dialog'] [role='listbox'] input { box-shadow: none; }
+
 /* Impressão dos documentos emitidos (A4) */
 @page {
   size: A4;
@@ -123,11 +153,11 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
     background: #fff;
   }
   .nao-imprimir {
-    display: none !important;
+    display: none;
   }
   .folha {
-    width: auto !important;
-    min-height: auto !important;
+    width: auto;
+    min-height: auto;
   }
 }
 

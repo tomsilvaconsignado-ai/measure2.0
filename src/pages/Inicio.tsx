@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Banknote, CheckCircle2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
+import { BadgeCheck, Banknote, BarChart3, CalendarCheck, CheckCircle2, FileSpreadsheet, FileText, FolderTree, HelpCircle, Landmark, Receipt, ScrollText, Users, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { Indicador, Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
@@ -16,13 +16,13 @@ const AVISO = 'mb-3 flex flex-wrap items-center gap-3 rounded-xl border-l-4 bord
 const CHAMADA = 'rounded-lg bg-chamada-500 px-3 py-1.5 text-sm font-bold text-marca-950 shadow-sm';
 
 // Atalhos do dia a dia (cada um só aparece para quem pode usar o módulo)
-const ATALHOS: Array<{ para: string; rotulo: string; descricao: string; recurso?: Recurso }> = [
-  { para: '/notas', rotulo: 'Notas fiscais', descricao: 'Lançar, atestar, pagar e emitir checklist' },
-  { para: '/contratos', rotulo: 'Contratos', descricao: 'Vigência, saldo, responsáveis e extratos' },
-  { para: '/servidores/consolidado', rotulo: 'Consolidado mensal', descricao: 'Atrasos, faltas e documento do mês', recurso: 'servidores' },
-  { para: '/relatorios', rotulo: 'Relatórios', descricao: 'Consumo e notas por classificação, em PDF e Excel' },
-  { para: '/painel', rotulo: 'Painel gerencial', descricao: 'Indicadores do ano' },
-  { para: '/ajuda', rotulo: 'Ajuda e manual', descricao: 'Passo a passo de cada módulo' },
+const ATALHOS: Array<{ para: string; rotulo: string; descricao: string; icone: LucideIcon; recurso?: Recurso }> = [
+  { para: '/notas', icone: Receipt, rotulo: 'Notas fiscais', descricao: 'Lançar, atestar, pagar e emitir checklist' },
+  { para: '/contratos', icone: FileText, rotulo: 'Contratos', descricao: 'Vigência, saldo, responsáveis e extratos' },
+  { para: '/servidores/consolidado', icone: CalendarCheck, rotulo: 'Consolidado mensal', descricao: 'Atrasos, faltas e documento do mês', recurso: 'servidores' },
+  { para: '/relatorios', icone: FileSpreadsheet, rotulo: 'Relatórios', descricao: 'Consumo e notas por classificação, em PDF e Excel' },
+  { para: '/painel', icone: BarChart3, rotulo: 'Painel gerencial', descricao: 'Indicadores do ano' },
+  { para: '/ajuda', icone: HelpCircle, rotulo: 'Ajuda e manual', descricao: 'Passo a passo de cada módulo' },
 ];
 
 export function Inicio() {
@@ -57,14 +57,14 @@ export function Inicio() {
         <Link to="/notas?filtro=ATESTO" className={AVISO}>
           <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-chamada-500 text-marca-950"><BadgeCheck className="size-5" /><PontoPendente className="absolute -right-1 -top-1" /></span>
           <span className="flex-1"><strong className="text-base">{pendencias.atesto} nota{pendencias.atesto > 1 ? 's' : ''} fisca{pendencias.atesto > 1 ? 'is' : 'l'}</strong> aguardando o seu atesto.</span>
-          <span className={CHAMADA}>Atestar agora →</span>
+          <span className={CHAMADA}>Atestar agora</span>
         </Link>
       )}
       {!!pendencias.pagamento && (
         <Link to="/pagamentos" className={AVISO}>
           <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-chamada-500 text-marca-950"><Banknote className="size-5" /><PontoPendente className="absolute -right-1 -top-1" /></span>
           <span className="flex-1"><strong className="text-base">{pendencias.pagamento} nota{pendencias.pagamento > 1 ? 's' : ''} atestada{pendencias.pagamento > 1 ? 's' : ''}</strong> aguardando a baixa do pagamento.</span>
-          <span className={CHAMADA}>Dar baixa →</span>
+          <span className={CHAMADA}>Dar baixa</span>
         </Link>
       )}
       <FluxoTrabalho />
@@ -100,8 +100,8 @@ export function Inicio() {
           <ul className="grid gap-2 sm:grid-cols-2">
             {ATALHOS.filter((a) => (!a.recurso || pode(a.recurso, 'ler')) && (orgao || a.para === '/ajuda')).map((a) => (
               <li key={a.para}>
-                <Link to={a.para} className="group flex h-full items-start gap-2.5 rounded-xl border border-slate-200 p-3 transition-all hover:-translate-y-0.5 hover:border-marca-400 hover:shadow-md">
-                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-acento-600" aria-hidden />
+                <Link to={a.para} className="group flex h-full items-start gap-2.5 rounded-xl border border-slate-200 p-3 transition-all hover:border-marca-400 hover:bg-marca-50/50 hover:shadow-md">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-marca-900 text-white"><a.icone className="size-4" aria-hidden /></span>
                   <span>
                     <span className="block text-sm font-bold text-marca-900 group-hover:text-marca-700">{a.rotulo}</span>
                     <span className="block text-xs text-slate-600">{a.descricao}</span>

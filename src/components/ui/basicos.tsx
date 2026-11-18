@@ -49,7 +49,7 @@ interface PropsCampo { rotulo: string; erro?: string | null; ajuda?: ReactNode; 
 function Moldura({ id, rotulo, erro, ajuda, obrigatorio, className, children }: PropsCampo & { id: string; children: ReactNode }) {
   return (
     <div className={cx('flex flex-col gap-1', className)}>
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="text-sm font-semibold text-marca-900">
         {rotulo}{obrigatorio && <span className="text-red-600" aria-hidden> *</span>}
       </label>
       {children}
