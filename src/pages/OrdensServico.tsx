@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Pencil, Play, Plus, XCircle } from 'lucide-react';
+import { CheckCircle2, FileText, Pencil, Play, Plus, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
@@ -14,7 +15,8 @@ import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarData } from '@/lib/formatacao';
 import { listarTiposServico, listarUnidadesAtendidas } from '@/services/cadastros';
-import { listarOs, numeroOs, salvarOs, unidadesDaOs, type OrdemServico } from '@/services/relatorios';
+import { emitirOs, listarOs, numeroOs, salvarOs, unidadesDaOs, type OrdemServico } from '@/services/relatorios';
+import { EscolherModeloOs, FormOsExtintores, IconeModelo, ItensOs, MODELOS_OS } from './os/ModelosOs';
 import { SeletorContrato, SeletorServidor } from './contratos/comum';
 
 const POR_PAGINA = 25;
@@ -50,7 +52,7 @@ function FormOs({ aberto, aoFechar, os }: { aberto: boolean; aoFechar: () => voi
     mutationFn: () => salvarOs(os?.id ?? null, {
       tenant_id: orgao!.id, unidade_id: unidade!.id, titulo: f.titulo.trim(), descricao: f.descricao.trim() || null, prioridade: f.prioridade as OrdemServico['prioridade'],
       tipo_servico_id: f.tipo_servico_id || null, previsao: f.previsao || null, observacoes: f.observacoes.trim() || null, data_abertura: f.data_abertura,
-      contrato_id: contrato?.id ?? null, responsavel_id: resp?.id ?? null,
+      contrato_id: contrato?.id ?? null, responsavel_id: resp?.id ?? null, ...(os ? {} : { modelo: 'GERAL' as const }),
     }, unidades.map((u) => u.id)),
     onSuccess: async (o) => { await qc.invalidateQueries({ queryKey: ['os'] }); toast.success(os ? 'OS atualizada.' : `OS ${numeroOs(o)} aberta.`); aoFechar(); },
     onError: (e) => { const t = traduzirErro(e); setErros(t.campo ? { [t.campo]: t.mensagem } : { geral: t.mensagem }); },
@@ -96,6 +98,12 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
   const podeAlterar = useAutoria();
   const qc = useQueryClient();
   const unidades = useQuery({ queryKey: ['os-unidades', os?.id], queryFn: () => unidadesDaOs(os!.id), enabled: !!os });
+  const navegar = useNavigate();
+  const pdf = useMutation({
+    mutationFn: () => emitirOs(os!.id),
+    onSuccess: (id) => navegar(`/imprimir/${id}`),
+    onError: (e) => toast.error(mensagemDeErro(e)),
+  });
   const [cancelando, setCancelando] = useState(false);
   const mudar = useMutation({
     mutationFn: (status: OrdemServico['status']) => salvarOs(os!.id, { status }, null),
@@ -106,14 +114,17 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
   const editavel = pode('ordens_servico', 'editar') && podeAlterar('ordens_servico', os.criado_por) && !['CONCLUIDA', 'CANCELADA'].includes(os.status);
   return (
     <Modal aberto aoFechar={aoFechar} titulo={`OS ${numeroOs(os)} – ${os.titulo}`} largura="lg"
-      rodape={editavel && <>
+      rodape={(editavel || (os.modelo !== 'GERAL' && os.status !== 'CANCELADA')) && <>
+        {os.modelo !== 'GERAL' && os.status !== 'CANCELADA' && <Botao variante="chamada" icone={<FileText className="size-4" />} carregando={pdf.isPending} onClick={() => pdf.mutate()}>Gerar PDF</Botao>}
+        {editavel && <>
         <Botao variante="fantasma" icone={<XCircle className="size-4" />} onClick={() => setCancelando(true)}>Cancelar OS</Botao>
         <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => aoEditar(os)}>Editar</Botao>
         {os.status === 'ABERTA' && <Botao variante="secundario" icone={<Play className="size-4" />} carregando={mudar.isPending} onClick={() => mudar.mutate('EM_ANDAMENTO')}>Iniciar</Botao>}
         <Botao icone={<CheckCircle2 className="size-4" />} carregando={mudar.isPending} onClick={() => mudar.mutate('CONCLUIDA')}>Concluir</Botao>
+        </>}
       </>}>
       <CadastradoPor autor={os.criado_por} recurso="ordens_servico" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
-      <div className="mb-3 flex flex-wrap gap-2"><Selo tom={STATUS[os.status][1]}>{STATUS[os.status][0]}</Selo><Selo>Prioridade {PRIORIDADES[os.prioridade].toLowerCase()}</Selo></div>
+      <div className="mb-3 flex flex-wrap gap-2"><Selo tom="marca" icone={<IconeModelo modelo={os.modelo} className="size-3" />}>{MODELOS_OS.find((m) => m.id === os.modelo)?.titulo ?? 'OS geral'}</Selo><Selo tom={STATUS[os.status][1]}>{STATUS[os.status][0]}</Selo><Selo>Prioridade {PRIORIDADES[os.prioridade].toLowerCase()}</Selo></div>
       <dl className="mb-5 grid gap-3 text-sm sm:grid-cols-3">
         <div><dt className="text-xs text-slate-500">Abertura</dt><dd>{formatarData(os.data_abertura)}</dd></div>
         <div><dt className="text-xs text-slate-500">Previsão</dt><dd>{formatarData(os.previsao)}</dd></div>
@@ -121,10 +132,12 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
         <div><dt className="text-xs text-slate-500">Unidade responsável</dt><dd>{os.unidade?.sigla ?? os.unidade?.nome}</dd></div>
         <div><dt className="text-xs text-slate-500">Tipo de serviço</dt><dd>{os.tipo_servico?.nome ?? '—'}</dd></div>
         <div><dt className="text-xs text-slate-500">Contrato</dt><dd>{os.contrato?.numero ?? '—'}</dd></div>
+        {os.modelo !== 'GERAL' && <div><dt className="text-xs text-slate-500">Nota de empenho</dt><dd>{os.empenho ? `${os.empenho.numero}/${os.empenho.ano}` : '—'}</dd></div>}
         <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Unidades atendidas</dt><dd>{unidades.data?.map((u) => u.nome).join(', ') || '—'}</dd></div>
         {os.descricao && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Descrição</dt><dd className="whitespace-pre-line">{os.descricao}</dd></div>}
         {os.motivo_cancelamento && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Motivo do cancelamento</dt><dd>{os.motivo_cancelamento}</dd></div>}
       </dl>
+      {os.modelo !== 'GERAL' && <ItensOs osId={os.id} />}
       <Anexos recurso="ordens_servico" registroId={os.id} unidadeId={os.unidade_id} titulo="Fotos e documentos da OS" />
       <ConfirmarComMotivo aberto={cancelando} aoFechar={() => setCancelando(false)} titulo={`Cancelar a OS ${numeroOs(os)}?`}
         descricao="A OS fica registrada como cancelada, com o motivo. Não pode ser reaberta." rotuloConfirmar="Cancelar OS"
@@ -140,6 +153,8 @@ export function OrdensServico() {
   const termo = useBuscaAtrasada(busca);
   const [pagina, setPagina] = useState(0);
   const [editando, setEditando] = useState<OrdemServico | null | 'nova'>(null);
+  const [escolhendo, setEscolhendo] = useState(false);
+  const [extintores, setExtintores] = useState<OrdemServico | null | 'nova'>(null);
   const [vendo, setVendo] = useState<OrdemServico | null>(null);
   useEffect(() => setPagina(0), [aba, termo]);
   const q = useQuery({
@@ -159,7 +174,7 @@ export function OrdensServico() {
   return (
     <>
       <CabecalhoPagina titulo="Ordens de serviço" descricao="Numeração NNNN/ANO automática por órgão. Concluídas e canceladas ficam no histórico."
-        acoes={pode('ordens_servico', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEditando('nova')}>Nova OS</Botao>} />
+        acoes={pode('ordens_servico', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setEscolhendo(true)}>Nova OS</Botao>} />
       <Cartao>
         <Abas abas={[{ id: 'ABERTAS', rotulo: 'Em aberto' }, { id: 'CONCLUIDA', rotulo: 'Concluídas' }, { id: 'CANCELADA', rotulo: 'Canceladas' }, { id: 'TODAS', rotulo: 'Todas' }]} ativa={aba} aoMudar={setAba} />
         <div className="mb-4 max-w-md"><CampoBusca valor={busca} aoMudar={setBusca} placeholder="Número (ex.: 12 ou 12/2026), título ou descrição" rotulo="Buscar OS" /></div>
@@ -167,7 +182,7 @@ export function OrdensServico() {
           <ul className={cx('divide-y divide-slate-100', q.isFetching && 'opacity-70')}>
             {q.data!.itens.map((o) => (
               <li key={o.id}><button className="flex w-full flex-wrap items-center gap-3 py-3 text-left" onClick={() => setVendo(o)}>
-                <span className="numero w-24 font-mono text-sm font-semibold text-slate-900">{numeroOs(o)}</span>
+                <span className="numero flex w-28 items-center gap-1.5 font-mono text-sm font-semibold text-slate-900"><IconeModelo modelo={o.modelo} className="text-marca-700" />{numeroOs(o)}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-slate-900">{o.titulo}</span>
                   <span className="block truncate text-xs text-slate-500">{o.unidade?.sigla ?? o.unidade?.nome} · aberta em {formatarData(o.data_abertura)}{o.tipo_servico ? ` · ${o.tipo_servico.nome}` : ''}</span></span>
                 {['ALTA', 'URGENTE'].includes(o.prioridade) && o.status !== 'CONCLUIDA' && <Selo tom="perigo">{PRIORIDADES[o.prioridade]}</Selo>}
@@ -179,7 +194,10 @@ export function OrdensServico() {
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
       </Cartao>
       <FormOs aberto={editando !== null} aoFechar={() => setEditando(null)} os={editando === 'nova' ? null : editando} />
-      <DetalheOs os={vendo} aoFechar={() => setVendo(null)} aoEditar={(o) => { setVendo(null); setEditando(o); }} />
+      <DetalheOs os={vendo} aoFechar={() => setVendo(null)} aoEditar={(o) => { setVendo(null); if (o.modelo === 'EXTINTORES') setExtintores(o); else setEditando(o); }} />
+      <EscolherModeloOs aberto={escolhendo} aoFechar={() => setEscolhendo(false)}
+        aoEscolher={(m) => { setEscolhendo(false); if (m === 'EXTINTORES') setExtintores('nova'); else setEditando('nova'); }} />
+      <FormOsExtintores aberto={extintores !== null} aoFechar={() => setExtintores(null)} os={extintores === 'nova' ? null : extintores} />
     </>
   );
 }

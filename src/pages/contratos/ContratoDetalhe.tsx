@@ -21,11 +21,12 @@ import {
 import { AvisoVencido, SeletorServidor, SeloAtesto, SeloPagamento, SeloSituacao, documentoFornecedor } from './comum';
 import { FormContrato } from './Contratos';
 import { DotacoesContrato } from './DotacoesContrato';
+import { TermoReferencia } from './TermoReferencia';
 import { EtapasContrato } from './EtapasContrato';
 import { ExtratosNotas } from './ExtratosNotas';
 import { NotificacoesDoContrato } from './notificacoes/comum';
 
-type Aba = 'resumo' | 'responsaveis' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos' | 'notificacoes';
+type Aba = 'resumo' | 'responsaveis' | 'tr' | 'dotacao' | 'aditivos' | 'empenhos' | 'notas' | 'documentos' | 'notificacoes';
 const PAPEIS = { GESTOR: 'Gestor do contrato', FISCAL: 'Fiscal do contrato', SUPLENTE: 'Suplente de fiscal' } as const;
 type PapelDesignacao = keyof typeof PAPEIS;
 const ORDEM_PAPEIS: PapelDesignacao[] = ['GESTOR', 'FISCAL', 'SUPLENTE'];
@@ -469,11 +470,12 @@ export function ContratoDetalhe() {
       <div className="mb-4"><AvisoVencido c={c} /></div>
       <EtapasContrato c={c} abaAtual={aba} irParaAba={setAba} />
       <Cartao>
-        <Abas abas={[{ id: 'resumo', rotulo: 'Resumo' }, { id: 'responsaveis', rotulo: 'Responsáveis e portarias' }, { id: 'dotacao', rotulo: 'Dotação' },
+        <Abas abas={[{ id: 'resumo', rotulo: 'Resumo' }, { id: 'responsaveis', rotulo: 'Responsáveis e portarias' }, { id: 'tr', rotulo: 'Termo de referência' }, { id: 'dotacao', rotulo: 'Dotação' },
           { id: 'aditivos', rotulo: `Aditivos${c.aditivos_aprovados ? ` (${c.aditivos_aprovados})` : ''}` }, { id: 'empenhos', rotulo: 'Empenhos' }, { id: 'notas', rotulo: 'Notas fiscais' },
           { id: 'documentos', rotulo: 'Documentos e extratos' }, { id: 'notificacoes', rotulo: 'Notificações à empresa' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'resumo' && <Resumo c={c} />}
         {aba === 'responsaveis' && <Responsaveis c={c} />}
+        {aba === 'tr' && <TermoReferencia c={c} />}
         {aba === 'dotacao' && <DotacoesContrato c={c} />}
         {aba === 'aditivos' && <Aditivos c={c} />}
         {aba === 'empenhos' && <ListaEmpenhos c={c} />}

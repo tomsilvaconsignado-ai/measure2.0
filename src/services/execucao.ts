@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Aditivo, Atesto, Contrato, ContratoResumo, Designacao, DocumentoEmitido, DotacaoDoContrato, Empenho, EmpenhoResumo, Modalidade, NotaResumo,
-  ItemFilaPagamento, Pagamento, PagamentoRealizado, Reforco, SituacaoContrato, StatusPagamento,
+  Decimal, ItemFilaPagamento, Pagamento, PagamentoRealizado, Reforco, SituacaoContrato, StatusPagamento,
 } from '@/lib/tipos';
 import { cabecalhoJustificativa } from './api';
 
@@ -354,4 +354,54 @@ export async function autoriaDoContrato(contratoId: string) {
     designacoes: Object.fromEntries((falhou(d) as Array<{ id: string; criado_por: string | null }>).map((x) => [x.id, x.criado_por])) as Record<string, string | null>,
     dotacoes: Object.fromEntries((falhou(t) as Array<{ classificacao_id: string; criado_por: string | null }>).map((x) => [x.classificacao_id, x.criado_por])) as Record<string, string | null>,
   };
+}
+
+// ---------------------------------------------------------------- Termo de Referência do contrato
+
+export interface ItemTr {
+  id: string; contrato_id: string; item: number; descricao: string; tipo: string | null; especificacao: string | null; unidade_medida: string;
+  quantidade: Decimal; valor_unitario: Decimal; valor_total: Decimal; observacoes: string | null; ativo: boolean; criado_por: string | null;
+  /** quantidade já pedida em ordens de serviço (não canceladas) e o saldo do TR */
+  solicitado: Decimal; saldo: Decimal;
+}
+export interface UnidadeTr { unidade_atendida_id: string; endereco: string | null; unidade: { nome: string; tipo: string; sigla: string | null } }
+
+/** Itens do TR do contrato (e das renovações dele), com o já solicitado em OS e o saldo */
+export async function listarItensTr(contratoId: string) {
+  return falhou(await supabase.rpc('tr_itens_do_contrato', { p_contrato: contratoId })) as ItemTr[];
+}
+
+export async function salvarItemTr(id: string | null, dados: { contrato_id: string; item: number; descricao: string; tipo: string | null; especificacao: string | null;
+  unidade_medida: string; quantidade: string; valor_unitario: string; observacoes: string | null }) {
+  if (id) {
+    const { contrato_id: _c, ...resto } = dados;
+    falhou(await supabase.from('contrato_tr_itens').update(resto).eq('id', id));
+  } else {
+    falhou(await supabase.from('contrato_tr_itens').insert(dados));
+  }
+}
+
+/** "Excluir" item do TR: inativa com motivo (fica na auditoria; não some do histórico das OS) */
+export async function inativarItemTr(id: string, motivo: string) {
+  falhou(await supabase.from('contrato_tr_itens').update({ ativo: false }).eq('id', id).setHeader('x-justificativa', cabecalhoJustificativa(motivo)));
+}
+
+export async function listarUnidadesTr(contratoId: string) {
+  const r = falhou(await supabase.from('contrato_tr_unidades').select('unidade_atendida_id, endereco, unidade:unidades_atendidas(nome, tipo, sigla)')
+    .eq('contrato_id', contratoId)) as unknown as UnidadeTr[];
+  return r.sort((a, b) => a.unidade.nome.localeCompare(b.unidade.nome, 'pt-BR', { numeric: true }));
+}
+
+export async function incluirUnidadesTr(contratoId: string, unidades: string[]) {
+  if (!unidades.length) return;
+  falhou(await supabase.from('contrato_tr_unidades').upsert(unidades.map((u) => ({ contrato_id: contratoId, unidade_atendida_id: u })),
+    { onConflict: 'contrato_id,unidade_atendida_id', ignoreDuplicates: true }));
+}
+
+export async function definirEnderecoUnidadeTr(contratoId: string, unidadeId: string, endereco: string | null) {
+  falhou(await supabase.from('contrato_tr_unidades').update({ endereco }).eq('contrato_id', contratoId).eq('unidade_atendida_id', unidadeId));
+}
+
+export async function removerUnidadeTr(contratoId: string, unidadeId: string) {
+  falhou(await supabase.from('contrato_tr_unidades').delete().eq('contrato_id', contratoId).eq('unidade_atendida_id', unidadeId));
 }

@@ -135,6 +135,9 @@ export interface OrdemServico {
   prioridade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'; status: 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA';
   previsao: string | null; data_conclusao: string | null; observacoes: string | null; motivo_cancelamento: string | null;
   criado_por?: string | null;
+  /** modelo da OS (define o formulário e o documento): GERAL ou EXTINTORES */
+  modelo: 'GERAL' | 'EXTINTORES'; empenho_id: string | null;
+  empenho?: { numero: string; ano: number } | null;
   unidade?: { nome: string; sigla: string | null } | null;
   contrato?: { numero: string } | null;
   tipo_servico?: { nome: string } | null;
@@ -143,7 +146,7 @@ export interface OrdemServico {
 export const numeroOs = (o: Pick<OrdemServico, 'numero' | 'ano'>) => `${String(o.numero).padStart(4, '0')}/${o.ano}`;
 
 export async function listarOs(p: { tenantId: string; busca?: string; status?: string | null; ano?: number | null; limite: number; offset: number }) {
-  let q = supabase.from('ordens_servico').select('*, unidade:unidades_organizacionais(nome, sigla), contrato:contratos(numero), tipo_servico:tipos_servico(nome)', { count: 'exact' })
+  let q = supabase.from('ordens_servico').select('*, unidade:unidades_organizacionais(nome, sigla), contrato:contratos(numero), tipo_servico:tipos_servico(nome), empenho:empenhos(numero, ano)', { count: 'exact' })
     .eq('tenant_id', p.tenantId).order('ano', { ascending: false }).order('numero', { ascending: false }).range(p.offset, p.offset + p.limite - 1);
   if (p.status) q = q.eq('status', p.status);
   if (p.ano) q = q.eq('ano', p.ano);
@@ -187,4 +190,26 @@ export interface ResultadoImportacao {
 
 export async function importar(tipo: 'fornecedores' | 'servidores' | 'unidades_atendidas', tenantId: string, linhas: Array<Record<string, unknown>>, aplicar: boolean, ignorarDuplicados: boolean) {
   return falhou(await supabase.rpc(`importar_${tipo}`, { p_tenant: tenantId, p_linhas: linhas, p_aplicar: aplicar, p_ignorar_duplicados: ignorarDuplicados })) as ResultadoImportacao;
+}
+
+// ---------------------------------------------------------------- linhas da OS (modelos) e documento
+
+export interface ItemOs {
+  id: string; ordem: number; unidade_atendida_id: string; tr_item_id: string | null; quantidade: Decimal; tipo: string | null;
+  especificacao: string | null; data_solicitacao: string; valor_unitario: Decimal | null; unidade: { nome: string } | null;
+}
+
+export async function listarItensOs(osId: string) {
+  return falhou(await supabase.from('os_itens').select('*, unidade:unidades_atendidas(nome)').eq('os_id', osId).order('ordem')) as ItemOs[];
+}
+
+/** Substitui as linhas da OS (o banco valida unidade, item do TR do contrato e quantidade) */
+export async function salvarItensOs(osId: string, itens: Array<{ unidade_atendida_id: string; tr_item_id: string | null; quantidade: string;
+  tipo: string | null; especificacao: string | null; data_solicitacao: string }>) {
+  falhou(await supabase.rpc('salvar_os_itens', { p_os: osId, p_itens: itens }));
+}
+
+/** Gera o documento oficial da OS no papel timbrado; devolve o id do documento emitido */
+export async function emitirOs(osId: string) {
+  return falhou(await supabase.rpc('emitir_ordem_servico', { p_os: osId })) as string;
 }

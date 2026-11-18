@@ -11,6 +11,7 @@ import { traduzirErro } from '@/lib/erros';
 import { brl, formatarCnpj, formatarCpf, formatarData, formatarDataHora, formatarTelefone } from '@/lib/formatacao';
 import { obterEmitido } from '@/services/execucao';
 import { ImprimirExtratoNotas } from './ImprimirExtratoNotas';
+import { DocumentoOs } from '../os/DocumentoOs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type D = Record<string, any>;
@@ -317,6 +318,7 @@ export function FolhaImpressao({ doc }: { doc: DocumentoEmitido }) {
         {doc.tipo === 'CHECKLIST_NOTA' && (d.modelo === 'SERVICOS_CONTINUADOS' ? <ChecklistServicos d={d} /> : <ChecklistNota d={d} />)}
         {doc.tipo === 'ATESTO' && <p className="whitespace-pre-line text-[12px] leading-relaxed">{d.texto}</p>}
         {doc.tipo === 'NOTIFICACAO_FORMAL' && <NotificacaoFormal d={d} />}
+        {doc.tipo === 'ORDEM_SERVICO' && <DocumentoOs d={d as unknown as Parameters<typeof DocumentoOs>[0]['d']} />}
         <footer className="mt-6 border-t border-slate-300 pt-2 text-[9.5px] text-slate-600">
           {d.orgao?.rodape && <p>{d.orgao.rodape}</p>}
           {!paisagem && d.orgao?.endereco && <p>{d.orgao.endereco}</p>}
