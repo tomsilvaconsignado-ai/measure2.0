@@ -1,5 +1,5 @@
 // Manual do usuário dentro do sistema: passo a passo por módulo, com busca.
-import { ChevronDown, GraduationCap, Sparkles } from 'lucide-react';
+import { ChevronDown, Database, GraduationCap, Sparkles } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CampoBusca } from '@/components/ui/Abas';
@@ -127,6 +127,13 @@ const TOPICOS: Topico[] = [
     'Encontrou um dado errado? O próprio servidor corrige os campos pessoais em "Meu perfil"; os demais, a administração.',
     'Suspeita de acesso indevido ou vazamento: comunique imediatamente a administração do órgão.',
   ] },
+  { id: 'dados-abertos', grupo: 'Contratos e execução', titulo: 'Pesquisar preços e contratos no Compras.gov.br (dados abertos)', link: '/ajuda/capacitacao?aba=compras', passos: [
+    'Abra Ajuda e manual → Capacitação de fiscais → aba "Dados abertos (Compras.gov.br)" (ou o botão amarelo "Consultar preços e contratos").',
+    'Para pesquisar preço: primeiro ache o código do item no catálogo do governo (CATMAT para material, CATSER para serviço).',
+    'Escolha "Preços praticados", informe o código e, se quiser, a UF. Clique em "Abrir consulta no Compras.gov.br".',
+    'Também dá para consultar a situação de um fornecedor pelo CNPJ e as atas de registro de preços com o item.',
+    'Compare preço unitário, quantidade, data e unidade de fornecimento, e guarde o resultado no processo.',
+  ], dicas: ['A consulta abre no site do governo; nenhum dado do órgão sai do MEASURE.', 'É apoio à fiscalização: a pesquisa de preço formal segue o art. 23 da Lei 14.133/2021 e os modelos do município.'] },
 ];
 
 function Item({ t, aberto, alternar }: { t: Topico; aberto: boolean; alternar: () => void }): ReactNode {
@@ -175,6 +182,14 @@ export function Ajuda() {
           <span className="block text-sm text-marca-900">Trilha em linguagem simples, gráficos, consulta rápida à Lei 14.133/2021 e à LINDB, riscos e responsabilidades, teste de conhecimentos e normas de Aracaju.</span>
         </span>
         <span className="text-sm font-medium text-marca-700">Começar →</span>
+      </Link>
+      <Link to="/ajuda/capacitacao?aba=compras" className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border-l-4 border-chamada-500 bg-marca-900 p-4 text-white hover:bg-marca-800">
+        <Database className="size-8 shrink-0 text-chamada-400" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Dados abertos do Compras.gov.br</span>
+          <span className="block text-sm text-marca-100">Compare o preço cobrado com o que outros órgãos pagaram, consulte contratos, atas e a situação do fornecedor.</span>
+        </span>
+        <span className="rounded-lg bg-chamada-500 px-3 py-1.5 text-sm font-bold text-marca-950">Consultar</span>
       </Link>
       <div className="mb-6 max-w-md"><CampoBusca valor={busca} aoMudar={setBusca} rotulo="Buscar na ajuda" placeholder="Ex.: atesto, consolidado, importar" /></div>
       {!grupos.length ? <Cartao><Vazio titulo="Nada encontrado" descricao="Tente outra palavra." /></Cartao> : (

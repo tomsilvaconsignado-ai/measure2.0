@@ -2,7 +2,7 @@
 // Explica, em linguagem simples, o que o sistema faz e o que muda no dia a dia de cada perfil.
 // Os prints são de um órgão de EXEMPLO, com dados fictícios (nenhum dado real de pessoas ou empresas).
 import {
-  ArrowRight, BarChart3, Banknote, Bell, BookOpen, CalendarCheck2, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSpreadsheet,
+  ArrowRight, BarChart3, Banknote, Bell, BookOpen, CalendarCheck2, Database, Search, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSpreadsheet,
   FileText, Gavel, GraduationCap, History, Home, KeyRound, Lock, Mail, MessagesSquare, Package, Receipt, ShieldCheck, Smartphone, Sparkles, Users, Wallet, Wand2,
   X, XCircle, ZoomIn,
 } from 'lucide-react';
@@ -123,6 +123,7 @@ const ANTES_DEPOIS: Array<[string, string]> = [
   ['Pagamento sem ordem clara', 'Fila de pagamento na ordem da lei, separada por fonte de recurso'],
   ['Frequência dos servidores em papel', 'Consolidado mensal com atrasos, faltas e justificativas, pronto para imprimir'],
   ['Não dá para saber quem mudou o quê', 'Tudo registrado: quem fez, quando e por quê'],
+  ['Pesquisa de preço garimpando sites e planilhas', 'Consulta guiada aos preços que outros órgãos pagaram, nos dados abertos do Compras.gov.br'],
 ];
 
 const PERFIS = [
@@ -132,7 +133,7 @@ const PERFIS = [
   },
   {
     icone: <ClipboardCheck className="size-6" aria-hidden />, titulo: 'Gestor e fiscal', subtitulo: 'Quem acompanha o contrato',
-    itens: ['Vê só os contratos em que foi designado, em "Meus contratos"', 'Recebe por e-mail e no celular cada novidade do contrato', 'Atesta com o texto gerado pelo sistema, no modelo do órgão', 'Registra notificações e ocorrências com a empresa', 'Tem um curso curtinho sobre a função de fiscal'],
+    itens: ['Vê só os contratos em que foi designado, em "Meus contratos"', 'Recebe por e-mail e no celular cada novidade do contrato', 'Atesta com o texto gerado pelo sistema, no modelo do órgão', 'Registra notificações e ocorrências com a empresa', 'Tem um curso curtinho sobre a função de fiscal', 'Compara o preço cobrado com o que outros órgãos pagaram (Compras.gov.br)'],
   },
   {
     icone: <BarChart3 className="size-6" aria-hidden />, titulo: 'Chefias', subtitulo: 'Secretário, diretor, coordenador e gestão',
@@ -147,6 +148,7 @@ const MAIS = [
   { icone: <ClipboardCheck className="size-5" aria-hidden />, titulo: 'Ordens de serviço', texto: 'Pedidos de serviço ligados ao contrato, com prioridade e acompanhamento.' },
   { icone: <FileSpreadsheet className="size-5" aria-hidden />, titulo: 'Relatórios', texto: 'Consumo e notas por classificação, fornecedor e período, em PDF e Excel.' },
   { icone: <GraduationCap className="size-5" aria-hidden />, titulo: 'Capacitação de fiscais', texto: 'Curso com lições curtas, gráficos e teste, explicando o papel do fiscal.' },
+  { icone: <Database className="size-5" aria-hidden />, titulo: 'Dados abertos do Compras.gov.br', texto: 'Preços praticados, atas de registro de preços e situação de fornecedores, com a consulta montada pelo sistema.' },
 ];
 
 const SEGURANCA = [
@@ -322,6 +324,16 @@ export function PorQueMeasure() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ------------------------------------------------ dados abertos do governo */}
+      <section className="mb-12 flex flex-wrap items-center gap-5 rounded-3xl border-l-4 border-chamada-500 bg-gradient-to-r from-marca-950 via-marca-900 to-marca-800 p-6 text-white shadow-xl sm:p-8">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/25"><Database className="size-7" aria-hidden /></span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-extrabold sm:text-2xl">O preço está certo? Compare com o que o governo já pagou</h2>
+          <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE leva o gestor e o fiscal aos dados abertos do Compras.gov.br: preços praticados por outros órgãos, contratos, atas de registro de preços e a situação do fornecedor. O sistema monta a consulta; basta informar o código do item ou o CNPJ.</p>
+        </div>
+        <Link to="/ajuda/capacitacao?aba=compras" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Consultar preços e contratos</Link>
       </section>
 
       {/* ------------------------------------------------ segurança e celular */}
