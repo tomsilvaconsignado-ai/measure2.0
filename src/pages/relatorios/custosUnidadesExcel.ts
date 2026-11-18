@@ -1,7 +1,7 @@
 // Planilha do relatório de custos por unidade de saúde, com a identidade do MEASURE: título, subtotal por
 // unidade, total geral, valores como número em R$ (dá para somar e filtrar) e as regras de distribuição.
 import { formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
-import { FORMAS, MESES_CURTOS, type LinhaCusto, type ResumoCustos } from '@/lib/custosUnidades';
+import { FORMAS, MESES_CURTOS, SITUACAO_PAGAMENTO, type LinhaCusto, type ResumoCustos } from '@/lib/custosUnidades';
 
 const MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00';
 const AZUL = 'FF0F2A4A'; const AZUL_CLARO = 'FFE8EEF8'; const ZEBRA = 'FFF6F8FC'; const AMARELO = 'FFF5B70A';
@@ -9,7 +9,7 @@ const doc = (tipo: string, d: string) => (tipo === 'PF' ? formatarCpf(d) : forma
 const r$ = (centavos: number) => centavos / 100;
 
 export async function exportarCustosUnidades(p: {
-  resumo: ResumoCustos; linhas: LinhaCusto[]; orgao: string; periodo: string; criterios: string[]; emitidoPor: string;
+  resumo: ResumoCustos; linhas: LinhaCusto[]; orgao: string; periodo: string; criterios: string[]; emitidoPor: string; titulo: string;
 }) {
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
@@ -44,6 +44,59 @@ export async function exportarCustosUnidades(p: {
     r.eachCell((cel) => { cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cor } }; if (negrito || branco) cel.font = { bold: negrito, color: { argb: branco ? 'FFFFFFFF' : 'FF0F172A' } }; });
   const colsMeses = varios ? meses.map((m) => MESES_CURTOS[m - 1]!) : [];
   const valoresMeses = (m: Record<number, number>) => (varios ? meses.map((x) => r$(m[x] ?? 0)) : []);
+
+  // 0. Por empresa e contrato (formato do relatório mensal da coordenação) + consolidado geral
+  {
+    const ws = wb.addWorksheet('Por empresa e contrato');
+    ws.columns = [{ width: 44 }, { width: 22 }, { width: 44 }, { width: 18 }, { width: 14 }];
+    let linha = titulo(ws, p.titulo.toUpperCase(), 5);
+    const faixa = (texto: string, corFundo: string, valor?: string, extra?: string) => {
+      linha++;
+      const r = ws.getRow(linha);
+      r.values = [texto, '', '', valor ?? '', extra ?? ''];
+      pintar(r, corFundo, true, true);
+      return r;
+    };
+    for (const k of resumo.contratos) {
+      linha++;
+      faixa(k.fornecedor_nome, AZUL, '', `${k.fornecedor_tipo === 'PF' ? 'CPF' : 'CNPJ'}: ${doc(k.fornecedor_tipo, k.fornecedor_documento)}`);
+      const info = [
+        [`Contrato: ${k.contrato_numero}${k.unidade ? ` · ${k.unidade}` : ''}`, `Vigência: ${k.inicio ? formatarData(k.inicio) : '—'} a ${k.fim ? formatarData(k.fim) : '—'}`, `Objeto: ${k.contrato_objeto}`],
+        [`Valor global: ${(k.valor / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, `Saldo restante: ${(k.saldo / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, ''],
+      ];
+      for (const i of info) { linha++; const r = ws.getRow(linha); r.values = i; pintar(r, AZUL_CLARO); r.getCell(3).alignment = { wrapText: true }; }
+      linha++;
+      const cab = ws.getRow(linha); cab.values = ['Unidade de saúde', '', '', 'Valor no período', 'Qtd. notas']; pintar(cab, 'FFE2E8F0', true);
+      k.unidades.forEach((u, j) => {
+        linha++;
+        const r = ws.getRow(linha); r.values = [u.nome, '', '', r$(u.total), u.notas]; if (j % 2) pintar(r, ZEBRA);
+        r.getCell(4).numFmt = MOEDA;
+      });
+      linha++;
+      const tot = ws.getRow(linha); tot.values = [`TOTAL — ${k.fornecedor_nome}`, '', '', r$(k.total), k.notas.length]; pintar(tot, 'FF1A3F80', true, true); tot.getCell(4).numFmt = MOEDA;
+      linha++;
+      const cn = ws.getRow(linha); cn.values = [`NOTAS DO PERÍODO (${k.notas.length})`, 'Referência', 'Unidade / local', 'Valor', 'Situação']; pintar(cn, 'FF475569', true, true);
+      k.notas.forEach((n, j) => {
+        linha++;
+        const r = ws.getRow(linha);
+        r.values = [`Nota ${n.numero}`, n.referencias, n.local, r$(n.valor), SITUACAO_PAGAMENTO[n.status] ?? n.status];
+        if (j % 2) pintar(r, ZEBRA);
+        r.getCell(4).numFmt = MOEDA; r.getCell(3).alignment = { wrapText: true };
+        r.getCell(5).font = { bold: true, color: { argb: n.status === 'PAGO' ? 'FF047857' : n.status === 'PARCIAL' ? 'FF0369A1' : 'FFB45309' } };
+      });
+      linha++;
+    }
+    linha++;
+    faixa('CONSOLIDADO GERAL', 'FF0A1B31');
+    linha++;
+    const cab = ws.getRow(linha); cab.values = ['Empresa', 'Contrato', '', 'Total no período', 'Qtd. notas']; pintar(cab, 'FFE2E8F0', true);
+    resumo.contratos.forEach((k, j) => {
+      linha++;
+      const r = ws.getRow(linha); r.values = [k.fornecedor_nome, k.contrato_numero, '', r$(k.total), k.notas.length]; if (j % 2) pintar(r, ZEBRA); r.getCell(4).numFmt = MOEDA;
+    });
+    linha++;
+    const tg = ws.getRow(linha); tg.values = ['TOTAL GERAL', '', '', r$(resumo.total), resumo.notas]; pintar(tg, 'FF0A1B31', true, true); tg.getCell(4).numFmt = MOEDA;
+  }
 
   // 1. Custos por unidade (detalhado)
   {
@@ -119,18 +172,18 @@ export async function exportarCustosUnidades(p: {
   // 4. Notas (detalhe, para conferência)
   {
     const ws = wb.addWorksheet('Notas (detalhe)');
-    const nomes = ['Competência', 'Unidade de saúde', 'Empresa', 'CNPJ/CPF', 'Contrato', 'Nota fiscal', 'Data da nota', 'Forma de distribuição', 'Valor distribuído', 'Pago (proporcional)'];
+    const nomes = ['Competência', 'Unidade de saúde', 'Empresa', 'CNPJ/CPF', 'Contrato', 'Nota fiscal', 'Data da nota', 'Referência da nota', 'Unidade / local da nota', 'Situação do pagamento', 'Forma de distribuição', 'Valor distribuído', 'Pago (proporcional)'];
     let linha = titulo(ws, 'NOTAS FISCAIS DISTRIBUÍDAS POR UNIDADE (CONFERÊNCIA)', nomes.length);
     cabecalho(ws, linha, nomes);
-    ws.columns = [12, 34, 36, 20, 13, 12, 12, 40, 16, 16].map((w) => ({ width: w }));
+    ws.columns = [12, 34, 36, 20, 13, 12, 12, 18, 40, 14, 40, 16, 16].map((w) => ({ width: w }));
     p.linhas.forEach((l, k) => {
       linha++;
       const r = ws.getRow(linha);
       r.values = [`${String(l.mes).padStart(2, '0')}/${l.ano}`, l.unidade_nome, l.fornecedor_nome, doc(l.fornecedor_tipo, l.fornecedor_documento), l.contrato_numero,
-        l.nota_numero, formatarData(l.data_emissao), FORMAS[l.forma], Number(l.valor), Number(l.pago)];
+        l.nota_numero, formatarData(l.data_emissao), l.nota_referencias ?? '', l.nota_local ?? '', SITUACAO_PAGAMENTO[l.status_pagamento ?? ''] ?? l.status_pagamento ?? '', FORMAS[l.forma], Number(l.valor), Number(l.pago)];
       if (k % 2) pintar(r, ZEBRA);
     });
-    ws.getColumn(9).numFmt = MOEDA; ws.getColumn(10).numFmt = MOEDA;
+    ws.getColumn(12).numFmt = MOEDA; ws.getColumn(13).numFmt = MOEDA;
     if (p.linhas.length) ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: nomes.length } };
   }
 

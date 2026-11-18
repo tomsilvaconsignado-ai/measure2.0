@@ -37,6 +37,15 @@ describe('agruparCustos', () => {
     expect(r.alertas.SEM_UNIDADE).toBe(500);
   });
 
+  it('blocos por empresa/contrato: unidades com quantidade de notas e lista de notas', () => {
+    const k = r.contratos.find((x) => x.contrato_numero === '001/2026')!;
+    expect(r.contratos.map((x) => x.fornecedor_nome)).toEqual(['Empresa A', 'Empresa B']);
+    expect(k.total).toBe(10010 + 20 + 500);
+    expect(k.unidades[0]).toMatchObject({ nome: 'USF Um', total: 10030, notas: 2 });
+    expect(k.notas.map((n) => n.numero)).toHaveLength(3);
+    expect(r.empresas.find((e) => e.nome === 'Empresa A')!.notas).toBe(3);
+  });
+
   it('empresas em ordem de valor, com as unidades atendidas', () => {
     expect(r.empresas[0]!.nome).toBe('Empresa A');
     expect(r.empresas[0]!.unidades.map((u) => u.nome)).toEqual(['USF Um', 'Sem unidade informada']);

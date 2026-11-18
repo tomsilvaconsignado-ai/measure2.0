@@ -7,31 +7,36 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { MultiBusca, type Item } from '@/components/ui/MultiBusca';
-import { Botao, CaixaErro, Carregando, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Botao, CaixaErro, Carregando, Vazio, cx } from '@/components/ui/basicos';
 import { ListaSelecao } from '@/components/ui/ListaSelecao';
-import { agruparCustos, descreverPeriodo, FORMAS, MESES_CURTOS, MESES_LONGOS, type GrupoUnidade } from '@/lib/custosUnidades';
+import { agruparCustos, descreverPeriodo, FORMAS, MESES_CURTOS, MESES_LONGOS, SITUACAO_PAGAMENTO, type GrupoContrato, type GrupoUnidade } from '@/lib/custosUnidades';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
-import { formatarCentavos, formatarCnpj, formatarCpf } from '@/lib/formatacao';
+import { formatarCentavos, formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
+import { supabase } from '@/lib/supabase';
 import { buscarFornecedoresOpcoes, listarUnidadesAtendidas } from '@/services/cadastros';
 import { anosComMovimento, registrarExportacao, relatorioCustosUnidades } from '@/services/relatorios';
 import { exportarCustosUnidades } from './custosUnidadesExcel';
 
 export const CHAVE_CUSTOS = 'measure.custos_unidades';
-export interface PedidoCustos { ano: number; mesInicio: number; mesFim: number; fornecedores: Item[]; unidades: Item[] }
+export interface Coordenacao { id: string; sigla: string | null; nome: string }
+export interface PedidoCustos { ano: number; mesInicio: number; mesFim: number; fornecedores: Item[]; unidades: Item[]; coordenacao: Coordenacao | null }
 
 const hoje = new Date();
-export const pedidoPadrao = (): PedidoCustos => ({ ano: hoje.getFullYear(), mesInicio: hoje.getMonth() + 1, mesFim: hoje.getMonth() + 1, fornecedores: [], unidades: [] });
+export const pedidoPadrao = (): PedidoCustos => ({ ano: hoje.getFullYear(), mesInicio: hoje.getMonth() + 1, mesFim: hoje.getMonth() + 1, fornecedores: [], unidades: [], coordenacao: null });
 export function lerPedidoCustos(): PedidoCustos {
   try { const s = sessionStorage.getItem(CHAVE_CUSTOS); return s ? { ...pedidoPadrao(), ...JSON.parse(s) as PedidoCustos } : pedidoPadrao(); } catch { return pedidoPadrao(); }
 }
 export const paraServidorCustos = (p: PedidoCustos) => ({
   ano: p.ano, mes_inicio: Math.min(p.mesInicio, p.mesFim), mes_fim: Math.max(p.mesInicio, p.mesFim),
-  fornecedores: p.fornecedores.map((i) => i.id), unidades: p.unidades.map((i) => i.id),
+  fornecedores: p.fornecedores.map((i) => i.id), unidades: p.unidades.map((i) => i.id), coordenacoes: p.coordenacao ? [p.coordenacao.id] : [],
 });
+/** Título no padrão do relatório da coordenação: "COINFRA SMS — Relatório Mensal de Gastos por Unidade de Saúde" */
+export const tituloCustos = (p: PedidoCustos, orgao: string) => `${p.coordenacao ? `${p.coordenacao.sigla ?? p.coordenacao.nome} ` : ''}${orgao} — Relatório Mensal de Gastos por Unidade de Saúde`;
 export function criteriosCustos(p: PedidoCustos) {
   const f = paraServidorCustos(p);
   return [
     `Período: ${descreverPeriodo(p.ano, f.mes_inicio, f.mes_fim)} (mês de competência das notas fiscais)`,
+    `Coordenação: ${p.coordenacao ? `${p.coordenacao.sigla ? `${p.coordenacao.sigla} – ` : ''}${p.coordenacao.nome}` : 'todas'} (unidade responsável pelo contrato)`,
     `Empresas: ${p.fornecedores.length ? p.fornecedores.map((i) => i.rotulo).join('; ') : 'todas'}`,
     `Unidades de saúde: ${p.unidades.length ? p.unidades.map((i) => i.rotulo).join('; ') : 'todas'}`,
     'Notas fiscais registradas e não canceladas.',
@@ -108,16 +113,96 @@ function BlocoUnidade({ u, total, meses, aberto, alternar }: { u: GrupoUnidade; 
   );
 }
 
+const TOM_SITUACAO: Record<string, string> = { PAGO: 'text-emerald-700', PARCIAL: 'text-sky-700', PENDENTE: 'text-amber-700', CANCELADA: 'text-slate-500' };
+
+/** Bloco por empresa/contrato, no formato do relatório mensal da coordenação */
+export function BlocoContrato({ k, meses }: { k: GrupoContrato; meses: number[] }) {
+  void meses;
+  const qtd = k.notas.length;
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-marca-900 px-4 py-2.5 text-white">
+        <h3 className="text-sm font-bold uppercase tracking-wide">{k.fornecedor_nome}</h3>
+        <span className="numero text-xs text-marca-100">{k.fornecedor_tipo === 'PF' ? 'CPF' : 'CNPJ'}: {docFornecedor(k.fornecedor_tipo, k.fornecedor_documento)}</span>
+      </div>
+      <dl className="grid gap-x-6 gap-y-1 bg-marca-50 px-4 py-2.5 text-xs sm:grid-cols-3">
+        <div><dt className="inline text-slate-500">Contrato: </dt><dd className="inline font-semibold text-marca-900">{k.contrato_numero}</dd>
+          {k.unidade && <span className="ml-1 text-slate-500">· {k.unidade}</span>}</div>
+        <div><dt className="inline text-slate-500">Valor global: </dt><dd className="numero inline font-semibold">{formatarCentavos(k.valor)}</dd></div>
+        <div><dt className="inline text-slate-500">Saldo restante: </dt>
+          <dd className={cx('numero inline font-bold', k.saldo < 0 ? 'text-red-700' : 'text-emerald-700')}>{formatarCentavos(k.saldo)}</dd></div>
+        <div><dt className="inline text-slate-500">Vigência: </dt><dd className="inline">{k.inicio ? formatarData(k.inicio) : '—'} a {k.fim ? formatarData(k.fim) : '—'}</dd></div>
+        <div className="sm:col-span-2"><dt className="inline text-slate-500">Objeto: </dt><dd className="inline">{k.contrato_objeto}</dd></div>
+      </dl>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-sm">
+          <thead><tr><th className="text-left">Unidade de saúde</th><th className="text-right">Valor no período</th><th className="text-right">Qtd. notas</th></tr></thead>
+          <tbody>{k.unidades.map((u) => (
+            <tr key={u.nome}><td className="py-1.5">{u.nome}</td><td className="numero whitespace-nowrap py-1.5 text-right font-semibold">{formatarCentavos(u.total)}</td>
+              <td className="numero py-1.5 text-right">{u.notas}</td></tr>))}</tbody>
+          <tfoot><tr><td>Total · {k.fornecedor_nome}</td><td className="numero whitespace-nowrap text-right">{formatarCentavos(k.total)}</td><td className="numero text-right">{qtd}</td></tr></tfoot>
+        </table>
+      </div>
+      <details className="group border-t border-slate-200">
+        <summary className="flex cursor-pointer list-none items-center gap-2 bg-slate-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white">
+          <ChevronDown className="size-3.5 -rotate-90 transition-transform group-open:rotate-0" aria-hidden />Notas do período ({qtd} {qtd === 1 ? 'nota' : 'notas'})
+        </summary>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-xs">
+            <thead><tr><th className="text-left">Nº nota</th><th className="text-left">Referência</th><th className="text-left">Unidade / local</th>
+              <th className="text-right">Valor</th><th className="text-left">Situação</th></tr></thead>
+            <tbody>{k.notas.map((n) => (
+              <tr key={n.id}><td className="py-1.5 font-semibold">{n.numero}</td><td className="py-1.5">{referenciaPorExtenso(n.referencias)}</td>
+                <td className="max-w-xs py-1.5"><span className="line-clamp-2">{n.local}</span></td>
+                <td className="numero whitespace-nowrap py-1.5 text-right">{formatarCentavos(n.valor)}{n.valor !== n.nota_valor && <span className="block text-[10px] text-slate-500">nota: {formatarCentavos(n.nota_valor)}</span>}</td>
+                <td className={cx('py-1.5 font-bold uppercase', TOM_SITUACAO[n.status] ?? '')}>{SITUACAO_PAGAMENTO[n.status] ?? n.status}</td></tr>))}</tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+/** "10/2026, 11/2026" → "Outubro/2026, Novembro/2026" */
+export const referenciaPorExtenso = (refs: string) => refs.split(',').map((r) => r.trim()).filter(Boolean).map((r) => {
+  const [m, a] = r.split('/');
+  const nome = MESES_LONGOS[Number(m) - 1];
+  return nome ? `${nome[0]!.toUpperCase()}${nome.slice(1)}/${a}` : r;
+}).join(', ') || '—';
+
+/** Consolidado geral por empresa/contrato (fecha o relatório, como no modelo da coordenação) */
+export function ConsolidadoGeral({ resumo }: { resumo: ReturnType<typeof agruparCustos> }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <h3 className="bg-marca-950 px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white">Consolidado geral</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead><tr><th className="text-left">Empresa</th><th className="text-left">Contrato</th><th className="text-right">Total no período</th><th className="text-right">Qtd. notas</th><th className="text-right">% do total</th></tr></thead>
+          <tbody>{resumo.contratos.map((k) => (
+            <tr key={k.chave}><td className="py-1.5 font-semibold text-marca-900">{k.fornecedor_nome}</td><td className="py-1.5">{k.contrato_numero}</td>
+              <td className="numero whitespace-nowrap py-1.5 text-right font-bold">{formatarCentavos(k.total)}</td><td className="numero py-1.5 text-right">{k.notas.length}</td>
+              <td className="numero py-1.5 text-right">{pct(k.total, resumo.total)}</td></tr>))}</tbody>
+          <tfoot><tr><td colSpan={2}>Total geral</td><td className="numero whitespace-nowrap text-right">{formatarCentavos(resumo.total)}</td><td className="numero text-right">{resumo.notas}</td><td className="text-right">100%</td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function CustosUnidades() {
   const { orgao, pode, contexto } = useSessao();
   const navegar = useNavigate();
   const [pedido, setPedido] = useState<PedidoCustos>(lerPedidoCustos);
-  const [visao, setVisao] = useState<'unidades' | 'empresas'>('unidades');
+  const [visao, setVisao] = useState<'contratos' | 'unidades'>('contratos');
   const [fechados, setFechados] = useState<Set<string>>(new Set());
   useEffect(() => { try { sessionStorage.setItem(CHAVE_CUSTOS, JSON.stringify(pedido)); } catch { /* sem armazenamento */ } }, [pedido]);
   const set = <K extends keyof PedidoCustos>(k: K, v: PedidoCustos[K]) => setPedido((p) => ({ ...p, [k]: v }));
   const f = paraServidorCustos(pedido);
   const anos = useQuery({ queryKey: ['anos-movimento', orgao?.id], queryFn: () => anosComMovimento(orgao!.id), enabled: !!orgao });
+  const coordenacoes = useQuery({
+    queryKey: ['coordenacoes-foco', orgao?.id], enabled: !!orgao, staleTime: 5 * 60_000,
+    queryFn: async () => { const { data, error } = await supabase.rpc('coordenacoes_para_foco', { p_tenant: orgao!.id }); if (error) throw error; return data as Array<{ id: string; nome: string; sigla: string | null; diretoria: string | null }>; },
+  });
   const anosDisponiveis = [...new Set([...(anos.data ?? []), hoje.getFullYear()])].sort((a, b) => b - a);
   const q = useQuery({
     queryKey: ['rel-custos-unidades', orgao?.id, JSON.stringify(f)], enabled: !!orgao,
@@ -128,7 +213,7 @@ export function CustosUnidades() {
   const excel = useMutation({
     mutationFn: async () => {
       const linhas = q.data ?? await relatorioCustosUnidades(orgao!.id, f);
-      await exportarCustosUnidades({ resumo: agruparCustos(linhas), linhas, orgao: orgao!.nome_oficial, periodo, criterios: criteriosCustos(pedido),
+      await exportarCustosUnidades({ resumo: agruparCustos(linhas), linhas, orgao: orgao!.nome_oficial, periodo, criterios: criteriosCustos(pedido), titulo: tituloCustos(pedido, orgao!.nome_curto),
         emitidoPor: contexto?.perfil?.nome || contexto?.perfil?.email || '' });
       await registrarExportacao(orgao!.id, 'relatorios', `Excel: custos por unidade de saúde (${periodo})`, linhas.length);
     },
@@ -141,7 +226,7 @@ export function CustosUnidades() {
     <div className="flex flex-col gap-5">
       {/* filtros e ações */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="grid gap-4 md:grid-cols-[8rem_10rem_10rem_1fr_1fr] md:items-start">
+        <div className="grid gap-4 md:grid-cols-[8rem_10rem_10rem_1fr] md:items-start">
           <div className="flex flex-col gap-1"><span className="text-sm font-medium text-slate-700">Exercício</span>
             <ListaSelecao value={String(pedido.ano)} aria-label="Exercício" onChange={(e) => set('ano', Number(e.target.value))}>
               {anosDisponiveis.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -154,6 +239,13 @@ export function CustosUnidades() {
             <ListaSelecao value={String(pedido.mesFim)} aria-label="Mês final" onChange={(e) => set('mesFim', Number(e.target.value))}>
               {MESES_LONGOS.map((m, i) => <option key={m} value={i + 1}>{m[0]!.toUpperCase() + m.slice(1)}</option>)}
             </ListaSelecao></div>
+          <div className="flex flex-col gap-1"><span className="text-sm font-medium text-slate-700">Coordenação (do contrato)</span>
+            <ListaSelecao value={pedido.coordenacao?.id ?? ''} aria-label="Coordenação" onChange={(e) => { const c = coordenacoes.data?.find((x) => x.id === e.target.value); set('coordenacao', c ? { id: c.id, sigla: c.sigla, nome: c.nome } : null); }}>
+              <option value="">Todas as coordenações</option>
+              {(coordenacoes.data ?? []).map((c) => <option key={c.id} value={c.id}>{[c.diretoria, c.sigla].filter(Boolean).join(' › ') || c.nome}</option>)}
+            </ListaSelecao></div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
           <MultiBusca rotulo="Empresa(s)" itens={pedido.fornecedores} aoMudar={(v) => set('fornecedores', v)} chave={['cu-fornecedores', orgao?.id]}
             placeholder="Todas · razão social ou CNPJ"
             buscar={async (t) => (await buscarFornecedoresOpcoes(orgao!.id, t)).map((x) => ({ valor: x.id, rotulo: x.razao_social || x.nome_fantasia || '', detalhe: docFornecedor(x.tipo_pessoa, x.documento) }))} />
@@ -198,7 +290,7 @@ export function CustosUnidades() {
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100/80 p-1" role="tablist" aria-label="Visão do relatório">
-              {([['unidades', 'Por unidade de saúde'], ['empresas', 'Por empresa']] as const).map(([v, r]) => (
+              {([['contratos', 'Por empresa e contrato'], ['unidades', 'Por unidade de saúde']] as const).map(([v, r]) => (
                 <button key={v} type="button" role="tab" aria-selected={visao === v} onClick={() => setVisao(v)}
                   className={cx('rounded-lg px-3.5 py-1.5 text-sm font-semibold', visao === v ? 'bg-marca-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white')}>{r}</button>
               ))}
@@ -209,31 +301,17 @@ export function CustosUnidades() {
             </div>}
           </div>
 
-          {visao === 'unidades' ? (
+          {visao === 'contratos' ? (
+            <div className="flex flex-col gap-3">
+              {resumo.contratos.map((k) => <BlocoContrato key={k.chave} k={k} meses={resumo.meses} />)}
+              <ConsolidadoGeral resumo={resumo} />
+            </div>
+          ) : (
             <div className="flex flex-col gap-3">
               {resumo.unidades.map((u) => (
                 <BlocoUnidade key={u.chave} u={u} total={resumo.total} meses={resumo.meses} aberto={!fechados.has(u.chave)}
                   alternar={() => setFechados((s) => { const n = new Set(s); if (n.has(u.chave)) n.delete(u.chave); else n.add(u.chave); return n; })} />
               ))}
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead><tr><th className="text-left">Empresa</th><th className="text-left">Contratos</th><th className="text-left">Unidades atendidas</th>
-                  <th className="text-right">Total</th><th className="text-right">% do total</th></tr></thead>
-                <tbody>
-                  {resumo.empresas.map((e) => (
-                    <tr key={e.chave} className="align-top">
-                      <td className="py-2"><span className="font-semibold text-marca-900">{e.nome}</span><span className="numero block text-xs text-slate-500">{docFornecedor(e.tipo, e.documento)}</span></td>
-                      <td className="py-2 text-xs">{e.contratos.join(', ')}</td>
-                      <td className="py-2 text-xs text-slate-600">{e.unidades.length} unidade(s)<span className="block line-clamp-2">{e.unidades.slice(0, 6).map((u) => u.nome).join(', ')}{e.unidades.length > 6 ? '…' : ''}</span></td>
-                      <td className="numero whitespace-nowrap py-2 text-right font-bold text-marca-900">{formatarCentavos(e.total)}</td>
-                      <td className="numero whitespace-nowrap py-2 text-right"><Selo tom="marca">{pct(e.total, resumo.total)}</Selo></td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot><tr><td colSpan={3}>Total geral</td><td className="numero whitespace-nowrap text-right">{formatarCentavos(resumo.total)}</td><td className="text-right">100%</td></tr></tfoot>
-              </table>
             </div>
           )}
         </div>

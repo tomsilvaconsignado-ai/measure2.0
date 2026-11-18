@@ -1,5 +1,5 @@
 // Relatório de custos por unidade de saúde: distribuição de cada nota por mês de competência e por unidade.
-export default async function ({ db, as, check, one, u, A, coinfra }) {
+export default async function ({ db, as, check, one, u, A, coinfra, coaf }) {
   await db.exec('RESET ROLE');
   console.log('Relatório de custos por unidade');
   const ct = await one(`SELECT c.id, c.unidade_id, c.fornecedor_id, e.id AS empenho FROM contratos c JOIN empenhos e ON e.contrato_id = c.id AND e.ativo
@@ -37,6 +37,16 @@ export default async function ({ db, as, check, one, u, A, coinfra }) {
   const so = (await as(u.masterA, `SELECT count(*)::int n FROM relatorio_custos_unidades($1) WHERE nota_numero LIKE 'CU-%'`,
     [JSON.stringify({ tenant_id: A, ano: 2031, mes_inicio: 2, mes_fim: 2, unidades: [u1] })])).rows[0].n;
   check(so === 1, 'filtros de mês e de unidade');
+  // informações do modelo do financeiro: contrato, nota (referência, local, situação)
+  const um = r.find((x) => x.nota_numero === 'CU-2');
+  const cinfo = await one(`SELECT data_inicio, contrato_fim_atual(id) fim, contrato_valor_atual(id) valor FROM contratos WHERE id = $1`, [ct.id]);
+  check(um.contrato_valor === cinfo.valor && String(um.contrato_fim) === String(cinfo.fim) && um.contrato_saldo !== null, 'traz vigência, valor global e saldo do contrato');
+  check(um.nota_referencias === '01/2031' && um.nota_local === 'Custo Unidade Dois, Custo Unidade Um' && um.status_pagamento === 'PENDENTE' && Number(um.nota_valor) === 90,
+    'traz referência, unidade/local, valor e situação da nota');
+  const porCoord = async (unid) => (await as(u.masterA, `SELECT count(*)::int n FROM relatorio_custos_unidades($1) WHERE nota_numero LIKE 'CU-%'`,
+    [JSON.stringify({ tenant_id: A, ano: 2031, coordenacoes: [unid] })])).rows[0].n;
+  check(await porCoord(coinfra.id) === r.length, 'filtro por coordenação: contratos da coordenação');
+  check(await porCoord(coaf.id) === 0, 'filtro por coordenação: outra coordenação não traz');
   const fora = (await as(u.adminB, `SELECT count(*)::int n FROM relatorio_custos_unidades($1)`, [JSON.stringify({ tenant_id: A, ano: 2031 })])).rows[0].n;
   check(fora === 0, 'outro órgão não vê os custos');
   await db.exec('RESET ROLE');
