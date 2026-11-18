@@ -1,24 +1,25 @@
-// Pesquisa de preços: dados abertos do Compras.gov.br consultados pelo servidor do MEASURE e mostrados aqui
-// (preços praticados, atas de registro de preços e situação do fornecedor). O catálogo CATMAT/CATSER completo fica
-// no banco, com busca indexada; as categorias do órgão só dão prioridade (na SMS, os itens de saúde vêm primeiro).
+// Pesquisa de preços: página própria, minimalista (no espírito de uma página de busca), com a marca MEASURE ao centro e
+// uma barra flutuante que reconhece material, serviço ou CNPJ. Os dados vêm da API oficial do Compras.gov.br, consultada
+// pelo servidor do MEASURE; o catálogo CATMAT/CATSER completo fica no banco, com busca indexada e prioridade às
+// categorias do órgão. O histórico de pesquisas fica salvo por usuário neste navegador.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertTriangle, ArrowDownUp, BadgeDollarSign, Building2, ChevronLeft, ChevronRight, Clock, Database, History, Info, Loader2, Package, Plus,
-  RefreshCw, ScrollText, Search, ShieldCheck, Tags, Wrench, X,
+  Ambulance, Armchair, ArrowDownUp, Bandage, Building2, ChevronLeft, ChevronRight, Droplets, FireExtinguisher, Hammer, HeartPulse, History, Hospital,
+  Lightbulb, Loader2, Microscope, Monitor, Package, Paintbrush, Pill, Plus, Printer, RefreshCw, Search, Shirt, ShieldCheck, SprayCan, Stethoscope,
+  Syringe, Tags, Thermometer, Truck, Utensils, Wrench, X,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
+import palavraClara from '@/assets/marca/palavra-measure-clara.png';
 import { useSessao } from '@/auth/Sessao';
-import { BuscaSelect } from '@/components/ui/BuscaSelect';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Carregando, Indicador, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Botao, CaixaErro, Campo, Carregando, Indicador, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Modal } from '@/components/ui/Modal';
 import { mensagemDeErro } from '@/lib/erros';
 import { brl, formatarCnpj, formatarData, formatarDataHora } from '@/lib/formatacao';
 import {
-  buscarCatalogo, consultarComprasGov, estadoCatalogo, listarCategoriasCatalogo, salvarCategoriaCatalogo, sincronizarCategoria,
+  buscarCatalogo, consultarComprasGov, listarCategoriasCatalogo, salvarCategoriaCatalogo, sincronizarCategoria,
   type CategoriaCatalogo, type ConsultaComprasGov, type TipoCatalogo,
 } from '@/services/comprasGov';
-
-const SWAGGER_COMPRAS = 'https://dadosabertos.compras.gov.br/swagger-ui/index.html';
 
 // ---------------------------------------------------------------- utilidades
 
@@ -36,20 +37,6 @@ function estatisticas(precos: number[]) {
   const meio = Math.floor(v.length / 2);
   const mediana = v.length % 2 ? v[meio]! : (v[meio - 1]! + v[meio]!) / 2;
   return { n: v.length, min: v[0]!, max: v[v.length - 1]!, mediana, media: v.reduce((s, x) => s + x, 0) / v.length };
-}
-
-// ---------------------------------------------------------------- pesquisas recentes (só neste navegador)
-
-interface Recente { modo: Modo; item?: { codigo: string; rotulo: string }; cnpj?: string; uf?: string }
-const CHAVE_RECENTES = 'measure.pesquisa_precos.recentes';
-function lerRecentes(): Recente[] { try { return JSON.parse(localStorage.getItem(CHAVE_RECENTES) ?? '[]') as Recente[]; } catch { return []; } }
-function gravarRecente(r: Recente) {
-  try {
-    const chave = (x: Recente) => `${x.modo}|${x.item?.codigo ?? x.cnpj}|${x.uf ?? ''}`;
-    const lista = [r, ...lerRecentes().filter((x) => chave(x) !== chave(r))].slice(0, 6);
-    localStorage.setItem(CHAVE_RECENTES, JSON.stringify(lista));
-    return lista;
-  } catch { return []; }
 }
 
 // ---------------------------------------------------------------- resultados
@@ -166,153 +153,6 @@ function FichaFornecedor({ f }: { f: Linha }) {
   );
 }
 
-// ---------------------------------------------------------------- pesquisa
-
-type Modo = ConsultaComprasGov;
-const MODOS: Array<{ id: Modo; titulo: string; texto: string; icone: ReactNode }> = [
-  { id: 'preco_material', titulo: 'Preço de material', texto: 'Medicamentos, insumos, equipamentos... (CATMAT)', icone: <Package className="size-5" aria-hidden /> },
-  { id: 'preco_servico', titulo: 'Preço de serviço', texto: 'Manutenção, limpeza, exames... (CATSER)', icone: <Wrench className="size-5" aria-hidden /> },
-  { id: 'arp_item', titulo: 'Atas de registro de preços', texto: 'Atas com o item, valor e fornecedor', icone: <ScrollText className="size-5" aria-hidden /> },
-  { id: 'fornecedor', titulo: 'Situação do fornecedor', texto: 'CNPJ ativo e habilitado a licitar', icone: <Building2 className="size-5" aria-hidden /> },
-];
-
-function Pesquisa() {
-  const { orgao } = useSessao();
-  const [modo, setModo] = useState<Modo>('preco_material');
-  const [tipoAta, setTipoAta] = useState<TipoCatalogo>('MATERIAL');
-  const [item, setItem] = useState<{ codigo: string; rotulo: string } | null>(null);
-  const [uf, setUf] = useState('');
-  const [desde, setDesde] = useState(umAnoAtras());
-  const [cnpj, setCnpj] = useState('');
-  const [pedido, setPedido] = useState<{ consulta: ConsultaComprasGov; parametros: Record<string, string>; pagina: number } | null>(null);
-  const [recentes, setRecentes] = useState<Recente[]>(lerRecentes);
-
-  const tipoItem: TipoCatalogo = modo === 'preco_servico' ? 'SERVICO' : modo === 'arp_item' ? tipoAta : 'MATERIAL';
-  const trocarModo = (m: Modo) => { setModo(m); setItem(null); setPedido(null); };
-
-  const montar = (m: Modo, it: typeof item, filtroUf: string, cnpjAtual: string): Record<string, string> | null => {
-    if (m === 'fornecedor') return cnpjAtual.replace(/\D/g, '').length === 14 ? { cnpj: cnpjAtual.replace(/\D/g, '') } : null;
-    if (!it) return null;
-    if (m === 'preco_material') return { codigo: it.codigo, estado: filtroUf, dataCompraInicio: desde };
-    if (m === 'preco_servico') return { codigoItemCatalogo: it.codigo, estado: filtroUf, dataCompraInicio: desde };
-    return { codigoItem: it.codigo, dataVigenciaInicialMin: desde || umAnoAtras(), dataVigenciaInicialMax: hojeIso() };
-  };
-  const pesquisar = (m = modo, it = item, filtroUf = uf, cnpjAtual = cnpj) => {
-    const p = montar(m, it, filtroUf, cnpjAtual);
-    if (!p) return;
-    setPedido({ consulta: m, parametros: p, pagina: 1 });
-    setRecentes(gravarRecente({ modo: m, item: it ?? undefined, cnpj: m === 'fornecedor' ? cnpjAtual : undefined, uf: filtroUf || undefined }));
-  };
-  const p = montar(modo, item, uf, cnpj);
-
-  const q = useQuery({
-    queryKey: ['compras-gov', pedido], enabled: !!pedido, staleTime: 10 * 60_000, retry: false,
-    queryFn: () => consultarComprasGov<Linha>(pedido!.consulta, pedido!.parametros, pedido!.pagina),
-  });
-  const r = q.data;
-
-  return (
-    <>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="tablist" aria-label="Tipo de pesquisa">
-        {MODOS.map((m) => {
-          const ativo = modo === m.id;
-          return (
-            <button key={m.id} type="button" role="tab" aria-selected={ativo} onClick={() => trocarModo(m.id)}
-              className={cx('flex items-center gap-3 rounded-xl border border-l-4 p-3.5 text-left transition-colors',
-                ativo ? 'border-marca-900 border-l-chamada-500 bg-marca-900 text-white shadow-md' : 'border-slate-200 border-l-slate-200 bg-white hover:border-marca-300 hover:bg-marca-50')}>
-              <span className={cx('grid size-10 shrink-0 place-items-center rounded-full', ativo ? 'bg-chamada-500 text-marca-950' : 'bg-marca-100 text-marca-800')}>{m.icone}</span>
-              <span className="min-w-0">
-                <span className="block font-bold">{m.titulo}</span>
-                <span className={cx('block text-xs', ativo ? 'text-marca-100' : 'text-slate-600')}>{m.texto}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Filtros da pesquisa">
-        <form className="grid gap-3 lg:grid-cols-[1fr_9rem_11rem_auto] lg:items-end" onSubmit={(e) => { e.preventDefault(); pesquisar(); }}>
-          {modo === 'fornecedor' ? (
-            <Campo rotulo="CNPJ do fornecedor" obrigatorio value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" inputMode="numeric"
-              className="lg:col-span-3" />
-          ) : (
-            <>
-              <div className="flex flex-col gap-2">
-                {modo === 'arp_item' && (
-                  <div className="flex gap-1.5" role="radiogroup" aria-label="Tipo do item">
-                    {(['MATERIAL', 'SERVICO'] as TipoCatalogo[]).map((t) => (
-                      <button key={t} type="button" role="radio" aria-checked={tipoAta === t} onClick={() => { setTipoAta(t); setItem(null); }}
-                        className={cx('rounded-full border px-3 py-0.5 text-xs font-semibold', tipoAta === t ? 'border-marca-900 bg-marca-900 text-white' : 'border-slate-300 text-slate-700')}>
-                        {t === 'MATERIAL' ? 'Material' : 'Serviço'}</button>
-                    ))}
-                  </div>
-                )}
-                <BuscaSelect key={tipoItem} rotulo={tipoItem === 'MATERIAL' ? 'Material (nome ou código CATMAT)' : 'Serviço (nome ou código CATSER)'} obrigatorio
-                  valor={item?.codigo ?? null} rotuloValor={item?.rotulo} chave={['catalogo', orgao?.id, tipoItem]}
-                  placeholder={tipoItem === 'MATERIAL' ? 'Ex.: seringa 10 ml, luva, dipirona, extintor' : 'Ex.: recarga extintor, limpeza hospitalar, manutenção'}
-                  ajuda="Todas as áreas do catálogo do governo; os itens do ramo do órgão aparecem primeiro."
-                  buscar={async (t) => (await buscarCatalogo(orgao!.id, tipoItem, t, 40)).map((i) => ({
-                    valor: String(i.codigo), rotulo: `${i.codigo} — ${i.descricao}`,
-                    detalhe: i.categoria ? `★ ${i.categoria}` : (i.nome_classe ?? i.nome_grupo ?? undefined),
-                  }))}
-                  aoMudar={(v, o) => { const novo = v && o ? { codigo: v, rotulo: o.rotulo } : null; setItem(novo); if (novo) pesquisar(modo, novo); }} />
-              </div>
-              {modo !== 'arp_item' ? (
-                <Selecao rotulo="UF" value={uf} onChange={(e) => { setUf(e.target.value); if (pedido && item) pesquisar(modo, item, e.target.value); }}>
-                  <option value="">Brasil todo</option>{UFS.map((x) => <option key={x} value={x}>{x}</option>)}
-                </Selecao>
-              ) : <span className="hidden lg:block" />}
-              <Campo rotulo={modo === 'arp_item' ? 'Atas vigentes desde' : 'Compras a partir de'} type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-            </>
-          )}
-          <Botao type="submit" variante="chamada" disabled={!p} carregando={q.isFetching} icone={<Search className="size-4" />}>Pesquisar</Botao>
-        </form>
-
-        {recentes.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <History className="size-3.5 text-slate-500" aria-hidden /><span className="text-xs text-slate-600">Recentes:</span>
-            {recentes.map((x, i) => (
-              <button key={i} type="button" title={x.item?.rotulo ?? x.cnpj}
-                onClick={() => { setModo(x.modo); setItem(x.item ?? null); setUf(x.uf ?? ''); if (x.cnpj) setCnpj(x.cnpj); pesquisar(x.modo, x.item ?? null, x.uf ?? '', x.cnpj ?? ''); }}
-                className="max-w-64 truncate rounded-full border border-slate-300 bg-slate-50 px-2.5 py-0.5 text-xs text-slate-700 hover:border-marca-400 hover:bg-marca-50">
-                {x.modo === 'fornecedor' ? `CNPJ ${x.cnpj}` : (x.item?.rotulo ?? '').replace(/^(\d+) — /, '$1 · ')}{x.uf ? ` (${x.uf})` : ''}
-              </button>
-            ))}
-            <button type="button" onClick={() => { try { localStorage.removeItem(CHAVE_RECENTES); } catch { /* sem armazenamento */ } setRecentes([]); }}
-              className="rounded-full p-1 text-slate-500 hover:bg-slate-100" aria-label="Limpar pesquisas recentes"><X className="size-3.5" /></button>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-5" aria-live="polite">
-        {!pedido ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-dashed border-marca-200 bg-marca-50/50 p-5 text-sm text-marca-950">
-            <Info className="mt-0.5 size-5 shrink-0 text-marca-700" aria-hidden />
-            <p>{modo === 'fornecedor' ? 'Informe o CNPJ e clique em Pesquisar para ver se a empresa está ativa e habilitada a licitar.'
-              : 'Digite parte do nome do item (ou o código) e escolha na lista: a pesquisa começa sozinha. Use a UF para comparar com a região.'}</p>
-          </div>
-        ) : q.isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6"><Carregando texto="Consultando o Compras.gov.br... a primeira consulta de um item leva alguns segundos; as próximas são imediatas." /></div>
-        ) : q.error ? <CaixaErro mensagem={mensagemDeErro(q.error)} tentarDeNovo={() => void q.refetch()} />
-          : r && !r.resultado?.length ? <Vazio titulo="Nada encontrado" descricao="O Compras.gov.br não tem registros para esta pesquisa. Tente sem a UF ou com uma data mais antiga." />
-          : r ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              {modo === 'fornecedor' ? <FichaFornecedor f={r.resultado[0]!} />
-                : modo === 'arp_item' ? <TabelaAtas linhas={r.resultado} />
-                : <TabelaPrecos linhas={r.resultado} servico={modo === 'preco_servico'} />}
-              <Paginas r={r} aoMudar={(pg) => setPedido((x) => x && { ...x, pagina: pg })} />
-              <p className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
-                <ShieldCheck className="size-3.5 text-acento-600" aria-hidden />
-                Fonte: dados abertos oficiais do Compras.gov.br (Ministério da Gestão e da Inovação em Serviços Públicos). Consulta de {formatarDataHora(r.consultado_em)}.
-              </p>
-            </div>
-          ) : null}
-        {q.isFetching && !q.isLoading && <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><Loader2 className="size-3.5 animate-spin" aria-hidden />Atualizando...</p>}
-      </section>
-    </>
-  );
-}
-
 // ---------------------------------------------------------------- categorias prioritárias do órgão
 
 function CategoriasDoOrgao() {
@@ -393,78 +233,299 @@ function CategoriasDoOrgao() {
   );
 }
 
-// ---------------------------------------------------------------- seção recolhível
+// ---------------------------------------------------------------- histórico (por usuário, neste navegador)
 
-function Recolhivel({ icone, titulo, resumo, children }: { icone: ReactNode; titulo: string; resumo: string; children: ReactNode }) {
-  const [aberto, setAberto] = useState(false);
+type Modo = ConsultaComprasGov;
+interface Historico { modo: Modo; tipo?: TipoCatalogo; codigo?: string; rotulo: string; cnpj?: string; em: string }
+const chaveHistorico = (uid: string) => `measure.pesquisa_precos.historico.${uid}`;
+function lerHistorico(uid: string): Historico[] { try { return JSON.parse(localStorage.getItem(chaveHistorico(uid)) ?? '[]') as Historico[]; } catch { return []; } }
+function gravarHistorico(uid: string, lista: Historico[]) { try { localStorage.setItem(chaveHistorico(uid), JSON.stringify(lista.slice(0, 20))); } catch { /* sem armazenamento */ } }
+const mesmo = (a: Historico, b: Historico) => a.modo === b.modo && (a.codigo ?? a.cnpj) === (b.codigo ?? b.cnpj);
+
+// ---------------------------------------------------------------- fundo: produtos e serviços públicos
+
+const ICONES_FUNDO = [Syringe, Pill, Stethoscope, FireExtinguisher, Wrench, Truck, SprayCan, HeartPulse, Microscope, Thermometer, Package, Bandage,
+  Hammer, Shirt, Utensils, Droplets, Lightbulb, Paintbrush, Monitor, Ambulance, Building2, Armchair, Printer, Hospital];
+
+function FundoBusca() {
+  // grade fixa de ícones (posições determinísticas), em duas camadas que se movem devagar em sentidos opostos
+  const celulas = Array.from({ length: 48 }, (_, i) => ({ Icone: ICONES_FUNDO[(i * 7) % ICONES_FUNDO.length]!, x: (i % 8) * 12.5 + ((i * 37) % 9) - 3, y: Math.floor(i / 8) * 17 + ((i * 53) % 11) - 2, r: ((i * 29) % 50) - 25, t: 28 + ((i * 13) % 26) }));
   return (
-    <section className="rounded-xl border border-slate-200 bg-white">
-      <button type="button" onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
-        <span className="text-marca-700">{icone}</span>
-        <span className="min-w-0 flex-1"><span className="block font-semibold text-marca-900">{titulo}</span><span className="block text-xs text-slate-600">{resumo}</span></span>
-        <ChevronRight className={cx('size-4 text-slate-500 transition-transform', aberto && 'rotate-90')} aria-hidden />
-      </button>
-      {aberto && <div className="border-t border-slate-200 p-4">{children}</div>}
-    </section>
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#06111f]" aria-hidden>
+      <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_38%,rgba(31,79,159,0.55),transparent_70%),radial-gradient(35%_30%_at_50%_42%,rgba(52,199,154,0.16),transparent_70%)]" />
+      <div className="busca-fundo-a absolute -inset-[6%]">
+        {celulas.filter((_, i) => i % 2 === 0).map(({ Icone, x, y, r, t }, i) => (
+          <Icone key={i} className="absolute text-white/[0.07]" style={{ left: `${x}%`, top: `${y}%`, width: t * 1.6, height: t * 1.6, transform: `rotate(${r}deg)` }} strokeWidth={1.25} />
+        ))}
+      </div>
+      <div className="busca-fundo-b absolute -inset-[6%]">
+        {celulas.filter((_, i) => i % 2 === 1).map(({ Icone, x, y, r, t }, i) => (
+          <Icone key={i} className="absolute text-acento-300/[0.08]" style={{ left: `${x}%`, top: `${y}%`, width: t * 1.2, height: t * 1.2, transform: `rotate(${-r}deg)` }} strokeWidth={1.25} />
+        ))}
+      </div>
+      <div className="absolute inset-0 bg-[radial-gradient(75%_65%_at_50%_45%,transparent_35%,#06111f_100%)]" />
+    </div>
   );
 }
 
-function EstadoCatalogo() {
-  const q = useQuery({ queryKey: ['catalogo-estado'], queryFn: estadoCatalogo, staleTime: 5 * 60_000 });
-  const m = q.data?.find((x) => x.tipo === 'MATERIAL');
-  const s = q.data?.find((x) => x.tipo === 'SERVICO');
-  const linha = (x: typeof m, nome: string) => !x ? null : x.ciclo_concluido_em
-    ? `${nome}: atualizado em ${formatarData(x.ciclo_concluido_em)}`
-    : x.total_paginas ? `${nome}: carregando (${Math.round(((x.proxima_pagina - 1) / x.total_paginas) * 100)}%)` : `${nome}: carregando`;
-  const partes = [linha(s, 'serviços'), linha(m, 'materiais')].filter(Boolean);
-  if (!partes.length) return null;
-  return <span className="inline-flex items-center gap-1.5 text-xs text-marca-100"><Clock className="size-3.5" aria-hidden />Catálogo de códigos — {partes.join(' · ')}</span>;
+// ---------------------------------------------------------------- barra de pesquisa flutuante
+
+type Sugestao = { tipo: 'MATERIAL' | 'SERVICO'; codigo: string; descricao: string; categoria: string | null; classe: string | null } | { tipo: 'CNPJ'; cnpj: string } | { tipo: 'HISTORICO'; h: Historico };
+
+function BarraBusca({ compacta, valorInicial, aoEscolher, historico, aoRemoverHistorico }: {
+  compacta?: boolean; valorInicial?: string;
+  aoEscolher: (s: Exclude<Sugestao, { tipo: 'HISTORICO' }> | Historico) => void;
+  historico: Historico[]; aoRemoverHistorico: (h: Historico) => void;
+}) {
+  const { orgao } = useSessao();
+  const [texto, setTexto] = useState(valorInicial ?? '');
+  const [atrasado, setAtrasado] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const [ativo, setAtivo] = useState(0);
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => setTexto(valorInicial ?? ''), [valorInicial]);
+  useEffect(() => { const t = setTimeout(() => setAtrasado(texto.trim()), 180); return () => clearTimeout(t); }, [texto]);
+  useEffect(() => {
+    const fora = (e: MouseEvent) => { if (!caixa.current?.contains(e.target as Node)) setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    return () => document.removeEventListener('mousedown', fora);
+  }, []);
+
+  const soDigitos = atrasado.replace(/\D/g, '');
+  const ehCnpj = soDigitos.length === 14 && /^[\d./-]+$/.test(atrasado);
+  const buscar = atrasado.length >= 2 && !ehCnpj;
+  const q = useQuery({
+    queryKey: ['catalogo-busca', orgao?.id, atrasado], enabled: buscar && !!orgao, staleTime: 5 * 60_000, placeholderData: (anterior) => anterior,
+    queryFn: async () => {
+      const [m, s] = await Promise.all([buscarCatalogo(orgao!.id, 'MATERIAL', atrasado, 7), buscarCatalogo(orgao!.id, 'SERVICO', atrasado, 5)]);
+      return [...m, ...s];
+    },
+  });
+  const sugestoes: Sugestao[] = !texto.trim() ? historico.slice(0, 8).map((h) => ({ tipo: 'HISTORICO' as const, h }))
+    : ehCnpj ? [{ tipo: 'CNPJ', cnpj: soDigitos }]
+    : (q.data ?? []).map((i) => ({ tipo: i.tipo, codigo: String(i.codigo), descricao: i.descricao, categoria: i.categoria, classe: i.nome_classe ?? i.nome_grupo }));
+  useEffect(() => setAtivo(0), [atrasado, aberto]);
+
+  const escolher = (s: Sugestao) => {
+    setAberto(false);
+    if (s.tipo === 'HISTORICO') { setTexto(s.h.modo === 'fornecedor' ? s.h.cnpj ?? '' : s.h.rotulo); aoEscolher(s.h); return; }
+    if (s.tipo === 'CNPJ') setTexto(formatarCnpj(s.cnpj)); else setTexto(s.descricao);
+    aoEscolher(s);
+  };
+  const tecla = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setAberto(true); setAtivo((a) => Math.min(a + 1, sugestoes.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); const s = sugestoes[ativo]; if (s) escolher(s); }
+    else if (e.key === 'Escape') setAberto(false);
+  };
+  const grupo = (s: Sugestao, i: number) => {
+    const ant = sugestoes[i - 1];
+    if (s.tipo === 'MATERIAL' && (!ant || ant.tipo !== 'MATERIAL')) return 'Materiais (CATMAT)';
+    if (s.tipo === 'SERVICO' && (!ant || ant.tipo !== 'SERVICO')) return 'Serviços (CATSER)';
+    if (s.tipo === 'HISTORICO' && i === 0) return 'Pesquisas recentes';
+    return null;
+  };
+  const listaAberta = aberto && (sugestoes.length > 0 || (buscar && !q.isFetching));
+
+  return (
+    <div ref={caixa} className={cx('relative w-full', compacta ? 'max-w-2xl' : 'max-w-2xl')}>
+      <div className={cx('busca-flutuante flex items-center gap-3 border bg-white/95 text-slate-900 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur transition-[box-shadow,border-radius]',
+        compacta ? 'h-12 px-4' : 'h-14 px-5', listaAberta ? 'rounded-t-[1.6rem] border-transparent' : 'rounded-full border-white/40 hover:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.75),0_0_0_1px_rgba(255,255,255,0.15)]')}>
+        <Search className="size-5 shrink-0 text-slate-500" aria-hidden />
+        <input value={texto} onChange={(e) => { setTexto(e.target.value); setAberto(true); }} onFocus={() => setAberto(true)} onKeyDown={tecla}
+          role="combobox" aria-expanded={listaAberta} aria-controls="busca-precos-lista" aria-autocomplete="list" aria-label="Pesquisar material, serviço ou CNPJ"
+          placeholder="Material, serviço ou CNPJ do fornecedor" autoComplete="off" spellCheck={false}
+          className="busca-campo h-full min-w-0 flex-1 border-0 bg-transparent text-base text-slate-900 placeholder:text-slate-500 focus:outline-none" />
+        {q.isFetching && buscar && <Loader2 className="size-4 shrink-0 animate-spin text-slate-400" aria-hidden />}
+        {texto && <button type="button" onClick={() => { setTexto(''); setAberto(true); }} className="rounded-full p-1 text-slate-500 hover:bg-slate-100" aria-label="Limpar"><X className="size-4" /></button>}
+      </div>
+      {listaAberta && (
+        <ul id="busca-precos-lista" role="listbox" className="absolute inset-x-0 top-full z-30 max-h-[60vh] overflow-auto rounded-b-[1.6rem] bg-white/95 pb-3 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.65)] backdrop-blur">
+          <li aria-hidden className="mx-5 mb-1 border-t border-slate-200" />
+          {sugestoes.map((s, i) => {
+            const titulo = grupo(s, i);
+            const chave = s.tipo === 'HISTORICO' ? `h${i}` : s.tipo === 'CNPJ' ? 'cnpj' : `${s.tipo}${s.codigo}`;
+            return (
+              <li key={chave} role="presentation">
+                {titulo && <p className="px-5 pb-1 pt-2 text-[11px] font-bold text-slate-500">{titulo}</p>}
+                <div role="option" aria-selected={i === ativo} onMouseEnter={() => setAtivo(i)} onMouseDown={(e) => { e.preventDefault(); escolher(s); }}
+                  className={cx('flex cursor-pointer items-center gap-3 px-5 py-2 text-sm', i === ativo && 'bg-marca-50')}>
+                  {s.tipo === 'HISTORICO' ? <>
+                    <History className="size-4 shrink-0 text-slate-400" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-marca-900">{s.h.rotulo}<span className="ml-2 text-xs text-slate-500">{ROTULO_MODO[s.h.modo]}</span></span>
+                    <button type="button" onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); aoRemoverHistorico(s.h); }}
+                      className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 hover:text-slate-800" aria-label={`Remover ${s.h.rotulo} do histórico`}>Remover</button>
+                  </> : s.tipo === 'CNPJ' ? <>
+                    <Building2 className="size-4 shrink-0 text-marca-700" aria-hidden />
+                    <span className="flex-1">Situação do fornecedor <b>{formatarCnpj(s.cnpj)}</b></span>
+                  </> : <>
+                    {s.tipo === 'MATERIAL' ? <Package className="size-4 shrink-0 text-marca-700" aria-hidden /> : <Wrench className="size-4 shrink-0 text-acento-700" aria-hidden />}
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-1 text-slate-900">{s.descricao}</span>
+                      <span className="block truncate text-xs text-slate-500"><span className="numero font-semibold text-slate-600">{s.codigo}</span>{s.categoria ? <> · <span className="text-acento-700">★ {s.categoria}</span></> : s.classe ? ` · ${s.classe}` : ''}</span>
+                    </span>
+                  </>}
+                </div>
+              </li>
+            );
+          })}
+          {!sugestoes.length && <li className="px-5 py-3 text-sm text-slate-600">Nenhum item com esse nome no catálogo. Tente outra palavra ou o código.</li>}
+        </ul>
+      )}
+    </div>
+  );
 }
+
+const ROTULO_MODO: Record<Modo, string> = { preco_material: 'preço de material', preco_servico: 'preço de serviço', arp_item: 'atas de registro', fornecedor: 'fornecedor' };
 
 // ---------------------------------------------------------------- página
 
+interface Selecionado { tipo: TipoCatalogo; codigo: string; rotulo: string }
+
 export function PesquisaPrecos() {
-  const { orgao } = useSessao();
+  const { orgao, contexto, pode, ehPlataforma } = useSessao();
+  const uid = contexto?.perfil?.id ?? 'anonimo';
+  const [historico, setHistorico] = useState<Historico[]>(() => lerHistorico(uid));
+  const [item, setItem] = useState<Selecionado | null>(null);
+  const [cnpj, setCnpj] = useState<string | null>(null);
+  const [modo, setModo] = useState<Modo | null>(null);
+  const [uf, setUf] = useState('');
+  const [desde, setDesde] = useState(umAnoAtras());
+  const [pagina, setPagina] = useState(1);
+  const [categorias, setCategorias] = useState(false);
   useEffect(() => { document.title = 'Pesquisa de preços · MEASURE'; }, []);
+
+  const registrar = (h: Omit<Historico, 'em'>) => setHistorico((lista) => {
+    const novo = { ...h, em: new Date().toISOString() };
+    const n = [novo, ...lista.filter((x) => !mesmo(x, novo))];
+    gravarHistorico(uid, n);
+    return n;
+  });
+  const remover = (h: Historico) => setHistorico((lista) => { const n = lista.filter((x) => !mesmo(x, h)); gravarHistorico(uid, n); return n; });
+
+  const executar = (m: Modo, it: Selecionado | null, c: string | null) => {
+    setModo(m); setItem(it); setCnpj(c); setPagina(1);
+    if (m === 'fornecedor' && c) registrar({ modo: m, cnpj: c, rotulo: formatarCnpj(c) });
+    else if (it) registrar({ modo: m, tipo: it.tipo, codigo: it.codigo, rotulo: it.rotulo });
+  };
+  const escolher = (s: Exclude<Sugestao, { tipo: 'HISTORICO' }> | Historico) => {
+    if ('em' in s) {  // item do histórico
+      if (s.modo === 'fornecedor') executar('fornecedor', null, s.cnpj ?? null);
+      else executar(s.modo, { tipo: s.tipo ?? 'MATERIAL', codigo: s.codigo!, rotulo: s.rotulo }, null);
+    } else if (s.tipo === 'CNPJ') executar('fornecedor', null, s.cnpj);
+    else executar(s.tipo === 'SERVICO' ? 'preco_servico' : 'preco_material', { tipo: s.tipo, codigo: s.codigo, rotulo: s.descricao }, null);
+  };
+
+  const parametros: Record<string, string> | null = !modo ? null
+    : modo === 'fornecedor' ? (cnpj ? { cnpj } : null)
+    : !item ? null
+    : modo === 'preco_material' ? { codigo: item.codigo, estado: uf, dataCompraInicio: desde }
+    : modo === 'preco_servico' ? { codigoItemCatalogo: item.codigo, estado: uf, dataCompraInicio: desde }
+    : { codigoItem: item.codigo, dataVigenciaInicialMin: desde || umAnoAtras(), dataVigenciaInicialMax: hojeIso() };
+  const q = useQuery({
+    queryKey: ['compras-gov', modo, parametros, pagina], enabled: !!parametros, staleTime: 10 * 60_000, retry: false,
+    queryFn: () => consultarComprasGov<Linha>(modo!, parametros!, pagina),
+  });
+  const r = q.data;
+  const resultados = !!modo;
+  const podeEditarCategorias = pode('configuracoes', 'editar') || ehPlataforma;
+
   if (!orgao) return <SemPermissao texto="Escolha um órgão para pesquisar preços." />;
+
+  const barra = (compacta: boolean) => (
+    <BarraBusca compacta={compacta} valorInicial={modo === 'fornecedor' ? (cnpj ? formatarCnpj(cnpj) : '') : item?.rotulo}
+      aoEscolher={escolher} historico={historico} aoRemoverHistorico={remover} />
+  );
+
   return (
-    <>
-      <CabecalhoPagina titulo="Pesquisa de preços"
-        descricao={<>
-          <span className="block">Quanto outros órgãos pagaram, atas de registro de preços e situação de fornecedores, sem sair do MEASURE.</span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 text-xs text-marca-100"><ShieldCheck className="size-3.5" aria-hidden />Dados da página oficial do Compras.gov.br</span>
-            <EstadoCatalogo />
-          </span>
-        </>} />
-      <Pesquisa />
-      <div className="mt-6 flex flex-col gap-3">
-        <Recolhivel icone={<Tags className="size-5" aria-hidden />} titulo="Categorias prioritárias deste órgão" resumo="Os itens do ramo da secretaria aparecem primeiro na busca.">
-          <CategoriasDoOrgao />
-        </Recolhivel>
-        <Recolhivel icone={<BadgeDollarSign className="size-5" aria-hidden />} titulo="Como usar a pesquisa de preço" resumo="Passo a passo, referência pela mediana e cuidados.">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ol className="ml-5 list-decimal space-y-1.5 text-sm text-slate-800">
-              <li>Escolha o tipo de pesquisa e digite parte do nome do item; a pesquisa começa ao escolher.</li>
-              <li>Filtre pela UF para comparar com a região e ajuste a data para ver só compras recentes.</li>
-              <li>Compare o <b>preço unitário</b> considerando a <b>quantidade</b>, a <b>data</b> e a <b>forma de fornecimento</b>: caixa com 100 não é o mesmo que unidade.</li>
-              <li>Use a <b>mediana</b> como referência; valores em amarelo estão muito distantes dela.</li>
-              <li>Guarde o resultado no processo, com a data da consulta. Se o preço do contrato estiver muito diferente, comunique o gestor por escrito.</li>
-            </ol>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-              <p className="mb-2 flex items-center gap-2 font-bold"><AlertTriangle className="size-4" aria-hidden />Cuidados</p>
-              <ul className="ml-5 list-disc space-y-1.5">
-                <li>A pesquisa é um apoio. A pesquisa de preço formal segue o art. 23 da Lei nº 14.133/2021 e as normas e modelos do município.</li>
-                <li>Os dados são das compras feitas pelo Compras.gov.br. Contratações de Aracaju feitas por outro sistema podem não aparecer.</li>
-                <li>Preços antigos precisam ser atualizados antes de comparar; preço de outra região pode ter frete diferente.</li>
-                <li>A mesma pesquisa feita de novo em até 12 horas usa a resposta já consultada, para ser imediata.</li>
-              </ul>
+    <div className="pesquisa-precos -mx-4 -my-6 min-h-[calc(100dvh-4rem)] px-4 pb-10 text-white sm:-mx-6 sm:px-6">
+      <FundoBusca />
+
+      {!resultados ? (
+        <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center pb-16 pt-10">
+          <div className="busca-entrada flex w-full flex-col items-center">
+            <img src={palavraClara} alt="MEASURE" draggable={false} className="h-11 w-auto drop-shadow-[0_6px_24px_rgba(52,199,154,0.25)] sm:h-16" />
+            <p className="mb-9 mt-4 text-sm font-medium tracking-wide text-marca-200">Pesquisa de preços públicos</p>
+            {barra(false)}
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <button type="button" disabled={!item} onClick={() => item && executar(item.tipo === 'SERVICO' ? 'preco_servico' : 'preco_material', item, null)}
+                className="rounded-lg bg-white/10 px-5 py-2.5 text-sm font-medium text-white ring-1 ring-white/15 backdrop-blur transition hover:bg-white/15 hover:ring-white/30 disabled:cursor-default disabled:opacity-60">Pesquisar preço</button>
+              <button type="button" disabled={!item} onClick={() => item && executar('arp_item', item, null)}
+                className="rounded-lg bg-white/10 px-5 py-2.5 text-sm font-medium text-white ring-1 ring-white/15 backdrop-blur transition hover:bg-white/15 hover:ring-white/30 disabled:cursor-default disabled:opacity-60">Atas de registro de preços</button>
             </div>
+            <p className="mt-8 max-w-xl text-center text-sm leading-relaxed text-marca-200">
+              Digite o nome do item, como <i>seringa</i> ou <i>recarga de extintor</i>, e escolha na lista. Para ver a situação de uma empresa, digite o CNPJ.
+            </p>
           </div>
-          <p className="mt-4 flex items-center gap-2 text-xs text-slate-600"><Database className="size-4 text-marca-700" aria-hidden />
-            Fonte: API de Dados Abertos do Compras.gov.br (MGI/Seges). <a href={SWAGGER_COMPRAS} target="_blank" rel="noopener noreferrer" className="font-medium text-marca-700 underline">Documentação técnica oficial</a></p>
-        </Recolhivel>
-      </div>
-    </>
+        </div>
+      ) : (
+        <div className="pt-6">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+            <button type="button" onClick={() => { setModo(null); setItem(null); setCnpj(null); }} title="Nova pesquisa" className="shrink-0">
+              <img src={palavraClara} alt="MEASURE — nova pesquisa" className="h-6 w-auto" draggable={false} />
+            </button>
+            {barra(true)}
+          </div>
+
+          {modo !== 'fornecedor' && item && (
+            <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-white/10 pb-3 text-sm sm:pl-[calc(6rem+1rem)]">
+              {([['preco', 'Preços praticados'], ['arp_item', 'Atas de registro']] as Array<['preco' | 'arp_item', string]>).map(([id, rot]) => {
+                const ativo = id === 'arp_item' ? modo === 'arp_item' : modo !== 'arp_item';
+                return (
+                  <button key={id} type="button" onClick={() => executar(id === 'arp_item' ? 'arp_item' : item.tipo === 'SERVICO' ? 'preco_servico' : 'preco_material', item, null)}
+                    className={cx('rounded-full px-3.5 py-1 font-semibold transition-colors', ativo ? 'bg-chamada-500 text-marca-950' : 'text-marca-100 hover:bg-white/10')}>{rot}</button>
+                );
+              })}
+              <span className="mx-1 hidden h-5 w-px bg-white/15 sm:block" aria-hidden />
+              {modo !== 'arp_item' && (
+                <label className="flex items-center gap-1.5 text-marca-100">UF
+                  <select value={uf} onChange={(e) => { setUf(e.target.value); setPagina(1); }} className="busca-filtro rounded-md px-2 py-1 text-sm">
+                    <option value="">Brasil todo</option>{UFS.map((x) => <option key={x} value={x}>{x}</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="flex items-center gap-1.5 text-marca-100">{modo === 'arp_item' ? 'Vigentes desde' : 'Desde'}
+                <input type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPagina(1); }} className="busca-filtro rounded-md px-2 py-1 text-sm" />
+              </label>
+            </div>
+          )}
+
+          <div className="mx-auto mt-5 max-w-6xl" aria-live="polite">
+            {modo !== 'fornecedor' && item && (
+              <p className="mb-3 text-sm text-marca-100"><span className="numero font-semibold text-chamada-300">{item.tipo === 'SERVICO' ? 'CATSER' : 'CATMAT'} {item.codigo}</span> · {item.rotulo}</p>
+            )}
+            {q.isLoading ? (
+              <div className="rounded-2xl bg-white p-6 text-slate-900 shadow-2xl"><Carregando texto="Consultando o Compras.gov.br... a primeira consulta de um item leva alguns segundos; as próximas são imediatas." /></div>
+            ) : q.error ? <CaixaErro mensagem={mensagemDeErro(q.error)} tentarDeNovo={() => void q.refetch()} />
+              : r && !r.resultado?.length ? (
+                <div className="rounded-2xl bg-white p-2 text-slate-900 shadow-2xl"><Vazio titulo="Nada encontrado" descricao="O Compras.gov.br não tem registros para esta pesquisa. Tente sem a UF ou com uma data mais antiga." /></div>
+              ) : r ? (
+                <div className="rounded-2xl bg-white p-4 text-slate-900 shadow-2xl sm:p-5">
+                  {modo === 'fornecedor' ? <FichaFornecedor f={r.resultado[0]!} />
+                    : modo === 'arp_item' ? <TabelaAtas linhas={r.resultado} />
+                    : <TabelaPrecos linhas={r.resultado} servico={modo === 'preco_servico'} />}
+                  <Paginas r={r} aoMudar={setPagina} />
+                  <p className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                    <ShieldCheck className="size-3.5 text-acento-600" aria-hidden />
+                    Fonte: dados abertos oficiais do Compras.gov.br. Consulta de {formatarDataHora(r.consultado_em)}. A pesquisa é apoio; a pesquisa formal segue o art. 23 da Lei nº 14.133/2021.
+                  </p>
+                </div>
+              ) : null}
+            {q.isFetching && !q.isLoading && <p className="mt-2 flex items-center gap-1.5 text-xs text-marca-200"><Loader2 className="size-3.5 animate-spin" aria-hidden />Atualizando...</p>}
+          </div>
+        </div>
+      )}
+
+      <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-marca-200/80">
+        <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" aria-hidden />Dados da página oficial do Compras.gov.br</span>
+        <button type="button" onClick={() => setCategorias(true)} className="inline-flex items-center gap-1.5 hover:text-white"><Tags className="size-3.5" aria-hidden />Categorias prioritárias do órgão</button>
+        {historico.length > 0 && <button type="button" onClick={() => { gravarHistorico(uid, []); setHistorico([]); }} className="inline-flex items-center gap-1.5 hover:text-white"><History className="size-3.5" aria-hidden />Limpar histórico</button>}
+      </footer>
+
+      <Modal aberto={categorias} aoFechar={() => setCategorias(false)} titulo="Categorias prioritárias do órgão" largura="lg"
+        descricao={podeEditarCategorias ? 'Os itens destas categorias aparecem primeiro na pesquisa, marcados com ★.' : undefined}>
+        <CategoriasDoOrgao />
+      </Modal>
+    </div>
   );
 }

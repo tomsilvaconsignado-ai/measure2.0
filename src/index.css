@@ -240,3 +240,26 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
 @media (prefers-reduced-motion: reduce) {
   .orientacao-foco, .orientacao-balao, .orientacao-pergunta, .orientacao-conteudo, .orientacao-icone, .orientacao-brilho, .orientacao-veu { animation: none; transition: none; }
 }
+/* ---------------------------------------------------------------- pesquisa de preços (página no estilo de busca) */
+/* fundo de produtos e serviços: duas camadas que derivam devagar em sentidos opostos */
+@keyframes busca-deriva-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-2.5%, -3%, 0); } }
+@keyframes busca-deriva-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(2.5%, 2%, 0); } }
+.busca-fundo-a { animation: busca-deriva-a 60s ease-in-out infinite alternate; }
+.busca-fundo-b { animation: busca-deriva-b 75s ease-in-out infinite alternate; }
+/* a barra "flutua" levemente; para quieta quando a pessoa está digitando */
+@keyframes busca-flutua { 50% { transform: translateY(-4px); } }
+.busca-flutuante { animation: busca-flutua 5s ease-in-out infinite; }
+.busca-flutuante:focus-within { animation: none; }
+/* entrada da página: marca e barra sobem juntas */
+@keyframes busca-entra { from { opacity: 0; transform: translateY(16px); } }
+.busca-entrada { animation: busca-entra 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* o campo da barra não usa o fundo azulado dos campos comuns */
+.pesquisa-precos .busca-campo, .pesquisa-precos .busca-campo:hover, .pesquisa-precos .busca-campo:focus { background-color: transparent; box-shadow: none; border: 0; }
+.pesquisa-precos .busca-filtro { background-color: rgb(255 255 255 / 0.1); color: #fff; border: 1px solid rgb(255 255 255 / 0.25); box-shadow: none; color-scheme: dark; }
+.pesquisa-precos .busca-filtro:hover { background-color: rgb(255 255 255 / 0.16); border-color: rgb(255 255 255 / 0.4); }
+.pesquisa-precos .busca-filtro:focus { background-color: rgb(255 255 255 / 0.18); border-color: var(--color-chamada-400); box-shadow: 0 0 0 3px rgb(245 183 10 / 0.25); }
+.pesquisa-precos .busca-filtro option { color: #0f172a; }
+/* nesta página as tabelas ficam dentro de cartões brancos: mantêm o padrão do sistema */
+@media (prefers-reduced-motion: reduce) {
+  .busca-fundo-a, .busca-fundo-b, .busca-flutuante, .busca-entrada { animation: none; }
+}
