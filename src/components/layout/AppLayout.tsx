@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2, ChevronDown, ClipboardList, FileSpreadsheet, FileText, FolderTree, Home, KeyRound, Landmark, LifeBuoy,
   ListChecks, LogOut, Menu, Receipt, ScrollText, Settings, ShieldCheck, Truck, UserCircle, Users, Wallet, X, Network, BarChart3,
-  Bug, HelpCircle, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel, Compass, Sparkles,
+  Bug, HelpCircle, BadgeDollarSign, GraduationCap, Banknote, ChevronLeft, MessagesSquare, Package, FileCheck2, Radar, BellRing, Bell, Gavel, Compass, Sparkles,
 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
@@ -59,13 +59,14 @@ const GESTAO: Item[] = [
 ];
 
 // Menu recolhido: só os ícones (o nome aparece ao passar o mouse); os pendentes viram um ponto
-function Link({ item, aoNavegar, pendentes = 0, recolhido = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean }) {
+function Link({ item, aoNavegar, pendentes = 0, recolhido = false, destaque = false }: { item: Item; aoNavegar: () => void; pendentes?: number; recolhido?: boolean; destaque?: boolean }) {
   return (
     <NavLink to={item.para} onClick={aoNavegar} end={['/', '/ajuda', '/conecta'].includes(item.para)}
       data-flip={item.para} data-orientacao={'menu:' + item.para} title={recolhido ? item.rotulo : undefined} aria-label={recolhido ? item.rotulo : undefined}
       className={({ isActive }) => cx('relative flex items-center gap-2.5 rounded-lg py-2 text-sm transition-colors', recolhido ? 'justify-center px-0' : 'px-3',
         // item ativo: fundo claro e barra de acento verde à esquerda
         isActive ? 'bg-white/15 font-semibold text-white shadow-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-acento-400'
+          : destaque ? 'bg-chamada-500/10 font-medium text-chamada-300 ring-1 ring-inset ring-chamada-400/30 hover:bg-chamada-500/20 hover:text-chamada-200'
           : 'text-marca-100 hover:bg-white/8 hover:text-white')}>
       {item.icone}
       {!recolhido && <span data-rotulo className="flex-1 truncate">{item.rotulo}</span>}
@@ -191,6 +192,7 @@ export function AppLayout() {
         )}
         <Grupo titulo="Suporte" recolhido={rec}>
           {orgao && <Link item={{ para: '/minhas-notificacoes', rotulo: 'Minhas notificações', icone: <Bell className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
+          {orgao && <Link destaque item={{ para: '/pesquisa-precos', rotulo: 'Pesquisa de preços', icone: <BadgeDollarSign className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />}
           <Link item={{ para: '/ajuda', rotulo: 'Ajuda e manual', icone: <HelpCircle className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
           <Link item={{ para: '/ajuda/por-que-usar', rotulo: 'Por que usar o MEASURE', icone: <Sparkles className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />
           <Link item={{ para: '/ajuda/capacitacao', rotulo: 'Capacitação de fiscais', icone: <GraduationCap className="size-4" /> }} aoNavegar={fecharMenu} recolhido={rec} />

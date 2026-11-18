@@ -333,7 +333,7 @@ export function PorQueMeasure() {
           <h2 className="text-xl font-extrabold sm:text-2xl">O preço está certo? Compare com o que o governo já pagou</h2>
           <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE consulta os dados abertos do Compras.gov.br e mostra, sem sair do sistema, quanto outros órgãos pagaram pelo item (com menor preço, mediana e maior preço), as atas de registro de preços e a situação do fornecedor. Os códigos do ramo de cada secretaria já vêm prontos para escolher.</p>
         </div>
-        <Link to="/ajuda/capacitacao?aba=compras" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>
+        <Link to="/pesquisa-precos" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>
       </section>
 
       {/* ------------------------------------------------ segurança e celular */}

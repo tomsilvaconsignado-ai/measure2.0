@@ -1,12 +1,11 @@
 // Capacitação e consulta para gestores, fiscais e suplentes de contrato: trilha de lições em linguagem
 // simples, gráficos, verificação por lição, consulta rápida à lei, glossário, teste e normas de Aracaju.
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Database, CheckCircle2, ChevronDown, ExternalLink, GraduationCap, Info, Lightbulb, ListChecks, RotateCcw, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, GraduationCap, Info, Lightbulb, ListChecks, RotateCcw, ShieldAlert, XCircle } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Abas, CampoBusca } from '@/components/ui/Abas';
 import { Botao, CabecalhoPagina, Cartao, Vazio, cx } from '@/components/ui/basicos';
 import { ARTIGOS, artigo, GLOSSARIO, NORMAS_ARACAJU, QUIZ, type Pergunta } from './conteudo';
-import { DadosAbertosCompras, DestaqueDadosAbertos } from './DadosAbertos';
 import { CadeiaTrabalhista, EscadaSancoes, FilaPagamentos, Fluxo, FluxoDFD, GraficoPenas, LimitesAlteracao, LinhaPrazos, LinhasDefesa, Papeis, TermometroResponsabilidade } from './graficos';
 
 // ---------------------------------------------------------------- blocos de texto
@@ -322,17 +321,6 @@ const LICOES: Licao[] = [
     </>,
   },
   {
-    id: 'dadosabertos', titulo: 'Conferir preços com os dados abertos do governo', minutos: 6, resumo: 'Use o Compras.gov.br para comparar o preço cobrado com o que outros órgãos pagaram.', publico: TODOS,
-    pontos: ['O Compras.gov.br publica de graça preços pagos, contratos, atas e fornecedores.', 'Compare preço unitário, quantidade, data e unidade de fornecimento.', 'A consulta é apoio: guarde o resultado no processo e siga a pesquisa formal (art. 23).'],
-    conteudo: <>
-      <Simples>Você recebeu uma nota e o preço parece alto? Antes de um aditivo ou repactuação, a empresa diz que o preço de mercado subiu? O governo federal publica <b>quanto outros órgãos pagaram</b> pelo mesmo material ou serviço. Em poucos minutos dá para ver se o valor está dentro do normal.</Simples>
-      <H>O que dá para consultar</H>
-      <P><b>Preços praticados</b> (o mais útil para o fiscal), <b>contratos e itens</b> de um fornecedor, <b>atas de registro de preços</b> com saldo e adesões, a <b>situação do fornecedor</b> no cadastro do governo e o <b>catálogo</b> de materiais (CATMAT) e serviços (CATSER), cujo código liga todas as consultas.</P>
-      <Atencao>A consulta é um apoio à fiscalização. A pesquisa de preço formal segue o art. 23 da Lei nº 14.133/2021 e os modelos do município. Registre de onde veio cada preço e a data da consulta.</Atencao>
-      <NoMeasure>Na aba <b>Pesquisa de preços (Compras.gov.br)</b> desta capacitação, você escolhe o item numa lista com os códigos de saúde já liberados para a SMS, e o MEASURE busca os dados na fonte oficial e mostra aqui mesmo: preços pagos por outros órgãos com menor valor, mediana e maior valor, atas de registro de preços e situação do fornecedor. <Link to="/ajuda/capacitacao?aba=compras" className="font-semibold text-marca-700 underline">Ir para a pesquisa</Link>.</NoMeasure>
-    </>,
-  },
-  {
     id: 'aracaju', titulo: 'Normas e fluxos de Aracaju', minutos: 5, resumo: 'Instruções Normativas Conjuntas 03 e 04/2026 e o fluxo do DFD na SMS.', publico: TODOS,
     pontos: ['Desde 29/05/2026 a CCL/SEPLOG aplica as IN Conjuntas 03 e 04/2026.', 'Use sempre os modelos atualizados do Aracaju Compras.', 'DFD para iniciar licitação: cada diretoria; com ata ou contrato vigente: SMS-DF-CP-DFD.'],
     conteudo: <>
@@ -561,8 +549,8 @@ function Teste() {
 
 // ---------------------------------------------------------------- página
 
-type Aba = 'trilha' | 'consulta' | 'glossario' | 'teste' | 'aracaju' | 'compras';
-const ABAS: Aba[] = ['trilha', 'consulta', 'glossario', 'teste', 'aracaju', 'compras'];
+type Aba = 'trilha' | 'consulta' | 'glossario' | 'teste' | 'aracaju';
+const ABAS: Aba[] = ['trilha', 'consulta', 'glossario', 'teste', 'aracaju'];
 
 export function Capacitacao() {
   const [params, setParams] = useSearchParams();
@@ -578,10 +566,8 @@ export function Capacitacao() {
         <BookOpen className="size-4 shrink-0 text-marca-700" aria-hidden />
         <p>Base: Lei nº 14.133/2021 (Licitações e Contratos) e Código Penal, arts. 337-E a 337-P (inseridos por ela); LINDB (Decreto-Lei nº 4.657/1942, arts. 20 a 30, incluídos pela Lei nº 13.655/2018); Decreto federal nº 9.830/2019 (referência); Instruções Normativas Conjuntas nº 03 e 04/2026 de Aracaju e Memorando SMS 51.800/2026. Os trechos de lei são literais; as explicações são orientação e não substituem a lei, o regulamento municipal, a portaria de designação nem o parecer do jurídico.</p>
       </div>
-      {aba !== 'compras' && <DestaqueDadosAbertos aoAbrir={() => { setAba('compras'); window.scrollTo({ top: 0 }); }} />}
       <Cartao>
         <Abas<Aba> abas={[
-          { id: 'compras', rotulo: <span className="flex items-center gap-1.5"><Database className="size-4" aria-hidden />Pesquisa de preços (Compras.gov.br)</span> },
           { id: 'trilha', rotulo: <span className="flex items-center gap-1.5"><GraduationCap className="size-4" aria-hidden />Trilha de aprendizagem</span> },
           { id: 'consulta', rotulo: 'Consulta rápida da lei' },
           { id: 'glossario', rotulo: 'Glossário' },
@@ -593,7 +579,6 @@ export function Capacitacao() {
         {aba === 'glossario' && <Glossario />}
         {aba === 'teste' && <Teste />}
         {aba === 'aracaju' && <><NormasAracaju /><FluxoDFD /></>}
-        {aba === 'compras' && <DadosAbertosCompras />}
       </Cartao>
       <p className="mt-4 flex items-center gap-1.5 text-xs text-slate-500"><ArrowRight className="size-3.5" aria-hidden />Dúvida em um caso concreto? Consulte por escrito o NUJUR/PGM e o controle interno e anexe a resposta ao processo.</p>
     </>

@@ -127,13 +127,13 @@ const TOPICOS: Topico[] = [
     'Encontrou um dado errado? O próprio servidor corrige os campos pessoais em "Meu perfil"; os demais, a administração.',
     'Suspeita de acesso indevido ou vazamento: comunique imediatamente a administração do órgão.',
   ] },
-  { id: 'dados-abertos', grupo: 'Contratos e execução', titulo: 'Pesquisar preços e contratos no Compras.gov.br (dados abertos)', link: '/ajuda/capacitacao?aba=compras', passos: [
-    'Abra Ajuda e manual → Capacitação de fiscais → aba "Pesquisa de preços (Compras.gov.br)" (ou o botão amarelo "Pesquisar preços").',
-    'Escolha "Preço de material" ou "Preço de serviço" e digite parte do nome do item: a lista mostra os códigos CATMAT/CATSER liberados para o órgão (na SMS, os de saúde).',
+  { id: 'dados-abertos', grupo: 'Contratos e execução', titulo: 'Pesquisar preços e contratos no Compras.gov.br (dados abertos)', link: '/pesquisa-precos', passos: [
+    'No menu lateral, abra "Pesquisa de preços" (logo abaixo de "Minhas notificações").',
+    'Escolha "Preço de material" ou "Preço de serviço" e digite parte do nome do item: a lista mostra os códigos CATMAT/CATSER de todas as áreas, com os do ramo do órgão primeiro (na SMS, os de saúde).',
     'Se quiser, filtre por UF e data e clique em "Pesquisar": o resultado aparece no próprio MEASURE, com menor preço, mediana, média e maior preço.',
     'Também dá para consultar a situação de um fornecedor pelo CNPJ e as atas de registro de preços com o item.',
     'Compare preço unitário, quantidade, data e unidade de fornecimento, e guarde o resultado no processo.',
-  ], dicas: ['Os dados vêm da página oficial do Compras.gov.br; o MEASURE consulta e mostra sem você sair do sistema.', 'Quem administra o órgão define as categorias de códigos (CATMAT por classe, CATSER por grupo) e atualiza os códigos com o catálogo do governo.', 'É apoio à fiscalização: a pesquisa de preço formal segue o art. 23 da Lei 14.133/2021 e os modelos do município.'] },
+  ], dicas: ['Os dados vêm da página oficial do Compras.gov.br; o MEASURE consulta e mostra sem você sair do sistema.', 'Quem administra o órgão define as categorias prioritárias (CATMAT por classe, CATSER por grupo). O catálogo inteiro é atualizado sozinho, toda semana.', 'É apoio à fiscalização: a pesquisa de preço formal segue o art. 23 da Lei 14.133/2021 e os modelos do município.'] },
 ];
 
 function Item({ t, aberto, alternar }: { t: Topico; aberto: boolean; alternar: () => void }): ReactNode {
@@ -183,7 +183,7 @@ export function Ajuda() {
         </span>
         <span className="text-sm font-medium text-marca-700">Começar →</span>
       </Link>
-      <Link to="/ajuda/capacitacao?aba=compras" className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border-l-4 border-chamada-500 bg-marca-900 p-4 text-white hover:bg-marca-800">
+      <Link to="/pesquisa-precos" className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border-l-4 border-chamada-500 bg-marca-900 p-4 text-white hover:bg-marca-800">
         <Database className="size-8 shrink-0 text-chamada-400" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">Dados abertos do Compras.gov.br</span>

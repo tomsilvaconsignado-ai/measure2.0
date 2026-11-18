@@ -79,6 +79,7 @@ const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes')
 const Monitoramento = pagina(() => import('@/pages/plataforma/Monitoramento'), 'Monitoramento');
 const PainelNotificacoes = pagina(() => import('@/pages/plataforma/PainelNotificacoes'), 'PainelNotificacoes');
 const MinhasNotificacoes = pagina(() => import('@/pages/MinhasNotificacoes'), 'MinhasNotificacoes');
+const PesquisaPrecos = pagina(() => import('@/pages/PesquisaPrecos'), 'PesquisaPrecos');
 const Conecta = pagina(() => import('@/pages/conecta/Conecta'), 'Conecta');
 const ConectaAdmin = pagina(() => import('@/pages/conecta/ConectaAdmin'), 'ConectaAdmin');
 const PainelPatrimonio = pagina(() => import('@/pages/patrimonio/Painel'), 'PainelPatrimonio');
@@ -198,6 +199,7 @@ export function App() {
         <Route path="plataforma/monitoramento" element={<Monitoramento />} />
         <Route path="plataforma/notificacoes" element={<PainelNotificacoes />} />
         <Route path="minhas-notificacoes" element={<MinhasNotificacoes />} />
+        <Route path="pesquisa-precos" element={<PesquisaPrecos />} />
         <Route path="conecta" element={<Conecta />} />
         <Route path="conecta/admin" element={<ConectaAdmin />} />
         <Route path="patrimonio" element={<ModuloPatrimonio><PainelPatrimonio /></ModuloPatrimonio>} />

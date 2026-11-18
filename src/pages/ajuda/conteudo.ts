@@ -372,9 +372,6 @@ export const GLOSSARIO: Array<[string, string]> = [
 export interface Pergunta { licao: string; pergunta: string; opcoes: string[]; certa: number; explicacao: string; ref: string }
 
 export const QUIZ: Pergunta[] = [
-  { licao: 'dadosabertos', pergunta: 'A empresa pede reajuste dizendo que o preço do item "dobrou no mercado". Qual a melhor primeira atitude do gestor?',
-    opcoes: ['Aceitar, porque a empresa conhece o mercado', 'Consultar os preços praticados por outros órgãos no Compras.gov.br, registrar a pesquisa no processo e analisar o pedido com base nela e no contrato', 'Negar sem analisar'],
-    certa: 1, explicacao: 'Os dados abertos do Compras.gov.br mostram quanto outros órgãos pagaram pelo mesmo item. A pesquisa registrada no processo dá base à decisão; o pedido segue as regras do contrato e da lei.', ref: 'Art. 23 e art. 124 da Lei 14.133/2021' },
   { licao: 'porque', pergunta: 'Qual destas situações a lei cita como exemplo de superfaturamento?',
     opcoes: ['Medir e pagar quantidade maior do que a efetivamente executada ou fornecida', 'A empresa pedir esclarecimento sobre o edital', 'O órgão publicar a ordem cronológica de pagamentos'],
     certa: 0, explicacao: 'A medição de quantidades superiores às executadas ou fornecidas é a primeira hipótese de superfaturamento listada pela lei — exatamente o que a conferência do fiscal impede.', ref: 'Art. 6º, LVII, a' },

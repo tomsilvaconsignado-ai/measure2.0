@@ -49,3 +49,8 @@ export interface RespostaComprasGov<T = Record<string, unknown>> {
 export async function consultarComprasGov<T = Record<string, unknown>>(consulta: ConsultaComprasGov, parametros: Record<string, string>, pagina = 1) {
   return falhou(await supabase.rpc('consultar_compras_gov', { p_consulta: consulta, p_parametros: parametros, p_pagina: pagina })) as RespostaComprasGov<T>;
 }
+
+export interface EstadoCatalogo { tipo: TipoCatalogo; proxima_pagina: number; total_paginas: number | null; ciclo_iniciado_em: string | null; ciclo_concluido_em: string | null }
+export async function estadoCatalogo(): Promise<EstadoCatalogo[]> {
+  return falhou(await supabase.from('catalogo_sincronizacao').select('tipo, proxima_pagina, total_paginas, ciclo_iniciado_em, ciclo_concluido_em')) as EstadoCatalogo[];
+}
