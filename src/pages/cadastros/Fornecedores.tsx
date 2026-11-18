@@ -258,7 +258,7 @@ function DetalheFornecedor({ fornecedor, aoFechar, aoEditar }: { fornecedor: For
   });
   if (!fornecedor) return null;
   const f = fornecedor;
-  const linha = (r: string, v: string | null | undefined) => <div><dt className="text-xs text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
+  const linha = (r: string, v: string | null | undefined) => <div><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
   return (
     <Modal aberto aoFechar={aoFechar} titulo={nomeFornecedor(f)} descricao={`${f.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'} ${formatarDocumento(f)}`} largura="lg"
       rodape={pode('fornecedores', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={() => aoEditar(f)}>Editar dados</Botao>}>

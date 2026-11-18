@@ -72,17 +72,17 @@ function DestaqueContrato({ c }: { c: ContratoResumo }) {
 
       <dl className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Valor global</dt>
+          <dt className="text-xs font-semibold text-marca-800">Valor global</dt>
           <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.valor_atual)}</dd>
           <dd className="mt-1 text-xs text-slate-500">{temAditivo ? `Original ${brl(c.valor_global)} + aditivos ${brl(c.aditivos_valor)}` : 'Sem aditivo de valor'}</dd>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Valor usado</dt>
+          <dt className="text-xs font-semibold text-marca-800">Valor usado</dt>
           <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.notas_valor)}</dd>
           <dd className="mt-1 text-xs text-slate-500"><span className="numero">{pctTexto}</span> do valor global · notas fiscais não canceladas</dd>
         </div>
         <div className={cx('rounded-xl border border-l-4 border-slate-200 bg-white p-4', estado.faixa)}>
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Saldo do contrato</dt>
+          <dt className="text-xs font-semibold text-marca-800">Saldo do contrato</dt>
           <dd className="numero mt-1 text-2xl font-bold text-slate-900">{brl(c.saldo)}</dd>
           <dd className="mt-1 flex items-start gap-1 text-xs text-slate-600"><IconeEstado className={cx('mt-px size-3.5 shrink-0', estado.icor)} aria-hidden />{estado.texto}</dd>
         </div>
@@ -104,13 +104,13 @@ function DestaqueContrato({ c }: { c: ContratoResumo }) {
 
 function Resumo({ c }: { c: ContratoResumo }) {
   const mods = useQuery({ queryKey: ['modalidades'], queryFn: modalidades, staleTime: Infinity });
-  const item = (r: string, v: React.ReactNode) => <div><dt className="text-xs text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
+  const item = (r: string, v: React.ReactNode) => <div><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
   const total = centavos(c.valor_atual);
   return (
     <div className="flex flex-col gap-6">
     <DestaqueContrato c={c} />
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-      <dl className="grid gap-3 sm:grid-cols-2">
+      <dl className="grid content-start gap-x-6 gap-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-5">
         <div className="sm:col-span-2">{item('Objeto', <span className="whitespace-pre-line">{c.objeto}</span>)}</div>
         {item('Modalidade', mods.data?.find((m) => m.codigo === c.modalidade)?.nome ?? c.modalidade)}
         {item('Processo administrativo', c.processo_administrativo)}{item('Pregão / licitação', c.numero_licitacao)}
@@ -119,17 +119,17 @@ function Resumo({ c }: { c: ContratoResumo }) {
         {c.numero_renovacao > 0 && item('Renovação', `${c.numero_renovacao}ª renovação`)}
         {c.observacoes && <div className="sm:col-span-2">{item('Observações', c.observacoes)}</div>}
       </dl>
-      <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-800">Execução financeira (detalhe)</p>
+      <Cartao titulo="Execução financeira" className="self-start">
+        <div className="flex flex-col gap-3">
         {[['Valor global (original)', c.valor_global], ['Aditivos aprovados', c.aditivos_valor], ['Valor atual', c.valor_atual], ['Empenhado', c.empenhado],
           ['Notas fiscais (usado)', c.notas_valor], ['Pago', c.pago], ['Saldo do contrato', c.saldo]].map(([r, v]) => (
-          <div key={r as string} className={cx('flex justify-between text-sm', r === 'Saldo do contrato' && 'border-t border-slate-200 pt-2 font-semibold')}>
-            <span className="text-slate-600">{r}</span><span className="numero">{brl(v as string)}</span>
+          <div key={r as string} className={cx('flex justify-between text-sm', r === 'Saldo do contrato' && 'border-t-2 border-marca-900 pt-2 text-base font-extrabold text-marca-900')}>
+            <span className={r === 'Saldo do contrato' ? undefined : 'text-slate-600'}>{r}</span><span className="numero">{brl(v as string)}</span>
           </div>
         ))}
         <BarraUso usado={centavos(c.empenhado)} total={total} rotulo="Empenhado" />
         <p className="text-xs text-slate-500">"Usado" = notas fiscais registradas e não canceladas. Empenho, nota e pagamento não são somados entre si.</p>
-      </div>
+      </div></Cartao>
     </div>
     </div>
   );

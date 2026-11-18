@@ -2,12 +2,12 @@
 // quanto cada empresa/contrato custou em cada unidade, no período escolhido, com PDF e Excel.
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Building2, ChevronDown, FileSpreadsheet, Info, Printer, Receipt, Truck, Wallet } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { MultiBusca, type Item } from '@/components/ui/MultiBusca';
-import { Botao, CaixaErro, Carregando, Vazio, cx } from '@/components/ui/basicos';
+import { Indicador, Botao, CaixaErro, Carregando, Vazio, cx } from '@/components/ui/basicos';
 import { ListaSelecao } from '@/components/ui/ListaSelecao';
 import { agruparCustos, descreverPeriodo, FORMAS, MESES_CURTOS, MESES_LONGOS, mesReferencia, SITUACAO_PAGAMENTO, type GrupoContrato, type GrupoUnidade, type NotaContrato } from '@/lib/custosUnidades';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
@@ -44,19 +44,6 @@ export function criteriosCustos(p: PedidoCustos) {
 }
 export const docFornecedor = (tipo: string, d: string) => (tipo === 'PF' ? formatarCpf(d) : formatarCnpj(d));
 const pct = (v: number, t: number) => (t ? `${((v / t) * 100).toFixed(1).replace('.', ',')}%` : '—');
-
-function Indicador({ icone, rotulo, valor, detalhe }: { icone: ReactNode; rotulo: string; valor: ReactNode; detalhe?: ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200 border-l-4 border-l-acento-500 bg-white p-3.5 shadow-sm">
-      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-marca-900 text-white">{icone}</span>
-      <span className="min-w-0">
-        <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{rotulo}</span>
-        <span className="numero block truncate text-xl font-extrabold text-marca-900">{valor}</span>
-        {detalhe && <span className="block text-xs text-slate-500">{detalhe}</span>}
-      </span>
-    </div>
-  );
-}
 
 function BlocoUnidade({ u, total, meses, aberto, alternar }: { u: GrupoUnidade; total: number; meses: number[]; aberto: boolean; alternar: () => void }) {
   const varios = meses.length > 1;

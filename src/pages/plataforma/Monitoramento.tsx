@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Rosca } from '@/components/graficos';
 import { Abas } from '@/components/ui/Abas';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, SemPermissao, Vazio, cx } from '@/components/ui/basicos';
+import { Indicador, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, SemPermissao, Vazio, cx } from '@/components/ui/basicos';
 import { Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
@@ -42,16 +42,6 @@ const SinalAtividade = ({ u, faixas }: { u: UnidadeMonitorada; faixas: Faixas })
   const s = situacaoAtividade(u.ultima_atividade, faixas);
   return <Sinal tom={ATIVIDADE[s].tom}>{ATIVIDADE[s].rotulo}</Sinal>;
 };
-
-function Indicador({ titulo, valor, detalhe }: { titulo: string; valor: ReactNode; detalhe?: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-600">{titulo}</p>
-      <p className="numero mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
-      {detalhe && <p className="mt-0.5 text-xs text-slate-500">{detalhe}</p>}
-    </div>
-  );
-}
 
 type Aba = 'estrutura' | 'acompanhamento' | 'modulos' | 'historico';
 
@@ -114,14 +104,14 @@ function Painel({ dados }: { dados: Dados }) {
   return (
     <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto]">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Indicador titulo="Diretorias cadastradas" valor={i.diretorias} detalhe={`${i.diretoriasComServidores} com servidores`} />
-        <Indicador titulo="Coordenações cadastradas" valor={i.coordenacoes} detalhe={`${i.coordenacoesComServidores} com servidores`} />
-        <Indicador titulo="Diretorias com servidores" valor={i.diretoriasComServidores} detalhe={`de ${i.diretorias}`} />
-        <Indicador titulo="Coordenações com servidores" valor={i.coordenacoesComServidores} detalhe={`de ${i.coordenacoes}`} />
-        <Indicador titulo="Estruturas sem servidores" valor={i.estruturasSemServidores} detalhe="diretorias, coordenações, gerências e setores ativos" />
-        <Indicador titulo="Com atividade recente" valor={i.comAtividadeRecente} detalhe={`última atividade em até ${dados.faixas.recente} dias`} />
-        <Indicador titulo="Sem atividade no período" valor={i.semAtividade} detalhe="estruturas sem nenhuma operação registrada" />
-        <Indicador titulo="Servidores ativos vinculados" valor={i.servidoresAtivos} />
+        <Indicador rotulo="Diretorias cadastradas" valor={i.diretorias} detalhe={`${i.diretoriasComServidores} com servidores`} />
+        <Indicador rotulo="Coordenações cadastradas" valor={i.coordenacoes} detalhe={`${i.coordenacoesComServidores} com servidores`} />
+        <Indicador rotulo="Diretorias com servidores" valor={i.diretoriasComServidores} detalhe={`de ${i.diretorias}`} />
+        <Indicador rotulo="Coordenações com servidores" valor={i.coordenacoesComServidores} detalhe={`de ${i.coordenacoes}`} />
+        <Indicador rotulo="Estruturas sem servidores" valor={i.estruturasSemServidores} detalhe="diretorias, coordenações, gerências e setores ativos" />
+        <Indicador rotulo="Com atividade recente" valor={i.comAtividadeRecente} detalhe={`última atividade em até ${dados.faixas.recente} dias`} />
+        <Indicador rotulo="Sem atividade no período" valor={i.semAtividade} detalhe="estruturas sem nenhuma operação registrada" />
+        <Indicador rotulo="Servidores ativos vinculados" valor={i.servidoresAtivos} />
       </div>
       <Cartao className="flex items-center gap-4 p-4 lg:w-72">
         <Rosca parte={i.estruturasUsando} total={i.estruturasComServidores} tamanho={104} espessura={11} rotulo="Utilização do sistema pelas estruturas" legenda="em uso" />
@@ -349,11 +339,11 @@ function Detalhe({ u, dados, porId, de, ate, tenantId, voltar, abrir }: {
         {pend.length > 0 && <p className="mt-1 text-xs text-amber-800">Pendências de cadastro: {pend.join('; ')}.</p>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {u.tipo === 'DIRETORIA' && <Indicador titulo="Coordenações" valor={coords.length} detalhe={`${coords.filter((c) => c.servidores > 0).length} com servidores`} />}
-        <Indicador titulo="Servidores vinculados" valor={u.servidores} detalhe={`${u.com_acesso} com acesso ao sistema`} />
-        <Indicador titulo="Operações no período" valor={u.atividades_periodo} detalhe={`${u.usuarios_periodo} pessoa(s) atuando`} />
-        <Indicador titulo="Operações (todo o histórico)" valor={u.atividades_total} />
-        <Indicador titulo="Última atividade" valor={<span className="text-base">{u.ultima_atividade ? formatarDataHora(u.ultima_atividade) : '—'}</span>} />
+        {u.tipo === 'DIRETORIA' && <Indicador rotulo="Coordenações" valor={coords.length} detalhe={`${coords.filter((c) => c.servidores > 0).length} com servidores`} />}
+        <Indicador rotulo="Servidores vinculados" valor={u.servidores} detalhe={`${u.com_acesso} com acesso ao sistema`} />
+        <Indicador rotulo="Operações no período" valor={u.atividades_periodo} detalhe={`${u.usuarios_periodo} pessoa(s) atuando`} />
+        <Indicador rotulo="Operações (todo o histórico)" valor={u.atividades_total} />
+        <Indicador rotulo="Última atividade" valor={<span className="text-base">{u.ultima_atividade ? formatarDataHora(u.ultima_atividade) : '—'}</span>} />
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <Cartao titulo="Módulos utilizados no período">

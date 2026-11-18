@@ -98,9 +98,9 @@ export function BaixaPagamento({ nota, aoFechar, aoConcluir }: { nota: NotaParaB
         </fieldset>
 
         <dl className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-sm" aria-live="polite">
-          <div><dt className="text-xs text-slate-500">Bruto</dt><dd className="numero font-medium">{formatarCentavos(bruto ?? 0)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Retido</dt><dd className="numero font-medium">− {formatarCentavos(retido)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Líquido à empresa</dt><dd className={retencaoMaior ? 'numero font-semibold text-red-700' : 'numero font-semibold text-emerald-800'}>{formatarCentavos(liquido)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Bruto</dt><dd className="numero font-medium">{formatarCentavos(bruto ?? 0)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Retido</dt><dd className="numero font-medium">− {formatarCentavos(retido)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Líquido à empresa</dt><dd className={retencaoMaior ? 'numero font-semibold text-red-700' : 'numero font-semibold text-emerald-800'}>{formatarCentavos(liquido)}</dd></div>
         </dl>
         {retencaoMaior && <p className="-mt-2 text-xs text-red-700" role="alert">As retenções passam do valor bruto.</p>}
 

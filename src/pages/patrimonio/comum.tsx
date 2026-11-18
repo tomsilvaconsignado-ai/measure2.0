@@ -87,5 +87,5 @@ export const SeloConservacao = ({ c }: { c: string }) => <Selo tom={TOM_CONSERVA
 export const SeloMov = ({ s }: { s: string }) => <Selo tom={SITUACAO_MOV[s]?.[1] ?? 'neutro'}>{SITUACAO_MOV[s]?.[0] ?? s}</Selo>;
 
 export function Dado({ rotulo, children, className }: { rotulo: string; children: React.ReactNode; className?: string }) {
-  return <div className={className}><dt className="text-xs text-slate-500">{rotulo}</dt><dd className="text-sm text-slate-900">{children || '—'}</dd></div>;
+  return <div className={className}><dt className="text-xs font-semibold text-marca-800">{rotulo}</dt><dd className="text-sm text-slate-900">{children || '—'}</dd></div>;
 }

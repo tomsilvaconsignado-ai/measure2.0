@@ -140,7 +140,7 @@ function Realizados() {
         : q.isLoading ? <Carregando /> : q.error ? <CaixaErro mensagem={mensagemDeErro(q.error)} tentarDeNovo={() => void q.refetch()} /> : <>
           <dl className="grid gap-3 sm:grid-cols-4">
             {[['Pagamentos', String(linhas.length)], ['Bruto pago', formatarCentavos(soma('valor'))], ['Retido', formatarCentavos(linhas.reduce((s, r) => s + retidoDe(r), 0))], ['Líquido às empresas', formatarCentavos(soma('valor_liquido'))]].map(([t, v]) => (
-              <div key={t} className="rounded-xl border border-slate-200 bg-white p-3"><dt className="text-xs text-slate-500">{t}</dt><dd className="numero text-lg font-semibold">{v}</dd></div>
+              <div key={t} className="rounded-xl border border-slate-200 bg-white p-3"><dt className="text-xs font-semibold text-marca-800">{t}</dt><dd className="numero text-lg font-semibold">{v}</dd></div>
             ))}
           </dl>
           {!linhas.length ? <Vazio titulo="Nenhum pagamento no período" /> : (

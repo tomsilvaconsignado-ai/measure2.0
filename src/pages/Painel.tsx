@@ -1,11 +1,11 @@
 // Painel gerencial: números agregados no banco, no escopo de quem consulta.
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CalendarClock, FileText, Receipt, Users, Wallet } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { CORES, ColunasAgrupadas, ItemSelo, Legenda, LinhaSuave, Progresso, Rosca, percentual } from '@/components/graficos';
-import { CabecalhoPagina, CaixaErro, Cartao, Carregando, SemPermissao, Selecao, cx } from '@/components/ui/basicos';
+import { Indicador, CabecalhoPagina, CaixaErro, Cartao, Carregando, SemPermissao, Selecao } from '@/components/ui/basicos';
 import { traduzirErro } from '@/lib/erros';
 import { brl, centavos, formatarCentavos, formatarData } from '@/lib/formatacao';
 import { anosComMovimento, painel } from '@/services/relatorios';
@@ -21,22 +21,6 @@ function compacto(c: number) {
 }
 
 /** Cartão de indicador: número em destaque à esquerda, rosca (ou outro visual) à direita */
-function Indicador({ titulo, valor, detalhe, icone, para, alerta, visual }: {
-  titulo: string; valor: ReactNode; detalhe?: ReactNode; icone: ReactNode; para?: string; alerta?: boolean; visual?: ReactNode;
-}) {
-  const corpo = (
-    <div className={cx('flex h-full items-center gap-3 rounded-xl border bg-white p-4 transition-colors', alerta ? 'border-amber-300' : 'border-slate-200', para && 'hover:border-marca-300')}>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 text-sm text-slate-600"><span className="grid size-7 place-items-center rounded-lg bg-marca-50 text-marca-700">{icone}</span>{titulo}</div>
-        <p className="numero mt-2 truncate text-2xl font-semibold text-slate-900">{valor}</p>
-        {detalhe && <p className="mt-0.5 text-xs text-slate-500">{detalhe}</p>}
-      </div>
-      {visual}
-    </div>
-  );
-  return para ? <Link to={para} className="block h-full">{corpo}</Link> : corpo;
-}
-
 function AlternarTabela({ tabela, alternar }: { tabela: boolean; alternar: () => void }) {
   return <button className="text-xs text-marca-700 hover:underline" onClick={alternar}>{tabela ? 'Ver gráfico' : 'Ver como tabela'}</button>;
 }
@@ -77,16 +61,16 @@ export function Painel() {
         const rotulos = p.mensal.map((m) => MESES[m.mes - 1]!);
         return <>
           <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Indicador titulo="Contratos vigentes" valor={p.contratos.vigentes} icone={<FileText className="size-4" />} para="/contratos"
-              detalhe={<>{p.contratos.a_vencer} a vencer · {p.contratos.vencidos} vencidos</>} alerta={p.contratos.a_vencer > 0}
+            <Indicador rotulo="Contratos vigentes" valor={p.contratos.vigentes} icone={<FileText className="size-4" />} para="/contratos"
+              detalhe={<>{p.contratos.a_vencer} a vencer · {p.contratos.vencidos} vencidos</>} tom={p.contratos.a_vencer > 0 ? 'alerta' : undefined}
               visual={<Rosca parte={ct.saldo} total={ct.valor} rotulo="Saldo dos contratos vigentes" legenda="saldo" />} />
-            <Indicador titulo={`Empenhado em ${p.ano}`} valor={compacto(emp.total)} icone={<Wallet className="size-4" />} para="/empenhos"
-              detalhe={<>Saldo {brl(p.empenhos.saldo)}{p.empenhos.saldo_baixo ? ` · ${p.empenhos.saldo_baixo} com saldo baixo` : ''}</>} alerta={p.empenhos.saldo_baixo > 0}
+            <Indicador rotulo={`Empenhado em ${p.ano}`} valor={compacto(emp.total)} icone={<Wallet className="size-4" />} para="/empenhos"
+              detalhe={<>Saldo {brl(p.empenhos.saldo)}{p.empenhos.saldo_baixo ? ` · ${p.empenhos.saldo_baixo} com saldo baixo` : ''}</>} tom={p.empenhos.saldo_baixo > 0 ? 'alerta' : undefined}
               visual={<Rosca parte={emp.usado} total={emp.total} rotulo="Empenho utilizado" legenda="usado" />} />
-            <Indicador titulo={`Notas fiscais em ${p.ano}`} valor={compacto(nf.valor)} icone={<Receipt className="size-4" />} para="/notas"
+            <Indicador rotulo={`Notas fiscais em ${p.ano}`} valor={compacto(nf.valor)} icone={<Receipt className="size-4" />} para="/notas"
               detalhe={<>Pago {brl(p.notas.pago)} · {p.notas.quantidade} notas</>}
               visual={<Rosca parte={nf.pago} total={nf.valor} cor={CORES.pago} rotulo="Valor das notas já pago" legenda="pago" />} />
-            <Indicador titulo="Pendências" valor={pendentes} icone={<AlertTriangle className="size-4" />} para="/notas" alerta={pendentes > 0}
+            <Indicador rotulo="Pendências" valor={pendentes} icone={<AlertTriangle className="size-4" />} para="/notas" tom={pendentes > 0 ? 'alerta' : undefined}
               detalhe={<>{p.notas.pendentes_atesto} de atesto · {p.notas.pendentes_pagamento} de pagamento</>}
               visual={<Rosca parte={p.notas.atestadas} total={p.notas.quantidade} rotulo="Notas atestadas" legenda="atestadas" />} />
           </div>

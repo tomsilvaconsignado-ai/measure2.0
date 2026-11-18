@@ -126,16 +126,16 @@ function DetalheOs({ os, aoFechar, aoEditar }: { os: OrdemServico | null; aoFech
       <CadastradoPor autor={os.criado_por} recurso="ordens_servico" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" />
       <div className="mb-3 flex flex-wrap gap-2"><Selo tom="marca" icone={<IconeModelo modelo={os.modelo} className="size-3" />}>{MODELOS_OS.find((m) => m.id === os.modelo)?.titulo ?? 'OS geral'}</Selo><Selo tom={STATUS[os.status][1]}>{STATUS[os.status][0]}</Selo><Selo>Prioridade {PRIORIDADES[os.prioridade].toLowerCase()}</Selo></div>
       <dl className="mb-5 grid gap-3 text-sm sm:grid-cols-3">
-        <div><dt className="text-xs text-slate-500">Abertura</dt><dd>{formatarData(os.data_abertura)}</dd></div>
-        <div><dt className="text-xs text-slate-500">Previsão</dt><dd>{formatarData(os.previsao)}</dd></div>
-        <div><dt className="text-xs text-slate-500">Conclusão</dt><dd>{formatarData(os.data_conclusao)}</dd></div>
-        <div><dt className="text-xs text-slate-500">Unidade responsável</dt><dd>{os.unidade?.sigla ?? os.unidade?.nome}</dd></div>
-        <div><dt className="text-xs text-slate-500">Tipo de serviço</dt><dd>{os.tipo_servico?.nome ?? '—'}</dd></div>
-        <div><dt className="text-xs text-slate-500">Contrato</dt><dd>{os.contrato?.numero ?? '—'}</dd></div>
-        {os.modelo !== 'GERAL' && <div><dt className="text-xs text-slate-500">Nota de empenho</dt><dd>{os.empenho ? `${os.empenho.numero}/${os.empenho.ano}` : '—'}</dd></div>}
-        <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Unidades atendidas</dt><dd>{unidades.data?.map((u) => u.nome).join(', ') || '—'}</dd></div>
-        {os.descricao && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Descrição</dt><dd className="whitespace-pre-line">{os.descricao}</dd></div>}
-        {os.motivo_cancelamento && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Motivo do cancelamento</dt><dd>{os.motivo_cancelamento}</dd></div>}
+        <div><dt className="text-xs font-semibold text-marca-800">Abertura</dt><dd>{formatarData(os.data_abertura)}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Previsão</dt><dd>{formatarData(os.previsao)}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Conclusão</dt><dd>{formatarData(os.data_conclusao)}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Unidade responsável</dt><dd>{os.unidade?.sigla ?? os.unidade?.nome}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Tipo de serviço</dt><dd>{os.tipo_servico?.nome ?? '—'}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Contrato</dt><dd>{os.contrato?.numero ?? '—'}</dd></div>
+        {os.modelo !== 'GERAL' && <div><dt className="text-xs font-semibold text-marca-800">Nota de empenho</dt><dd>{os.empenho ? `${os.empenho.numero}/${os.empenho.ano}` : '—'}</dd></div>}
+        <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Unidades atendidas</dt><dd>{unidades.data?.map((u) => u.nome).join(', ') || '—'}</dd></div>
+        {os.descricao && <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Descrição</dt><dd className="whitespace-pre-line">{os.descricao}</dd></div>}
+        {os.motivo_cancelamento && <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Motivo do cancelamento</dt><dd>{os.motivo_cancelamento}</dd></div>}
       </dl>
       {os.modelo !== 'GERAL' && <ItensOs osId={os.id} />}
       <Anexos recurso="ordens_servico" registroId={os.id} unidadeId={os.unidade_id} titulo="Fotos e documentos da OS" />

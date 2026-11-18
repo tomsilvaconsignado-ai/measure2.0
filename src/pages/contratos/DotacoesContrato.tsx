@@ -28,7 +28,7 @@ export function naturezaDaDotacao(d: Pick<DotacaoDetalhada, 'categoria_codigo' |
 
 /** Quadro com as classificações da dotação (preenchimento automático no empenho e no contrato) */
 export function ClassificacoesDaDotacao({ d }: { d: DotacaoDetalhada | DotacaoDoContrato }) {
-  const linha = (r: string, v: string | null | undefined) => (v ? <div><dt className="text-xs uppercase tracking-wide text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v}</dd></div> : null);
+  const linha = (r: string, v: string | null | undefined) => (v ? <div><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="text-sm text-slate-900">{v}</dd></div> : null);
   const cod = (c: string | null | undefined, t: string | null | undefined) => (c ? `${c}${t ? ` – ${t}` : ''}` : null);
   return (
     <dl className="grid gap-x-4 gap-y-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-3">

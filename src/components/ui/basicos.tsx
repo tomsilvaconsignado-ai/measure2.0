@@ -1,5 +1,6 @@
 import { AlertTriangle, ChevronLeft, ChevronRight, Inbox, Loader2, Lock } from 'lucide-react';
 import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { Link as LinkRota } from 'react-router-dom';
 
 import { ListaSelecao } from './ListaSelecao';
 
@@ -173,6 +174,36 @@ export function TituloSecao({ children, acoes, className }: { children: ReactNod
       {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
     </div>
   );
+}
+
+/** Indicador numérico (painéis e resumos): o mesmo cartão em todas as telas. A barra à esquerda diz o estado:
+ *  verde-azulado = normal, amarelo = pede atenção, vermelho = fora do prazo, verde = concluído. */
+type TomIndicador = 'normal' | 'alerta' | 'perigo' | 'sucesso';
+const BORDA_INDICADOR: Record<TomIndicador, string> = {
+  normal: 'border-l-acento-500', alerta: 'border-l-chamada-500 bg-chamada-300/15', perigo: 'border-l-red-600 bg-red-50/60', sucesso: 'border-l-acento-600',
+};
+const VALOR_INDICADOR: Record<TomIndicador, string> = { normal: 'text-marca-900', alerta: 'text-marca-900', perigo: 'text-red-700', sucesso: 'text-acento-700' };
+
+export function Indicador({ rotulo, valor, icone, detalhe, para, onClick, tom = 'normal', visual }: {
+  rotulo: ReactNode; valor: ReactNode; icone?: ReactNode; detalhe?: ReactNode; para?: string; onClick?: () => void;
+  tom?: TomIndicador; visual?: ReactNode;
+}) {
+  const interativo = !!(para || onClick);
+  const corpo = (
+    <span className={cx('flex h-full w-full items-center gap-3 rounded-xl border border-l-4 border-slate-200 bg-white p-4 text-left shadow-sm transition-[border-color,box-shadow]',
+      BORDA_INDICADOR[tom], interativo && 'group-hover:border-marca-300 group-hover:shadow-md')}>
+      {icone && <span className="grid size-11 shrink-0 place-items-center rounded-full bg-marca-900 text-white [&_svg]:size-5" aria-hidden>{icone}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-semibold leading-snug text-slate-600">{rotulo}</span>
+        <span className={cx('numero mt-0.5 block truncate text-2xl font-extrabold leading-tight', VALOR_INDICADOR[tom])}>{valor}</span>
+        {detalhe && <span className="mt-0.5 block text-xs text-slate-500">{detalhe}</span>}
+      </span>
+      {visual}
+    </span>
+  );
+  if (para) return <LinkRota to={para} className="group block h-full rounded-xl">{corpo}</LinkRota>;
+  if (onClick) return <button type="button" onClick={onClick} className="group block h-full w-full rounded-xl">{corpo}</button>;
+  return corpo;
 }
 
 export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {

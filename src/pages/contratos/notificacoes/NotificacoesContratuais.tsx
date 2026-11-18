@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { SeletorUnidadeOrg } from '@/components/CamposEndereco';
 import { BuscaSelect } from '@/components/ui/BuscaSelect';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, Vazio, cx } from '@/components/ui/basicos';
+import { Indicador, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, Vazio } from '@/components/ui/basicos';
 import { Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
 import { formatarCnpj } from '@/lib/formatacao';
@@ -16,16 +16,6 @@ import { PAPEIS, STATUS, type StatusNotificacao } from '@/lib/notificacaoFormal'
 import { catalogos, contratosDisponiveis, painel, type FiltroPainel } from '@/services/notificacoesFormais';
 import { SeletorContrato, SeletorFornecedor } from '../comum';
 import { LinhaPainel, relatorioPdf } from './comum';
-
-function Indicador({ titulo, valor, tom, onClick }: { titulo: string; valor: number; tom?: 'alerta' | 'perigo' | 'sucesso'; onClick?: () => void }) {
-  return (
-    <button onClick={onClick} className={cx('rounded-xl border bg-white p-4 text-left transition-colors hover:border-marca-300',
-      tom === 'perigo' && valor ? 'border-red-300' : tom === 'alerta' && valor ? 'border-amber-300' : 'border-slate-200')}>
-      <p className="text-xs text-slate-600">{titulo}</p>
-      <p className={cx('numero mt-1 text-2xl font-semibold', tom === 'perigo' && valor ? 'text-red-700' : tom === 'sucesso' ? 'text-emerald-700' : 'text-slate-900')}>{valor}</p>
-    </button>
-  );
-}
 
 export function NotificacoesContratuais() {
   const { orgao, pode } = useSessao();
@@ -53,12 +43,12 @@ export function NotificacoesContratuais() {
           <Botao icone={<Plus className="size-4" />} onClick={() => setNova(true)}>EMITIR NOVA NOTIFICAÇÃO</Botao>
         </div>} />
       {ind && <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Indicador titulo="Notificações emitidas" valor={ind.emitidas} onClick={() => mudar({ status: undefined })} />
-        <Indicador titulo="Aguardando resposta" valor={ind.aguardando_resposta} tom="alerta" onClick={() => mudar({ status: 'EM_PRAZO' })} />
-        <Indicador titulo="Prazo vencido" valor={ind.prazo_vencido} tom="perigo" onClick={() => mudar({ status: 'PRAZO_VENCIDO' })} />
-        <Indicador titulo="Regularizadas" valor={ind.regularizadas} tom="sucesso" onClick={() => mudar({ status: 'REGULARIZADA' })} />
-        <Indicador titulo="Não regularizadas / encaminhadas" valor={ind.nao_regularizadas} tom="perigo" onClick={() => mudar({ status: 'NAO_REGULARIZADA' })} />
-        <Indicador titulo="Rascunhos" valor={ind.rascunhos} onClick={() => mudar({ status: 'RASCUNHO' })} />
+        <Indicador rotulo="Notificações emitidas" valor={ind.emitidas} onClick={() => mudar({ status: undefined })} />
+        <Indicador rotulo="Aguardando resposta" valor={ind.aguardando_resposta} tom={ind.aguardando_resposta ? 'alerta' : undefined} onClick={() => mudar({ status: 'EM_PRAZO' })} />
+        <Indicador rotulo="Prazo vencido" valor={ind.prazo_vencido} tom={ind.prazo_vencido ? 'perigo' : undefined} onClick={() => mudar({ status: 'PRAZO_VENCIDO' })} />
+        <Indicador rotulo="Regularizadas" valor={ind.regularizadas} tom="sucesso" onClick={() => mudar({ status: 'REGULARIZADA' })} />
+        <Indicador rotulo="Não regularizadas / encaminhadas" valor={ind.nao_regularizadas} tom={ind.nao_regularizadas ? 'perigo' : undefined} onClick={() => mudar({ status: 'NAO_REGULARIZADA' })} />
+        <Indicador rotulo="Rascunhos" valor={ind.rascunhos} onClick={() => mudar({ status: 'RASCUNHO' })} />
       </div>}
       {ind && (ind.recorrentes.length > 0 || ind.por_contrato.length > 0) && (
         <div className="mb-5 grid gap-4 lg:grid-cols-2">

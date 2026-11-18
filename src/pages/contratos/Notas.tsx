@@ -332,11 +332,11 @@ function ResumoContrato({ c }: { c: ContratoResumo }) {
     <div className="flex flex-col gap-2">
       <AvisoVencido c={c} />
       <dl className="grid gap-2 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-2">
-        <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Objeto</dt><dd>{c.objeto}</dd></div>
-        <div><dt className="text-xs text-slate-500">Fornecedor</dt><dd>{c.fornecedor_nome}</dd></div>
-        <div><dt className="text-xs text-slate-500">Vigência</dt><dd>{formatarData(c.data_inicio)} a {formatarData(c.data_fim_atual)}</dd></div>
-        <div><dt className="text-xs text-slate-500">Saldo do contrato</dt><dd className="numero">{brl(c.saldo)}</dd></div>
-        <div><dt className="text-xs text-slate-500">Empenhado</dt><dd className="numero">{brl(c.empenhado)}</dd></div>
+        <div className="sm:col-span-2"><dt className="text-xs font-semibold text-marca-800">Objeto</dt><dd>{c.objeto}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Fornecedor</dt><dd>{c.fornecedor_nome}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Vigência</dt><dd>{formatarData(c.data_inicio)} a {formatarData(c.data_fim_atual)}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Saldo do contrato</dt><dd className="numero">{brl(c.saldo)}</dd></div>
+        <div><dt className="text-xs font-semibold text-marca-800">Empenhado</dt><dd className="numero">{brl(c.empenhado)}</dd></div>
       </dl>
     </div>
   );
@@ -430,16 +430,16 @@ function DetalheNota({ id, aoFechar, abaInicial = 'dados' }: { id: string | null
           </button>)}
         <Abas abas={[{ id: 'dados', rotulo: 'Dados' }, { id: 'atesto', rotulo: 'Atesto', alerta: falta.atesto }, { id: 'pagamentos', rotulo: 'Pagamentos', alerta: falta.pagamento }, { id: 'documentos', rotulo: 'Documentos' }]} ativa={aba} aoMudar={setAba} />
         {aba === 'dados' && <dl className="grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-xs text-slate-500">Data da nota</dt><dd>{formatarData(n.data_emissao)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Incluída em</dt><dd>{formatarDataHora(n.data_inclusao)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Empenho</dt><dd>{n.empenho_numero ? `${n.empenho_numero}/${n.empenho_ano}` : <span className="font-medium text-amber-700">Sem empenho</span>}</dd></div>
-          <div><dt className="text-xs text-slate-500">Processo</dt><dd>{n.processo_administrativo ?? '—'}</dd></div>
-          <div><dt className="text-xs text-slate-500">Meses de referência</dt><dd>{n.meses_referencia}</dd></div>
-          <div><dt className="text-xs text-slate-500">Período</dt><dd>{n.periodo_inicio ? `${formatarData(n.periodo_inicio)} a ${formatarData(n.periodo_fim)}` : '—'}</dd></div>
-          <div><dt className="text-xs text-slate-500">Tipo de serviço</dt><dd>{n.tipo_servico_nome ?? '—'}</dd></div>
-          <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Unidades atendidas</dt><dd>{q.data!.unidades.length ? q.data!.unidades.map((u) => `${u.nome}${u.valor != null ? ` (${brl(u.valor)})` : ''}`).join(', ') : '—'}</dd></div>
-          {n.excecao_saldo && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Justificativa da exceção de saldo</dt><dd>{n.excecao_saldo}</dd></div>}
-          {n.observacoes && <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Observações</dt><dd>{n.observacoes}</dd></div>}
+          <div><dt className="text-xs font-semibold text-marca-800">Data da nota</dt><dd>{formatarData(n.data_emissao)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Incluída em</dt><dd>{formatarDataHora(n.data_inclusao)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Empenho</dt><dd>{n.empenho_numero ? `${n.empenho_numero}/${n.empenho_ano}` : <span className="font-medium text-amber-700">Sem empenho</span>}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Processo</dt><dd>{n.processo_administrativo ?? '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Meses de referência</dt><dd>{n.meses_referencia}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Período</dt><dd>{n.periodo_inicio ? `${formatarData(n.periodo_inicio)} a ${formatarData(n.periodo_fim)}` : '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Tipo de serviço</dt><dd>{n.tipo_servico_nome ?? '—'}</dd></div>
+          <div className="sm:col-span-2"><dt className="text-xs font-semibold text-marca-800">Unidades atendidas</dt><dd>{q.data!.unidades.length ? q.data!.unidades.map((u) => `${u.nome}${u.valor != null ? ` (${brl(u.valor)})` : ''}`).join(', ') : '—'}</dd></div>
+          {n.excecao_saldo && <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Justificativa da exceção de saldo</dt><dd>{n.excecao_saldo}</dd></div>}
+          {n.observacoes && <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Observações</dt><dd>{n.observacoes}</dd></div>}
         </dl>}
         {aba === 'atesto' && <div className="flex flex-col gap-3">
           {!n.cancelada_em && <TextoDecreto tenantId={n.tenant_id} processoContrato={ct.data?.processo_administrativo ?? null} />}

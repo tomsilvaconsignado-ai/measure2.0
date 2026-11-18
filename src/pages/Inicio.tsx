@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { BadgeCheck, Banknote, CheckCircle2, FolderTree, Landmark, ScrollText, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
-import { Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
+import { Indicador, Botao, CabecalhoPagina, Cartao, PontoPendente, Selo } from '@/components/ui/basicos';
 import { usePendencias } from '@/components/Pendencias';
 import { FluxoTrabalho } from '@/components/FluxoTrabalho';
 import { AvisoPreCadastro } from '@/components/PreCadastro';
@@ -11,19 +10,6 @@ import { formatarDataHora } from '@/lib/formatacao';
 import type { Recurso } from '@/lib/tipos';
 import { resumoOrgao } from '@/services/api';
 import { AtivarPush } from '@/pages/MinhasNotificacoes';
-
-function Indicador({ rotulo, valor, icone, para }: { rotulo: string; valor: ReactNode; icone: ReactNode; para?: string }) {
-  const conteudo = (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 border-l-4 border-l-acento-500 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <span className="flex size-12 items-center justify-center rounded-full bg-marca-900 text-white">{icone}</span>
-      <span>
-        <span className="numero block text-3xl font-extrabold leading-none text-marca-900">{valor}</span>
-        <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">{rotulo}</span>
-      </span>
-    </div>
-  );
-  return para ? <Link to={para}>{conteudo}</Link> : conteudo;
-}
 
 // Aviso de pendência: faixa azul-marinho com o comando na chamada amarela
 const AVISO = 'mb-3 flex flex-wrap items-center gap-3 rounded-xl border-l-4 border-chamada-500 bg-marca-900 p-4 text-sm text-marca-50 shadow-md transition-colors hover:bg-marca-800';

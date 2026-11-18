@@ -207,7 +207,7 @@ function DetalheServidor({ id, aoFechar, aoEditar }: { id: string | null; aoFech
   const v = q.data?.servidor;
   const x = q.data?.pessoais;
   const exonerado = !!v?.data_exoneracao && v.data_exoneracao <= new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' });
-  const linha = (r: string, val: string | null | undefined) => <div><dt className="text-xs text-slate-500">{r}</dt><dd className="whitespace-pre-line text-sm text-slate-900">{val || '—'}</dd></div>;
+  const linha = (r: string, val: string | null | undefined) => <div><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="whitespace-pre-line text-sm text-slate-900">{val || '—'}</dd></div>;
   return (
     <Modal aberto aoFechar={aoFechar} titulo={v?.nome ?? 'Servidor'} descricao={v ? `Matrícula ${v.matricula}` : undefined} largura="lg"
       rodape={pode('servidores', 'editar') && <Botao variante="secundario" icone={<Pencil className="size-4" />} onClick={aoEditar}>Editar</Botao>}>

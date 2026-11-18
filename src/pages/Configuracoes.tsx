@@ -135,7 +135,7 @@ export function Configuracoes() {
             {[['Nome oficial', t.nome_oficial], ['CNPJ', formatarCnpj(t.cnpj) || '—'], ['Endereço', [t.endereco, formatarCep(t.cep), t.cidade && `${t.cidade}/${t.uf ?? ''}`].filter(Boolean).join(' · ') || '—'],
               ['Telefone', formatarTelefone(t.telefone) || '—'], ['E-mail', t.email_contato ?? '—'],
               ['Domínios de e-mail', t.dominios_email.length ? t.dominios_email.map((d) => '@' + d).join(', ') : 'Qualquer domínio']].map(([r, v]) => (
-              <div key={r}><dt className="text-xs text-slate-500">{r}</dt><dd className="text-slate-900">{v}</dd></div>
+              <div key={r}><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="text-slate-900">{v}</dd></div>
             ))}
           </dl>
         </Cartao>

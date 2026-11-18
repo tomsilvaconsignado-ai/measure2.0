@@ -56,9 +56,9 @@ export function CompletarPreCadastro({ dados, destaque = false }: { dados: MeuSe
         <Campo rotulo="Cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} maxLength={120} placeholder="Ex.: Assistente administrativo" />
         <Campo rotulo="Telefone" value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} inputMode="tel" />
         <dl className="grid gap-1 text-sm sm:col-span-3 sm:grid-cols-3">
-          <div><dt className="text-xs text-slate-500">Nome</dt><dd className="font-medium text-slate-900">{contexto?.perfil?.nome}</dd></div>
-          <div><dt className="text-xs text-slate-500">E-mail institucional</dt><dd className="truncate text-slate-900">{contexto?.perfil?.email}</dd></div>
-          <div><dt className="text-xs text-slate-500">Lotação (do seu acesso)</dt><dd className="text-slate-900">{dados.lotacao?.descricao ?? dados.lotacao?.nome ?? '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Nome</dt><dd className="font-medium text-slate-900">{contexto?.perfil?.nome}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">E-mail institucional</dt><dd className="truncate text-slate-900">{contexto?.perfil?.email}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Lotação (do seu acesso)</dt><dd className="text-slate-900">{dados.lotacao?.descricao ?? dados.lotacao?.nome ?? '—'}</dd></div>
         </dl>
         {erros.geral && <div className="sm:col-span-3"><CaixaErro mensagem={erros.geral} /></div>}
         <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
@@ -123,9 +123,9 @@ export function MeuCadastroServidor() {
                 : <Selo tom="sucesso" icone={<BadgeCheck className="size-3" />}>Cadastro conferido</Selo>}
             </div>
             <dl className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-3">
-              <div><dt className="text-xs text-slate-500">Lotação</dt><dd className="text-slate-900">{q.data?.lotacao?.descricao ?? q.data?.lotacao?.nome ?? '—'}</dd></div>
-              <div><dt className="text-xs text-slate-500">Data de nomeação</dt><dd className="text-slate-900">{s.data_nomeacao ? formatarData(s.data_nomeacao) : '—'}</dd></div>
-              <div><dt className="text-xs text-slate-500">E-mail institucional</dt><dd className="truncate text-slate-900">{s.email_institucional ?? '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-marca-800">Lotação</dt><dd className="text-slate-900">{q.data?.lotacao?.descricao ?? q.data?.lotacao?.nome ?? '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-marca-800">Data de nomeação</dt><dd className="text-slate-900">{s.data_nomeacao ? formatarData(s.data_nomeacao) : '—'}</dd></div>
+              <div><dt className="text-xs font-semibold text-marca-800">E-mail institucional</dt><dd className="truncate text-slate-900">{s.email_institucional ?? '—'}</dd></div>
               <p className="text-xs text-slate-500 sm:col-span-3">Lotação, nomeação e e-mail institucional são mantidos pelo administrador do órgão.</p>
             </dl>
             <div className="grid gap-4 sm:grid-cols-2">

@@ -5,21 +5,11 @@ import { AlertTriangle, ArrowRight, Inbox, Package } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
-import { CabecalhoPagina, CaixaErro, Cartao, Carregando, SemPermissao, cx } from '@/components/ui/basicos';
+import { Indicador, CabecalhoPagina, CaixaErro, Cartao, Carregando, SemPermissao } from '@/components/ui/basicos';
 import { traduzirErro } from '@/lib/erros';
 import { brl } from '@/lib/formatacao';
 import { painelPatrimonio, SITUACAO, CONSERVACAO } from '@/services/patrimonio';
 import { SeletorSetor } from './comum';
-
-function Indicador({ rotulo, valor, para, destaque }: { rotulo: string; valor: number | string; para?: string; destaque?: boolean }) {
-  const corpo = (
-    <div className={cx('h-full rounded-xl border bg-white p-4 transition-colors', destaque ? 'border-amber-300 bg-amber-50' : 'border-slate-200', para && 'hover:border-marca-300')}>
-      <p className="text-xs font-medium text-slate-500">{rotulo}</p>
-      <p className="numero mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
-    </div>
-  );
-  return para ? <Link to={para}>{corpo}</Link> : corpo;
-}
 
 export function Barras({ titulo, dados, link }: { titulo: string; dados: Array<{ nome: string; total: number; id?: string | null }>; link?: (d: { nome: string; id?: string | null }) => string | null }) {
   const max = Math.max(1, ...dados.map((d) => d.total));
@@ -66,10 +56,10 @@ export function PainelPatrimonio() {
           <Indicador rotulo="Em uso" valor={sit.EM_USO ?? 0} para="/patrimonio/bens?situacao=EM_USO" />
           <Indicador rotulo="Disponíveis / em estoque" valor={(sit.DISPONIVEL ?? 0) + (sit.EM_ESTOQUE ?? 0)} para="/patrimonio/bens?situacao=DISPONIVEL,EM_ESTOQUE" />
           <Indicador rotulo="Em manutenção" valor={sit.EM_MANUTENCAO ?? 0} para="/patrimonio/bens?situacao=EM_MANUTENCAO" />
-          <Indicador rotulo="Em transferência" valor={sit.EM_TRANSFERENCIA ?? 0} para="/patrimonio/pendencias" destaque={(sit.EM_TRANSFERENCIA ?? 0) > 0} />
+          <Indicador rotulo="Em transferência" valor={sit.EM_TRANSFERENCIA ?? 0} para="/patrimonio/pendencias" tom={(sit.EM_TRANSFERENCIA ?? 0) > 0 ? 'alerta' : undefined} />
           <Indicador rotulo="Baixados" valor={sit.BAIXADO ?? 0} para="/patrimonio/bens?situacao=BAIXADO" />
-          <Indicador rotulo="Danificados ou ruins" valor={d.danificados} para="/patrimonio/bens?conservacao=DANIFICADO,RUIM,PESSIMO,IRRECUPERAVEL,NECESSITA_MANUTENCAO" destaque={d.danificados > 0} />
-          <Indicador rotulo="Sem responsável" valor={d.sem_responsavel} para="/patrimonio/bens?sem_responsavel=1" destaque={d.sem_responsavel > 0} />
+          <Indicador rotulo="Danificados ou ruins" valor={d.danificados} para="/patrimonio/bens?conservacao=DANIFICADO,RUIM,PESSIMO,IRRECUPERAVEL,NECESSITA_MANUTENCAO" tom={d.danificados > 0 ? 'alerta' : undefined} />
+          <Indicador rotulo="Sem responsável" valor={d.sem_responsavel} para="/patrimonio/bens?sem_responsavel=1" tom={d.sem_responsavel > 0 ? 'alerta' : undefined} />
           <Indicador rotulo="Valor de aquisição" valor={brl(d.valor_total)} />
           <Indicador rotulo="Extraviados / em apuração" valor={(sit.EXTRAVIADO ?? 0) + (sit.EM_APURACAO ?? 0)} para="/patrimonio/bens?situacao=EXTRAVIADO,EM_APURACAO" />
         </div>

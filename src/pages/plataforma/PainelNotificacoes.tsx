@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Progresso } from '@/components/graficos';
 import { Abas } from '@/components/ui/Abas';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, SemPermissao, Vazio, cx } from '@/components/ui/basicos';
+import { Indicador, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Paginacao, Selecao, SemPermissao, Vazio, cx } from '@/components/ui/basicos';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
 import { PERIODOS, intervalo, type Periodo } from '@/lib/monitoramentoOrganizacional';
@@ -18,16 +18,6 @@ import {
 import { SeletorContrato } from '@/pages/contratos/comum';
 
 type Aba = 'resumo' | 'historico' | 'configuracao';
-
-function Numero({ titulo, valor, detalhe, alerta }: { titulo: string; valor: number | string; detalhe?: string; alerta?: boolean }) {
-  return (
-    <div className={cx('rounded-xl border bg-white p-4', alerta ? 'border-amber-300' : 'border-slate-200')}>
-      <p className="text-xs text-slate-600">{titulo}</p>
-      <p className="numero mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
-      {detalhe && <p className="mt-0.5 text-xs text-slate-500">{detalhe}</p>}
-    </div>
-  );
-}
 
 export function PainelNotificacoes() {
   const { orgao, ehPlataforma, vinculosDoOrgao } = useSessao();
@@ -51,12 +41,12 @@ export function PainelNotificacoes() {
       {q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} tentarDeNovo={() => q.refetch()} /> : d && <>
         {!d.push_configurado && <CaixaErro mensagem="O envio PUSH ainda não foi configurado no servidor (chaves VAPID). As notificações ficam só na central interna." />}
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Numero titulo="Notificações geradas" valor={d.geradas} detalhe={`${d.eventos} eventos`} />
-          <Numero titulo="PUSH enviados" valor={d.push_enviados} detalhe={d.push_pendentes ? `${d.push_pendentes} na fila` : 'aceitos pelo serviço de push'} />
-          <Numero titulo="Lidas" valor={d.lidas} detalhe={d.geradas ? `${Math.round((d.lidas / d.geradas) * 100)}% das geradas` : undefined} />
-          <Numero titulo="Falhas de envio" valor={d.push_falhas} detalhe={`${d.push_descartados} descartados (aparelho expirado)`} alerta={d.push_falhas > 0} />
-          <Numero titulo="Usuários com PUSH ativo" valor={d.usuarios_com_push} />
-          <Numero titulo="Aparelhos cadastrados" valor={d.dispositivos} />
+          <Indicador rotulo="Notificações geradas" valor={d.geradas} detalhe={`${d.eventos} eventos`} />
+          <Indicador rotulo="PUSH enviados" valor={d.push_enviados} detalhe={d.push_pendentes ? `${d.push_pendentes} na fila` : 'aceitos pelo serviço de push'} />
+          <Indicador rotulo="Lidas" valor={d.lidas} detalhe={d.geradas ? `${Math.round((d.lidas / d.geradas) * 100)}% das geradas` : undefined} />
+          <Indicador rotulo="Falhas de envio" valor={d.push_falhas} detalhe={`${d.push_descartados} descartados (aparelho expirado)`} tom={d.push_falhas > 0 ? 'alerta' : undefined} />
+          <Indicador rotulo="Usuários com PUSH ativo" valor={d.usuarios_com_push} />
+          <Indicador rotulo="Aparelhos cadastrados" valor={d.dispositivos} />
         </div>
         <EmailResponsaveis tenantId={orgao.id} de={de} ate={ate} />
         <Abas<Aba> ativa={aba} aoMudar={setAba} abas={[{ id: 'resumo', rotulo: 'Eventos por módulo' }, { id: 'historico', rotulo: 'Histórico e falhas', alerta: d.push_falhas || undefined },

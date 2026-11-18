@@ -77,11 +77,11 @@ export function EmitirChecklist({ nota, aberto, aoFechar, aoEmitir }: { nota: No
       {modelo.isLoading || desig.isLoading ? <Carregando /> : modelo.isError ? <CaixaErro mensagem={mensagemDeErro(modelo.error)} /> : (
         <div className="flex flex-col gap-4">
           <dl className="grid gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-2">
-            <div><dt className="text-xs text-slate-500">Contrato / contratada</dt><dd>{nota.contrato_numero} · {nota.fornecedor_nome}</dd></div>
-            <div><dt className="text-xs text-slate-500">Nota fiscal / valor bruto</dt><dd>Nº {nota.numero}{nota.serie ? `-${nota.serie}` : ''} · {brl(nota.valor)}</dd></div>
-            <div><dt className="text-xs text-slate-500">Mês de referência</dt><dd>{nota.meses_referencia || '—'}</dd></div>
-            <div><dt className="text-xs text-slate-500">Apresentação da NF</dt><dd>{new Date(nota.data_inclusao).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</dd></div>
-            <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Período de execução</dt>
+            <div><dt className="text-xs font-semibold text-marca-800">Contrato / contratada</dt><dd>{nota.contrato_numero} · {nota.fornecedor_nome}</dd></div>
+            <div><dt className="text-xs font-semibold text-marca-800">Nota fiscal / valor bruto</dt><dd>Nº {nota.numero}{nota.serie ? `-${nota.serie}` : ''} · {brl(nota.valor)}</dd></div>
+            <div><dt className="text-xs font-semibold text-marca-800">Mês de referência</dt><dd>{nota.meses_referencia || '—'}</dd></div>
+            <div><dt className="text-xs font-semibold text-marca-800">Apresentação da NF</dt><dd>{new Date(nota.data_inclusao).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs font-semibold text-marca-800">Período de execução</dt>
               <dd>{nota.periodo_inicio ? `${formatarData(nota.periodo_inicio)} a ${formatarData(nota.periodo_fim)}` : 'do 1º ao último dia do(s) mês(es) de referência'}</dd></div>
           </dl>
 

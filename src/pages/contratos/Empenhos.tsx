@@ -121,8 +121,8 @@ function FormEmpenho({ aberto, aoFechar, empenho, contratoInicial }: { aberto: b
         <Bloco titulo="Fornecedor">
           {!c ? <p className="text-sm text-slate-500">Vem do contrato escolhido.</p> : (
             <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-              <div><dt className="text-xs text-slate-500">Nome</dt><dd>{c.fornecedor_nome}</dd></div>
-              <div><dt className="text-xs text-slate-500">CNPJ/CPF</dt><dd>{documentoFornecedor(c)}</dd></div>
+              <div><dt className="text-xs font-semibold text-marca-800">Nome</dt><dd>{c.fornecedor_nome}</dd></div>
+              <div><dt className="text-xs font-semibold text-marca-800">CNPJ/CPF</dt><dd>{documentoFornecedor(c)}</dd></div>
             </dl>
           )}
         </Bloco>
@@ -190,14 +190,14 @@ function DetalheEmpenho({ id, aoFechar, aoEditar }: { id: string | null; aoFecha
           <div className="sm:col-span-4"><BarraUso usado={centavos(e.utilizado)} total={centavos(e.valor_total)} rotulo="Utilização do empenho" /></div>
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-xs text-slate-500">Tipo</dt><dd>{TIPOS[e.tipo]}</dd></div>
-          <div><dt className="text-xs text-slate-500">Data</dt><dd>{formatarData(e.data_empenho)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Vigência</dt><dd>{formatarData(e.vigencia_fim)}</dd></div>
-          <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Dotação</dt><dd className="font-mono">{e.classificacao_codigo}</dd></div>
-          <div><dt className="text-xs text-slate-500">Processo</dt><dd>{e.processo ?? '—'}</dd></div>
-          <div><dt className="text-xs text-slate-500">SD</dt><dd>{e.sd ?? '—'}</dd></div>
-          <div><dt className="text-xs text-slate-500">Licitação</dt><dd>{e.licitacao ?? '—'}</dd></div>
-          <div className="sm:col-span-3"><dt className="text-xs text-slate-500">Unidades atendidas</dt><dd>{unidades.data?.map((u) => u.nome).join(', ') || '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Tipo</dt><dd>{TIPOS[e.tipo]}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Data</dt><dd>{formatarData(e.data_empenho)}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Vigência</dt><dd>{formatarData(e.vigencia_fim)}</dd></div>
+          <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Dotação</dt><dd className="font-mono">{e.classificacao_codigo}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Processo</dt><dd>{e.processo ?? '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">SD</dt><dd>{e.sd ?? '—'}</dd></div>
+          <div><dt className="text-xs font-semibold text-marca-800">Licitação</dt><dd>{e.licitacao ?? '—'}</dd></div>
+          <div className="sm:col-span-3"><dt className="text-xs font-semibold text-marca-800">Unidades atendidas</dt><dd>{unidades.data?.map((u) => u.nome).join(', ') || '—'}</dd></div>
         </dl>
         <div>
           <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-semibold text-slate-800">Reforços</h3>

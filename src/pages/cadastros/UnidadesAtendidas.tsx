@@ -150,7 +150,7 @@ function DetalheUnidade({ unidade, aoFechar }: { unidade: UnidadeAtendida | null
   const grupos = useQuery({ queryKey: ['grupos-da-unidade', unidade?.id], queryFn: () => gruposDaUnidade(unidade!.id), enabled: !!unidade && !unidade.eh_grupo });
   if (!unidade) return null;
   const u = unidade;
-  const linha = (r: string, v: string | null | undefined) => <div><dt className="text-xs text-slate-500">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
+  const linha = (r: string, v: string | null | undefined) => <div><dt className="text-xs font-semibold text-marca-800">{r}</dt><dd className="text-sm text-slate-900">{v || '—'}</dd></div>;
   return (
     <Modal aberto aoFechar={aoFechar} titulo={u.nome} descricao={[u.tipo, u.sigla, u.codigo && `Código ${u.codigo}`].filter(Boolean).join(' · ')} largura="lg">
       <dl className="mb-5 grid gap-3 sm:grid-cols-2">

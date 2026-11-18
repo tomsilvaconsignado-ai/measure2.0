@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSessao } from '@/auth/Sessao';
 import { Abas } from '@/components/ui/Abas';
-import { Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Interruptor, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
+import { Indicador, Botao, CabecalhoPagina, CaixaErro, Campo, Cartao, Carregando, Interruptor, SemPermissao, Selecao, Selo, Vazio, cx } from '@/components/ui/basicos';
 import { ConfirmarComMotivo, Modal } from '@/components/ui/Modal';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarDataHora } from '@/lib/formatacao';
@@ -17,10 +17,6 @@ import {
 import { CORES_CATEGORIA, ICONES_CATEGORIA, IconeCategoria, SeloCategoria } from './comum';
 
 const EXTRAS = Object.keys(TIPOS_CONECTA).filter((m) => !m.startsWith('image/') && m !== 'application/pdf');
-
-function Numero({ rotulo, valor }: { rotulo: string; valor: number }) {
-  return <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-medium text-slate-500">{rotulo}</p><p className="numero mt-1 text-2xl font-semibold text-slate-900">{valor}</p></div>;
-}
 
 function Barras({ titulo, dados }: { titulo: string; dados: Array<{ nome: string; total: number }> }) {
   const max = Math.max(1, ...dados.map((d) => d.total));
@@ -102,9 +98,9 @@ export function ConectaAdmin() {
       {(aba === 'painel' || aba === 'denuncias' || aba === 'ocultas') && (q.isLoading ? <Carregando /> : q.isError ? <CaixaErro mensagem={traduzirErro(q.error).mensagem} /> : !d ? null : <>
         {aba === 'painel' && <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Numero rotulo="Publicações" valor={d.publicacoes} /><Numero rotulo="Nos últimos 30 dias" valor={d.publicacoes_30d} />
-            <Numero rotulo="Comentários" valor={d.comentarios} /><Numero rotulo="Curtidas" valor={d.curtidas} />
-            <Numero rotulo="Pessoas que publicaram" valor={d.autores} /><Numero rotulo="Ocultas" valor={d.ocultas} />
+            <Indicador rotulo="Publicações" valor={d.publicacoes} /><Indicador rotulo="Nos últimos 30 dias" valor={d.publicacoes_30d} />
+            <Indicador rotulo="Comentários" valor={d.comentarios} /><Indicador rotulo="Curtidas" valor={d.curtidas} />
+            <Indicador rotulo="Pessoas que publicaram" valor={d.autores} /><Indicador rotulo="Ocultas" valor={d.ocultas} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2"><Barras titulo="Publicações por categoria" dados={d.por_categoria} /><Barras titulo="Quem mais publica" dados={d.mais_ativos} /></div>
         </div>}
