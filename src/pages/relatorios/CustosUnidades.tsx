@@ -9,7 +9,7 @@ import { useSessao } from '@/auth/Sessao';
 import { MultiBusca, type Item } from '@/components/ui/MultiBusca';
 import { Botao, CaixaErro, Carregando, Vazio, cx } from '@/components/ui/basicos';
 import { ListaSelecao } from '@/components/ui/ListaSelecao';
-import { agruparCustos, descreverPeriodo, FORMAS, MESES_CURTOS, MESES_LONGOS, SITUACAO_PAGAMENTO, type GrupoContrato, type GrupoUnidade } from '@/lib/custosUnidades';
+import { agruparCustos, descreverPeriodo, FORMAS, MESES_CURTOS, MESES_LONGOS, mesReferencia, SITUACAO_PAGAMENTO, type GrupoContrato, type GrupoUnidade, type NotaContrato } from '@/lib/custosUnidades';
 import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { formatarCentavos, formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
 import { supabase } from '@/lib/supabase';
@@ -115,10 +115,34 @@ function BlocoUnidade({ u, total, meses, aberto, alternar }: { u: GrupoUnidade; 
 
 const TOM_SITUACAO: Record<string, string> = { PAGO: 'text-emerald-700', PARCIAL: 'text-sky-700', PENDENTE: 'text-amber-700', CANCELADA: 'text-slate-500' };
 
+/** Meses (competência) com valor no contrato, com o total de cada um */
+export function mesesDoContrato(k: GrupoContrato) {
+  const mapa = new Map<number, number>();
+  for (const u of k.unidades) for (const [m, v] of Object.entries(u.meses)) mapa.set(Number(m), (mapa.get(Number(m)) ?? 0) + v);
+  const ano = k.porMesReferencia[0]?.ano ?? new Date().getFullYear();
+  return [...mapa.entries()].sort((a, b) => a[0] - b[0]).map(([mes, total]) => ({ ano, mes, total }));
+}
+
+/** Unidades atendidas pela nota: uma por linha, em ordem alfabética, com o valor ao lado */
+export function ListaUnidadesNota({ n, compacta = false }: { n: NotaContrato; compacta?: boolean }) {
+  if (n.unidades.length <= 1) return <span>{n.unidades[0]?.nome ?? n.local}</span>;
+  return (
+    <ul className={cx('grid gap-x-6', n.unidades.length > 12 && 'sm:grid-cols-2', compacta ? 'gap-y-0' : 'gap-y-0.5')}>
+      {n.unidades.map((u) => (
+        <li key={u.nome} className="flex items-baseline gap-1.5 border-b border-dotted border-slate-300">
+          <span className="min-w-0 flex-1 truncate">{u.nome}</span>
+          <span className="numero shrink-0 whitespace-nowrap font-medium">{formatarCentavos(u.valor)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Bloco por empresa/contrato, no formato do relatório mensal da coordenação */
 export function BlocoContrato({ k, meses }: { k: GrupoContrato; meses: number[] }) {
   void meses;
   const qtd = k.notas.length;
+  const mesesK = mesesDoContrato(k);
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 bg-marca-900 px-4 py-2.5 text-white">
@@ -136,10 +160,24 @@ export function BlocoContrato({ k, meses }: { k: GrupoContrato; meses: number[] 
       </dl>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-sm">
-          <thead><tr><th className="text-left">Unidade de saúde</th><th className="text-right">Valor no período</th><th className="text-right">Qtd. notas</th></tr></thead>
-          <tbody>{k.unidades.map((u) => (
-            <tr key={u.nome}><td className="py-1.5">{u.nome}</td><td className="numero whitespace-nowrap py-1.5 text-right font-semibold">{formatarCentavos(u.total)}</td>
-              <td className="numero py-1.5 text-right">{u.notas}</td></tr>))}</tbody>
+          <thead><tr><th className="text-left">Unidade de saúde</th><th className="text-right">Valor</th><th className="text-right">Qtd. notas</th></tr></thead>
+          {/* período de mais de um mês: um grupo por mês, com a linha de separação e o subtotal do mês */}
+          {mesesK.length > 1 ? mesesK.map((m) => {
+            const us = k.unidades.filter((u) => u.meses[m.mes]);
+            return (
+              <tbody key={m.mes}>
+                <tr><td colSpan={3} className="!bg-chamada-300/40 !py-1.5 text-xs font-extrabold uppercase tracking-wide text-marca-950">
+                  <span className="flex justify-between"><span>{mesReferencia(m.ano, m.mes)}</span><span className="numero">{formatarCentavos(m.total)}</span></span></td></tr>
+                {us.map((u) => (
+                  <tr key={u.nome}><td className="py-1.5 pl-5">{u.nome}</td><td className="numero whitespace-nowrap py-1.5 text-right font-semibold">{formatarCentavos(u.meses[m.mes] ?? 0)}</td>
+                    <td className="numero py-1.5 text-right">{u.notasMeses[m.mes] ?? 0}</td></tr>))}
+              </tbody>
+            );
+          }) : (
+            <tbody>{k.unidades.map((u) => (
+              <tr key={u.nome}><td className="py-1.5">{u.nome}</td><td className="numero whitespace-nowrap py-1.5 text-right font-semibold">{formatarCentavos(u.total)}</td>
+                <td className="numero py-1.5 text-right">{u.notas}</td></tr>))}</tbody>
+          )}
           <tfoot><tr><td>Total · {k.fornecedor_nome}</td><td className="numero whitespace-nowrap text-right">{formatarCentavos(k.total)}</td><td className="numero text-right">{qtd}</td></tr></tfoot>
         </table>
       </div>
@@ -149,13 +187,24 @@ export function BlocoContrato({ k, meses }: { k: GrupoContrato; meses: number[] 
         </summary>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-xs">
-            <thead><tr><th className="text-left">Nº nota</th><th className="text-left">Referência</th><th className="text-left">Unidade / local</th>
-              <th className="text-right">Valor</th><th className="text-left">Situação</th></tr></thead>
-            <tbody>{k.notas.map((n) => (
-              <tr key={n.id}><td className="py-1.5 font-semibold">{n.numero}</td><td className="py-1.5">{referenciaPorExtenso(n.referencias)}</td>
-                <td className="max-w-xs py-1.5"><span className="line-clamp-2">{n.local}</span></td>
-                <td className="numero whitespace-nowrap py-1.5 text-right">{formatarCentavos(n.valor)}{n.valor !== n.nota_valor && <span className="block text-[10px] text-slate-500">nota: {formatarCentavos(n.nota_valor)}</span>}</td>
-                <td className={cx('py-1.5 font-bold uppercase', TOM_SITUACAO[n.status] ?? '')}>{SITUACAO_PAGAMENTO[n.status] ?? n.status}</td></tr>))}</tbody>
+            <thead><tr><th className="text-left">Nº nota</th><th className="text-left">Referência</th><th className="text-left">Unidades atendidas</th>
+              <th className="text-right">Valor da nota</th><th className="text-left">Situação</th></tr></thead>
+            {k.porMesReferencia.map((g) => (
+              <tbody key={g.chave}>
+                {/* linha de separação do mês de referência */}
+                <tr><td colSpan={5} className="!bg-chamada-300/40 !py-1.5 font-extrabold uppercase tracking-wide text-marca-950">
+                  <span className="flex justify-between"><span>{mesReferencia(g.ano, g.mes)} · {g.notas.length} {g.notas.length === 1 ? 'nota' : 'notas'}</span>
+                    <span className="numero">{formatarCentavos(g.total)}</span></span></td></tr>
+                {g.notas.map((n) => (
+                  <tr key={n.id} className="align-top">
+                    <td className="py-1.5 font-semibold">{n.numero}</td><td className="py-1.5">{referenciaPorExtenso(n.referencias)}</td>
+                    <td className="py-1.5"><ListaUnidadesNota n={n} /></td>
+                    <td className="numero whitespace-nowrap py-1.5 text-right font-semibold">{formatarCentavos(n.valor)}{n.valor !== n.nota_valor && <span className="block text-[10px] font-normal text-slate-500">nota: {formatarCentavos(n.nota_valor)}</span>}</td>
+                    <td className={cx('py-1.5 font-bold uppercase', TOM_SITUACAO[n.status] ?? '')}>{SITUACAO_PAGAMENTO[n.status] ?? n.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       </details>

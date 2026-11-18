@@ -1,7 +1,7 @@
 // Planilha do relatório de custos por unidade de saúde, com a identidade do MEASURE: título, subtotal por
 // unidade, total geral, valores como número em R$ (dá para somar e filtrar) e as regras de distribuição.
 import { formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
-import { FORMAS, MESES_CURTOS, SITUACAO_PAGAMENTO, type LinhaCusto, type ResumoCustos } from '@/lib/custosUnidades';
+import { FORMAS, MESES_CURTOS, mesReferencia, SITUACAO_PAGAMENTO, type LinhaCusto, type ResumoCustos } from '@/lib/custosUnidades';
 
 const MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00';
 const AZUL = 'FF0F2A4A'; const AZUL_CLARO = 'FFE8EEF8'; const ZEBRA = 'FFF6F8FC'; const AMARELO = 'FFF5B70A';
@@ -66,24 +66,55 @@ export async function exportarCustosUnidades(p: {
       ];
       for (const i of info) { linha++; const r = ws.getRow(linha); r.values = i; pintar(r, AZUL_CLARO); r.getCell(3).alignment = { wrapText: true }; }
       linha++;
-      const cab = ws.getRow(linha); cab.values = ['Unidade de saúde', '', '', 'Valor no período', 'Qtd. notas']; pintar(cab, 'FFE2E8F0', true);
-      k.unidades.forEach((u, j) => {
+      const cab = ws.getRow(linha); cab.values = ['Unidade de saúde', '', '', 'Valor', 'Qtd. notas']; pintar(cab, 'FFE2E8F0', true);
+      // linha de separação do mês (amarela), com o subtotal
+      const separador = (texto: string, valor: number) => {
         linha++;
-        const r = ws.getRow(linha); r.values = [u.nome, '', '', r$(u.total), u.notas]; if (j % 2) pintar(r, ZEBRA);
+        const r = ws.getRow(linha); r.values = [texto, '', '', r$(valor), ''];
+        pintar(r, 'FFFDE68A', true); r.getCell(4).numFmt = MOEDA;
+        r.border = { top: { style: 'thin', color: { argb: AMARELO } }, bottom: { style: 'thin', color: { argb: AMARELO } } };
+      };
+      // unidades em ordem alfabética; período de vários meses: um grupo por mês
+      const mesesK = [...new Set(k.unidades.flatMap((u) => Object.keys(u.meses).map(Number)))].sort((a, b) => a - b);
+      const anoK = k.porMesReferencia[0]?.ano ?? new Date().getFullYear();
+      const linhaUnidade = (nome: string, v: number, q: number, j: number, recuo: boolean) => {
+        linha++;
+        const r = ws.getRow(linha); r.values = [recuo ? `   ${nome}` : nome, '', '', r$(v), q]; if (j % 2) pintar(r, ZEBRA);
         r.getCell(4).numFmt = MOEDA;
-      });
+      };
+      if (mesesK.length > 1) {
+        for (const m of mesesK) {
+          const us = k.unidades.filter((u) => u.meses[m]);
+          separador(mesReferencia(anoK, m), us.reduce((s, u) => s + (u.meses[m] ?? 0), 0));
+          us.forEach((u, j) => linhaUnidade(u.nome, u.meses[m] ?? 0, u.notasMeses[m] ?? 0, j, true));
+        }
+      } else {
+        k.unidades.forEach((u, j) => linhaUnidade(u.nome, u.total, u.notas, j, false));
+      }
       linha++;
       const tot = ws.getRow(linha); tot.values = [`TOTAL — ${k.fornecedor_nome}`, '', '', r$(k.total), k.notas.length]; pintar(tot, 'FF1A3F80', true, true); tot.getCell(4).numFmt = MOEDA;
       linha++;
-      const cn = ws.getRow(linha); cn.values = [`NOTAS DO PERÍODO (${k.notas.length})`, 'Referência', 'Unidade / local', 'Valor', 'Situação']; pintar(cn, 'FF475569', true, true);
-      k.notas.forEach((n, j) => {
-        linha++;
-        const r = ws.getRow(linha);
-        r.values = [`Nota ${n.numero}`, n.referencias, n.local, r$(n.valor), SITUACAO_PAGAMENTO[n.status] ?? n.status];
-        if (j % 2) pintar(r, ZEBRA);
-        r.getCell(4).numFmt = MOEDA; r.getCell(3).alignment = { wrapText: true };
-        r.getCell(5).font = { bold: true, color: { argb: n.status === 'PAGO' ? 'FF047857' : n.status === 'PARCIAL' ? 'FF0369A1' : 'FFB45309' } };
-      });
+      const cn = ws.getRow(linha); cn.values = [`NOTAS DO PERÍODO (${k.notas.length})`, 'Referência', 'Unidades atendidas', 'Valor', 'Situação']; pintar(cn, 'FF475569', true, true);
+      for (const g of k.porMesReferencia) {
+        separador(`${mesReferencia(g.ano, g.mes)} · ${g.notas.length} ${g.notas.length === 1 ? 'nota' : 'notas'}`, g.total);
+        g.notas.forEach((n, j) => {
+          linha++;
+          const r = ws.getRow(linha);
+          const varias = n.unidades.length > 1;
+          r.values = [`Nota ${n.numero}`, n.referencias, varias ? `${n.unidades.length} unidades (abaixo)` : (n.unidades[0]?.nome ?? n.local), r$(n.valor), SITUACAO_PAGAMENTO[n.status] ?? n.status];
+          if (j % 2) pintar(r, ZEBRA);
+          r.font = { bold: true };
+          r.getCell(4).numFmt = MOEDA;
+          r.getCell(5).font = { bold: true, color: { argb: n.status === 'PAGO' ? 'FF047857' : n.status === 'PARCIAL' ? 'FF0369A1' : 'FFB45309' } };
+          // cada unidade em uma linha, com o valor ao lado
+          if (varias) for (const u of n.unidades) {
+            linha++;
+            const ru = ws.getRow(linha);
+            ru.values = ['', '', `   ${u.nome}`, r$(u.valor), ''];
+            ru.getCell(4).numFmt = MOEDA; ru.font = { color: { argb: 'FF334155' } };
+          }
+        });
+      }
       linha++;
     }
     linha++;

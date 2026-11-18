@@ -9,12 +9,12 @@ import { useNavigate } from 'react-router-dom';
 import { useSessao } from '@/auth/Sessao';
 import { ImagemPrivada } from '@/components/ImagemPrivada';
 import { Botao, CaixaErro, Carregando } from '@/components/ui/basicos';
-import { agruparCustos, descreverPeriodo, FORMAS, SITUACAO_PAGAMENTO } from '@/lib/custosUnidades';
+import { agruparCustos, descreverPeriodo, FORMAS, mesReferencia, SITUACAO_PAGAMENTO } from '@/lib/custosUnidades';
 import { traduzirErro } from '@/lib/erros';
 import { formatarCentavos, formatarData, formatarDataHora } from '@/lib/formatacao';
 import { registrarExportacao, relatorioCustosUnidades } from '@/services/relatorios';
 import { obterConfiguracoes } from './apoioImpressao';
-import { criteriosCustos, docFornecedor, lerPedidoCustos, paraServidorCustos, referenciaPorExtenso, tituloCustos } from './CustosUnidades';
+import { criteriosCustos, docFornecedor, lerPedidoCustos, mesesDoContrato, paraServidorCustos, referenciaPorExtenso, tituloCustos } from './CustosUnidades';
 
 const pct = (v: number, t: number) => (t ? `${((v / t) * 100).toFixed(1).replace('.', ',')}%` : '—');
 const cor = { printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as const;
@@ -112,10 +112,23 @@ export function CustosUnidadesImprimir() {
                 <thead><tr className="bg-slate-100 text-left text-slate-700" style={cor}>
                   <th className="px-3 py-1">Unidade de saúde</th><th className="w-36 px-3 py-1 text-right">Valor no período</th><th className="w-24 px-3 py-1 text-right">Qtd. notas</th>
                 </tr></thead>
-                <tbody>{k.unidades.map((u, i) => (
-                  <tr key={u.nome} className={i % 2 ? 'bg-slate-50' : ''} style={cor}>
-                    <td className="px-3 py-0.5">{u.nome}</td><td className="numero px-3 py-0.5 text-right">{formatarCentavos(u.total)}</td><td className="px-3 py-0.5 text-right">{u.notas}</td>
-                  </tr>))}</tbody>
+                {/* mais de um mês: uma faixa por mês, com o subtotal; unidades em ordem alfabética */}
+                {mesesDoContrato(k).length > 1 ? mesesDoContrato(k).map((m) => (
+                  <tbody key={m.mes}>
+                    <tr className="bg-chamada-300/60" style={cor}><td colSpan={3} className="border-y border-chamada-500 px-3 py-1 font-extrabold uppercase tracking-wide text-marca-950">
+                      <span className="flex justify-between"><span>{mesReferencia(m.ano, m.mes)}</span><span className="numero">{formatarCentavos(m.total)}</span></span></td></tr>
+                    {k.unidades.filter((u) => u.meses[m.mes]).map((u, i) => (
+                      <tr key={u.nome} className={i % 2 ? 'bg-slate-50' : ''} style={cor}>
+                        <td className="py-0.5 pl-6 pr-3">{u.nome}</td><td className="numero px-3 py-0.5 text-right">{formatarCentavos(u.meses[m.mes] ?? 0)}</td>
+                        <td className="px-3 py-0.5 text-right">{u.notasMeses[m.mes] ?? 0}</td>
+                      </tr>))}
+                  </tbody>
+                )) : (
+                  <tbody>{k.unidades.map((u, i) => (
+                    <tr key={u.nome} className={i % 2 ? 'bg-slate-50' : ''} style={cor}>
+                      <td className="px-3 py-0.5">{u.nome}</td><td className="numero px-3 py-0.5 text-right">{formatarCentavos(u.total)}</td><td className="px-3 py-0.5 text-right">{u.notas}</td>
+                    </tr>))}</tbody>
+                )}
                 <tfoot><tr className="bg-marca-700 font-bold text-white" style={cor}>
                   <td className="px-3 py-1 uppercase">Total · {k.fornecedor_nome}</td><td className="numero px-3 py-1 text-right">{formatarCentavos(k.total)}</td><td className="px-3 py-1 text-right">{k.notas.length}</td>
                 </tr></tfoot>
@@ -123,16 +136,30 @@ export function CustosUnidadesImprimir() {
               <p className="bg-slate-600 px-3 py-1 text-[9px] font-bold uppercase tracking-wide text-white" style={cor}>Notas do período ({k.notas.length} {k.notas.length === 1 ? 'nota' : 'notas'})</p>
               <table className="w-full border-collapse text-[9px]">
                 <thead><tr className="bg-slate-100 text-left text-slate-700" style={cor}>
-                  <th className="w-20 px-3 py-1">Nº nota</th><th className="w-36 px-3 py-1">Referência</th><th className="px-3 py-1">Unidade / local</th>
-                  <th className="w-32 px-3 py-1 text-right">Valor</th><th className="w-24 px-3 py-1">Situação</th>
+                  <th className="w-20 px-3 py-1">Nº nota</th><th className="w-32 px-3 py-1">Referência</th><th className="px-3 py-1">Unidades atendidas</th>
+                  <th className="w-32 px-3 py-1 text-right">Valor da nota</th><th className="w-20 px-3 py-1">Situação</th>
                 </tr></thead>
-                <tbody>{k.notas.map((n, i) => (
-                  <tr key={n.id} className={`break-inside-avoid ${i % 2 ? 'bg-slate-50' : ''}`} style={cor}>
-                    <td className="px-3 py-0.5 font-semibold">{n.numero}</td><td className="px-3 py-0.5">{referenciaPorExtenso(n.referencias)}</td>
-                    <td className="px-3 py-0.5">{n.local}</td>
-                    <td className="numero px-3 py-0.5 text-right">{formatarCentavos(n.valor)}{n.valor !== n.nota_valor && <span className="text-[8px] text-slate-500"> (nota {formatarCentavos(n.nota_valor)})</span>}</td>
-                    <td className={`px-3 py-0.5 font-bold uppercase ${SIT_COR[n.status] ?? ''}`}>{SITUACAO_PAGAMENTO[n.status] ?? n.status}</td>
-                  </tr>))}</tbody>
+                {k.porMesReferencia.map((g) => (
+                  <tbody key={g.chave}>
+                    {/* linha de separação do mês de referência */}
+                    <tr className="bg-chamada-300/60" style={cor}><td colSpan={5} className="border-y border-chamada-500 px-3 py-1 font-extrabold uppercase tracking-wide text-marca-950">
+                      <span className="flex justify-between"><span>{mesReferencia(g.ano, g.mes)} · {g.notas.length} {g.notas.length === 1 ? 'nota' : 'notas'}</span>
+                        <span className="numero">{formatarCentavos(g.total)}</span></span></td></tr>
+                    {g.notas.map((n, i) => (
+                      <tr key={n.id} className={`break-inside-avoid align-top ${i % 2 ? 'bg-slate-50' : ''}`} style={cor}>
+                        <td className="px-3 py-0.5 font-semibold">{n.numero}</td><td className="px-3 py-0.5">{referenciaPorExtenso(n.referencias)}</td>
+                        <td className="px-3 py-0.5">{n.unidades.length <= 1 ? (n.unidades[0]?.nome ?? n.local) : (
+                          <ul className={`grid gap-x-5 ${n.unidades.length > 10 ? 'grid-cols-2' : ''}`}>
+                            {n.unidades.map((u) => (
+                              <li key={u.nome} className="flex items-baseline gap-1 border-b border-dotted border-slate-300">
+                                <span className="min-w-0 flex-1">{u.nome}</span><span className="numero shrink-0 whitespace-nowrap">{formatarCentavos(u.valor)}</span>
+                              </li>))}
+                          </ul>)}</td>
+                        <td className="numero px-3 py-0.5 text-right font-semibold">{formatarCentavos(n.valor)}{n.valor !== n.nota_valor && <span className="block text-[8px] font-normal text-slate-500">nota {formatarCentavos(n.nota_valor)}</span>}</td>
+                        <td className={`px-3 py-0.5 font-bold uppercase ${SIT_COR[n.status] ?? ''}`}>{SITUACAO_PAGAMENTO[n.status] ?? n.status}</td>
+                      </tr>))}
+                  </tbody>
+                ))}
               </table>
             </section>
           ))}

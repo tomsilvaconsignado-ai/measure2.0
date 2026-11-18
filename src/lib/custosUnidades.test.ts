@@ -41,8 +41,20 @@ describe('agruparCustos', () => {
     const k = r.contratos.find((x) => x.contrato_numero === '001/2026')!;
     expect(r.contratos.map((x) => x.fornecedor_nome)).toEqual(['Empresa A', 'Empresa B']);
     expect(k.total).toBe(10010 + 20 + 500);
-    expect(k.unidades[0]).toMatchObject({ nome: 'USF Um', total: 10030, notas: 2 });
+    expect(k.unidades.find((u) => u.nome === 'USF Um')).toMatchObject({ total: 10030, notas: 2, meses: { 1: 10010, 2: 20 } });
+    expect(k.unidades.map((u) => u.nome)).toEqual(['Sem unidade informada', 'USF Um']); // ordem alfabética
     expect(k.notas.map((n) => n.numero)).toHaveLength(3);
+    // separação por mês de referência, com subtotal
+    expect(k.porMesReferencia.map((g) => [g.mes, g.total, g.notas.length])).toEqual([[1, 10010 + 500, 2], [2, 20, 1]]);
+  });
+
+  it('cada nota traz as unidades atendidas, uma por linha, em ordem alfabética e com o valor', () => {
+    const r2 = agruparCustos([
+      l({ nota_id: 'x', unidade_chave: 'b', unidade_nome: 'USF Beta', valor: 2 }),
+      l({ nota_id: 'x', unidade_chave: 'a', unidade_nome: 'USF Alfa', valor: 1 }),
+      l({ nota_id: 'x', unidade_chave: 'c', unidade_nome: 'CAPS Centro', valor: 3 }),
+    ]);
+    expect(r2.contratos[0]!.notas[0]!.unidades).toEqual([{ nome: 'CAPS Centro', valor: 300 }, { nome: 'USF Alfa', valor: 100 }, { nome: 'USF Beta', valor: 200 }]);
     expect(r.empresas.find((e) => e.nome === 'Empresa A')!.notas).toBe(3);
   });
 

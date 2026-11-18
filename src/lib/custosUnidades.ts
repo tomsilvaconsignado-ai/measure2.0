@@ -17,9 +17,21 @@ export interface GrupoContrato {
   chave: string; fornecedor_nome: string; fornecedor_documento: string; fornecedor_tipo: string;
   contrato_numero: string; contrato_objeto: string; inicio: string | null; fim: string | null; valor: number; saldo: number; unidade: string | null;
   total: number; pago: number;
-  unidades: Array<{ nome: string; tipo: string | null; total: number; notas: number }>;
-  notas: Array<{ id: string; numero: string; data: string; referencias: string; local: string; valor: number; nota_valor: number; status: string }>;
+  /** unidades em ordem alfabética (as USFs ficam juntas, uma abaixo da outra), com o valor de cada mês */
+  unidades: Array<{ nome: string; tipo: string | null; total: number; notas: number; meses: Record<number, number>; notasMeses: Record<number, number> }>;
+  /** notas em ordem de mês de referência; cada uma com as unidades atendidas (uma por linha, com o valor) */
+  notas: NotaContrato[];
+  /** notas agrupadas por mês de referência, com o subtotal (linha de separação entre os meses) */
+  porMesReferencia: Array<{ chave: number; ano: number; mes: number; total: number; notas: NotaContrato[] }>;
 }
+export interface NotaContrato {
+  id: string; numero: string; data: string; referencias: string; local: string; valor: number; nota_valor: number; status: string;
+  /** mês de referência que agrupa a nota (ano × 100 + mês) */
+  mes_ref: number;
+  unidades: Array<{ nome: string; valor: number }>;
+}
+
+const ordemNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true, sensitivity: 'base' });
 
 export const FORMAS: Record<FormaAlocacao, string> = {
   RATEIO: 'Rateio informado na nota',
@@ -59,7 +71,10 @@ const soma = (m: Record<number, number>, mes: number, v: number) => { m[mes] = (
 export function agruparCustos(linhas: LinhaCusto[]): ResumoCustos {
   const unidades = new Map<string, GrupoUnidade & { itensMap: Map<string, ItemCusto & { notasSet: Set<string> }> }>();
   const empresas = new Map<string, GrupoEmpresa & { unidadesMap: Map<string, number>; contratosSet: Set<string>; notasSet: Set<string> }>();
-  type Ct = Omit<GrupoContrato, 'unidades' | 'notas'> & { unidadesMap: Map<string, { nome: string; tipo: string | null; total: number; notas: Set<string> }>; notasMap: Map<string, GrupoContrato['notas'][number]> };
+  type Ct = Omit<GrupoContrato, 'unidades' | 'notas' | 'porMesReferencia'> & {
+    unidadesMap: Map<string, { nome: string; tipo: string | null; total: number; notas: Set<string>; meses: Record<number, number>; notasMeses: Map<number, Set<string>> }>;
+    notasMap: Map<string, Omit<NotaContrato, 'unidades'> & { unidadesMap: Map<string, { nome: string; valor: number }> }>;
+  };
   const contratos = new Map<string, Ct>();
   const porMes: Record<number, number> = {};
   const meses = new Set<number>();
@@ -108,11 +123,16 @@ export function agruparCustos(linhas: LinhaCusto[]): ResumoCustos {
       contratos.set(l.contrato_id, k);
     }
     k.total += v; k.pago += p;
-    const ku = k.unidadesMap.get(l.unidade_chave) ?? { nome: l.unidade_nome, tipo: l.unidade_tipo, total: 0, notas: new Set<string>() };
-    ku.total += v; ku.notas.add(l.nota_id); k.unidadesMap.set(l.unidade_chave, ku);
+    const ku = k.unidadesMap.get(l.unidade_chave) ?? { nome: l.unidade_nome, tipo: l.unidade_tipo, total: 0, notas: new Set<string>(), meses: {}, notasMeses: new Map() };
+    ku.total += v; ku.notas.add(l.nota_id); soma(ku.meses, l.mes, v);
+    ku.notasMeses.set(l.mes, (ku.notasMeses.get(l.mes) ?? new Set<string>()).add(l.nota_id)); k.unidadesMap.set(l.unidade_chave, ku);
     const kn = k.notasMap.get(l.nota_id) ?? { id: l.nota_id, numero: l.nota_numero, data: l.data_emissao, referencias: l.nota_referencias ?? '',
-      local: l.nota_local ?? l.unidade_nome, valor: 0, nota_valor: c(l.nota_valor ?? l.valor), status: l.status_pagamento ?? '' };
-    kn.valor += v; k.notasMap.set(l.nota_id, kn);
+      local: l.nota_local ?? l.unidade_nome, valor: 0, nota_valor: c(l.nota_valor ?? l.valor), status: l.status_pagamento ?? '',
+      mes_ref: l.ano * 100 + l.mes, unidadesMap: new Map() };
+    kn.valor += v; kn.mes_ref = Math.min(kn.mes_ref, l.ano * 100 + l.mes);
+    const kun = kn.unidadesMap.get(l.unidade_chave) ?? { nome: l.unidade_nome, valor: 0 };
+    kun.valor += v; kn.unidadesMap.set(l.unidade_chave, kun);
+    k.notasMap.set(l.nota_id, kn);
   }
 
   const listaUnidades: GrupoUnidade[] = [...unidades.values()].map(({ itensMap, ...u }) => {
@@ -126,12 +146,22 @@ export function agruparCustos(linhas: LinhaCusto[]): ResumoCustos {
     contratos: [...contratosSet].sort(),
   })).sort((a, b) => b.total - a.total);
 
-  const listaContratos: GrupoContrato[] = [...contratos.values()].map(({ unidadesMap, notasMap, ...k }) => ({
-    ...k,
-    unidades: [...unidadesMap.values()].map((u) => ({ nome: u.nome, tipo: u.tipo, total: u.total, notas: u.notas.size }))
-      .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR')),
-    notas: [...notasMap.values()].sort((a, b) => a.referencias.localeCompare(b.referencias) || a.data.localeCompare(b.data) || a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true })),
-  })).sort((a, b) => a.fornecedor_nome.localeCompare(b.fornecedor_nome, 'pt-BR') || a.contrato_numero.localeCompare(b.contrato_numero));
+  const listaContratos: GrupoContrato[] = [...contratos.values()].map(({ unidadesMap, notasMap, ...k }) => {
+    const notasK: NotaContrato[] = [...notasMap.values()].map(({ unidadesMap: um, ...n }) => ({ ...n, unidades: [...um.values()].sort(ordemNome) }))
+      .sort((a, b) => a.mes_ref - b.mes_ref || a.data.localeCompare(b.data) || a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true }));
+    const grupos = new Map<number, GrupoContrato['porMesReferencia'][number]>();
+    for (const n of notasK) {
+      const g = grupos.get(n.mes_ref) ?? { chave: n.mes_ref, ano: Math.floor(n.mes_ref / 100), mes: n.mes_ref % 100, total: 0, notas: [] };
+      g.total += n.valor; g.notas.push(n); grupos.set(n.mes_ref, g);
+    }
+    return {
+      ...k,
+      unidades: [...unidadesMap.values()].map((u) => ({ nome: u.nome, tipo: u.tipo, total: u.total, notas: u.notas.size, meses: u.meses,
+        notasMeses: Object.fromEntries([...u.notasMeses].map(([m, ns]) => [m, ns.size])) })).sort(ordemNome),
+      notas: notasK,
+      porMesReferencia: [...grupos.values()],
+    };
+  }).sort((a, b) => a.fornecedor_nome.localeCompare(b.fornecedor_nome, 'pt-BR') || a.contrato_numero.localeCompare(b.contrato_numero));
 
   return { meses: [...meses].sort((a, b) => a - b), total, pago, notas: notas.size, unidades: listaUnidades, empresas: listaEmpresas, contratos: listaContratos, porMes, alertas };
 }
@@ -142,3 +172,6 @@ export function descreverPeriodo(ano: number, ini: number, fim: number) {
 }
 
 export const SITUACAO_PAGAMENTO: Record<string, string> = { PAGO: 'Pago', PARCIAL: 'Parcial', PENDENTE: 'Pendente', CANCELADA: 'Cancelada' };
+
+/** 'JANEIRO/2026' */
+export const mesReferencia = (ano: number, mes: number) => `${(MESES_LONGOS[mes - 1] ?? '').toUpperCase()}/${ano}`;
