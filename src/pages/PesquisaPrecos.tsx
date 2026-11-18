@@ -303,7 +303,14 @@ function BarraBusca({ compacta, valorInicial, aoEscolher, historico, aoRemoverHi
   });
   const sugestoes: Sugestao[] = !texto.trim() ? historico.slice(0, 8).map((h) => ({ tipo: 'HISTORICO' as const, h }))
     : ehCnpj ? [{ tipo: 'CNPJ', cnpj: soDigitos }]
-    : (q.data ?? []).map((i) => ({ tipo: i.tipo, codigo: String(i.codigo), descricao: i.descricao, categoria: i.categoria, classe: i.nome_classe ?? i.nome_grupo }));
+    : [
+      ...(q.data ?? []).map((i) => ({ tipo: i.tipo, codigo: String(i.codigo), descricao: i.descricao, categoria: i.categoria, classe: i.nome_classe ?? i.nome_grupo })),
+      // código que não está no catálogo local: pesquisa direto na fonte oficial
+      ...(/^\d{1,9}$/.test(atrasado) && !(q.data ?? []).some((i) => String(i.codigo) === atrasado)
+        ? (['MATERIAL', 'SERVICO'] as const).map((t) => ({ tipo: t, codigo: atrasado, descricao: `${t === 'MATERIAL' ? 'Material' : 'Serviço'} código ${atrasado}`,
+            categoria: null, classe: 'pesquisar direto no Compras.gov.br' }))
+        : []),
+    ];
   useEffect(() => setAtivo(0), [atrasado, aberto]);
 
   const escolher = (s: Sugestao) => {
@@ -369,7 +376,7 @@ function BarraBusca({ compacta, valorInicial, aoEscolher, historico, aoRemoverHi
               </li>
             );
           })}
-          {!sugestoes.length && <li className="px-5 py-3 text-sm text-slate-600">Nenhum item com esse nome no catálogo. Tente outra palavra ou o código.</li>}
+          {!sugestoes.length && <li className="px-5 py-3 text-sm text-slate-600">Nenhum item com esse nome no catálogo. Tente outra palavra ou digite o código CATMAT/CATSER para pesquisar direto na fonte.</li>}
         </ul>
       )}
     </div>
