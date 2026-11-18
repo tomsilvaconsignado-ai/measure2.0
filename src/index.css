@@ -117,10 +117,10 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
    Os campos se destacam do cartão branco: fundo azulado de "área para preencher", borda mais firme e uma
    leve sombra interna. Ao digitar, o campo fica branco com contorno azul-marinho, para mostrar onde está o cursor. */
 :root {
-  --campo-fundo: #edf2f9;
-  --campo-fundo-hover: #e6edf7;
-  --campo-borda: #a9b8cc;
-  --campo-sombra: inset 0 1px 2px rgb(15 42 74 / 0.07);
+  --campo-fundo: #dce5f2;
+  --campo-fundo-hover: #d2ddee;
+  --campo-borda: #8a9db8;
+  --campo-sombra: inset 0 1px 3px rgb(15 42 74 / 0.12);
 }
 :where(input:is(:not([type]), [type='text'], [type='search'], [type='email'], [type='tel'], [type='number'], [type='password'], [type='url'],
   [type='date'], [type='month'], [type='time'], [type='datetime-local']), textarea, select, [data-variante='campo']) {
@@ -140,6 +140,8 @@ main table tfoot td, main table tfoot th { background: var(--color-marca-50); fo
 }
 :where(input, textarea, select, [data-variante='campo'])[aria-invalid='true'] { background-color: #fdf3f3; border-color: #dc2626; }
 :where(input, textarea, select, [data-variante='campo']):disabled { background-color: #e4e8ee; border-color: #cbd5e1; box-shadow: none; color: var(--color-slate-500); }
+/* texto de exemplo mais escuro, legível sobre o fundo azulado */
+:where(input, textarea)::placeholder { color: #64748b; opacity: 1; }
 /* a busca dentro da lista aberta já fica sobre fundo branco: mantém o tom claro */
 [role='listbox'] input, [role='dialog'] [role='listbox'] input { box-shadow: none; }
 
