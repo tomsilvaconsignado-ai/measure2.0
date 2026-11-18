@@ -10,11 +10,12 @@ import { mensagemDeErro, traduzirErro } from '@/lib/erros';
 import { brl, centavos, formatarCentavos, formatarCnpj, formatarCpf, formatarData } from '@/lib/formatacao';
 import { baixarExcel } from '@/lib/planilhas';
 import { registrarExportacao, relatorioConsumo, relatorioNotas, relatorioNotasTodas, relatorioTotais, type Filtros, type LinhaConsumo, type LinhaNota } from '@/services/relatorios';
+import { CustosUnidades } from './CustosUnidades';
 import { descreverCriterios, filtrosVazios, PainelFiltros, paraServidor, type EstadoFiltros } from './filtros';
 
 const POR_PAGINA = 50;
 const CHAVE = 'measure.relatorios';
-type Tipo = 'completo' | 'resumo';
+type Tipo = 'completo' | 'resumo' | 'custos';
 const SIT_PAG: Record<string, string> = { PENDENTE: 'Pendente', PARCIAL: 'Parcial', PAGO: 'Pago', CANCELADA: 'Cancelada' };
 const METRICAS = { NOTAS: 'Notas fiscais registradas (não canceladas)', PAGO: 'Valor pago', EMPENHADO: 'Valor empenhado (com reforços)' } as const;
 export const doc = (tipo: string, d: string) => (tipo === 'PF' ? formatarCpf(d) : formatarCnpj(d));
@@ -232,13 +233,14 @@ export function Relatorios() {
   return (
     <>
       <CabecalhoPagina titulo="Consulta e relatórios" descricao="Filtros combinados: todos os campos ao mesmo tempo (E) e, dentro de cada campo, qualquer item escolhido (OU)."
-        acoes={<>
+        acoes={tipo !== 'custos' && <>
           {pode('relatorios', 'exportar') && <Botao variante="secundario" icone={<FileSpreadsheet className="size-4" />} carregando={excel.isPending} onClick={() => excel.mutate()}>Excel</Botao>}
           <Botao icone={<Printer className="size-4" />} onClick={() => { sessionStorage.setItem(CHAVE, JSON.stringify(pedido)); navegar('/relatorios/imprimir'); }}>Pré-visualizar PDF</Botao>
         </>} />
-      <Cartao className="mb-4"><PainelFiltros estado={estado} aoMudar={setEstado} completo={tipo === 'completo'} /></Cartao>
+      {tipo !== 'custos' && <Cartao className="mb-4"><PainelFiltros estado={estado} aoMudar={setEstado} completo={tipo === 'completo'} /></Cartao>}
       <Cartao>
-        <Abas abas={[{ id: 'completo', rotulo: 'Notas por classificação orçamentária (completo)' }, { id: 'resumo', rotulo: 'Consumo resumido por contrato e classificação' }]} ativa={tipo} aoMudar={setTipo} />
+        <Abas abas={[{ id: 'completo', rotulo: 'Notas por classificação orçamentária (completo)' }, { id: 'resumo', rotulo: 'Consumo resumido por contrato e classificação' },
+          { id: 'custos', rotulo: 'Custos por unidade de saúde (mensal)' }]} ativa={tipo} aoMudar={setTipo} />
         {tipo === 'resumo' && (
           <div className="mb-4 flex flex-wrap items-end gap-4">
             <Selecao rotulo="Métrica do consumo" value={metrica} onChange={(e) => setMetrica(e.target.value as keyof typeof METRICAS)} className="min-w-72">
@@ -251,7 +253,7 @@ export function Relatorios() {
             <p className="pb-2 text-xs text-slate-500">O consumo fica na classificação do empenho de cada nota; empenhado, notas e pago nunca são somados entre si.</p>
           </div>
         )}
-        {tipo === 'completo' ? <Completo f={f} estado={estado} /> : <Resumo f={f} metrica={metrica} detalhar={detalhar} />}
+        {tipo === 'completo' ? <Completo f={f} estado={estado} /> : tipo === 'resumo' ? <Resumo f={f} metrica={metrica} detalhar={detalhar} /> : <CustosUnidades />}
       </Cartao>
     </>
   );

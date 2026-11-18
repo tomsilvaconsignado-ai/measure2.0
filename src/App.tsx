@@ -67,6 +67,7 @@ const Notas = pagina(() => import('@/pages/contratos/Notas'), 'Notas');
 const Pagamentos = pagina(() => import('@/pages/contratos/Pagamentos'), 'Pagamentos');
 const Relatorios = pagina(() => import('@/pages/relatorios/Relatorios'), 'Relatorios');
 const RelatorioImprimir = pagina(() => import('@/pages/relatorios/RelatorioImprimir'), 'RelatorioImprimir');
+const CustosUnidadesImprimir = pagina(() => import('@/pages/relatorios/CustosUnidadesImprimir'), 'CustosUnidadesImprimir');
 const Painel = pagina(() => import('@/pages/Painel'), 'Painel');
 const OrdensServico = pagina(() => import('@/pages/OrdensServico'), 'OrdensServico');
 const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Consolidado');
@@ -158,6 +159,7 @@ export function App() {
     <Routes>
       <Route path="imprimir/:id" element={<Imprimir />} />
       <Route path="relatorios/imprimir" element={<RelatorioImprimir />} />
+      <Route path="relatorios/custos-unidades" element={<CustosUnidadesImprimir />} />
       <Route element={<AppLayout />}>
         <Route index element={<Inicio />} />
         <Route path="estrutura" element={<Estrutura />} />

@@ -1,6 +1,7 @@
 // Relatórios, painel, notificações, ordens de serviço, importação e exportação.
 import { supabase } from '@/lib/supabase';
 import type { Decimal } from '@/lib/tipos';
+import type { LinhaCusto } from '@/lib/custosUnidades';
 
 function falhou<T>(r: { data: T; error: unknown }): T {
   if (r.error) throw r.error;
@@ -79,6 +80,20 @@ export async function relatorioTotais(tenantId: string, f: Filtros) {
 
 export async function relatorioConsumo(tenantId: string, f: Filtros) {
   return falhou(await supabase.rpc('relatorio_consumo', { p: limpar(tenantId, f) })) as LinhaConsumo[];
+}
+
+/** Custos por unidade de saúde: notas distribuídas por mês de competência e por unidade (todas as páginas) */
+export async function relatorioCustosUnidades(tenantId: string, f: { ano: number; mes_inicio: number; mes_fim: number; fornecedores?: string[]; contratos?: string[]; unidades?: string[] }) {
+  const p = limpar(tenantId, f as Filtros);
+  const todas: LinhaCusto[] = [];
+  for (let o = 0; o < 50000; o += 1000) {
+    const r = await supabase.rpc('relatorio_custos_unidades', { p }).range(o, o + 999);
+    if (r.error) throw r.error;
+    const itens = (r.data ?? []) as LinhaCusto[];
+    todas.push(...itens);
+    if (itens.length < 1000) break;
+  }
+  return todas;
 }
 
 export async function anosComMovimento(tenantId: string) {
