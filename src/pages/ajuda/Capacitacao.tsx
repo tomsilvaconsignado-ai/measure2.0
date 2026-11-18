@@ -329,7 +329,7 @@ const LICOES: Licao[] = [
       <H>O que dá para consultar</H>
       <P><b>Preços praticados</b> (o mais útil para o fiscal), <b>contratos e itens</b> de um fornecedor, <b>atas de registro de preços</b> com saldo e adesões, a <b>situação do fornecedor</b> no cadastro do governo e o <b>catálogo</b> de materiais (CATMAT) e serviços (CATSER), cujo código liga todas as consultas.</P>
       <Atencao>A consulta é um apoio à fiscalização. A pesquisa de preço formal segue o art. 23 da Lei nº 14.133/2021 e os modelos do município. Registre de onde veio cada preço e a data da consulta.</Atencao>
-      <NoMeasure>Na aba <b>Dados abertos (Compras.gov.br)</b> desta capacitação, o MEASURE monta a consulta para você: escolha o tipo, preencha o código ou o CNPJ e clique em <b>Abrir consulta no Compras.gov.br</b>. <Link to="/ajuda/capacitacao?aba=compras" className="font-semibold text-marca-700 underline">Ir para a consulta</Link>.</NoMeasure>
+      <NoMeasure>Na aba <b>Pesquisa de preços (Compras.gov.br)</b> desta capacitação, você escolhe o item numa lista com os códigos de saúde já liberados para a SMS, e o MEASURE busca os dados na fonte oficial e mostra aqui mesmo: preços pagos por outros órgãos com menor valor, mediana e maior valor, atas de registro de preços e situação do fornecedor. <Link to="/ajuda/capacitacao?aba=compras" className="font-semibold text-marca-700 underline">Ir para a pesquisa</Link>.</NoMeasure>
     </>,
   },
   {
@@ -581,12 +581,12 @@ export function Capacitacao() {
       {aba !== 'compras' && <DestaqueDadosAbertos aoAbrir={() => { setAba('compras'); window.scrollTo({ top: 0 }); }} />}
       <Cartao>
         <Abas<Aba> abas={[
+          { id: 'compras', rotulo: <span className="flex items-center gap-1.5"><Database className="size-4" aria-hidden />Pesquisa de preços (Compras.gov.br)</span> },
           { id: 'trilha', rotulo: <span className="flex items-center gap-1.5"><GraduationCap className="size-4" aria-hidden />Trilha de aprendizagem</span> },
           { id: 'consulta', rotulo: 'Consulta rápida da lei' },
           { id: 'glossario', rotulo: 'Glossário' },
           { id: 'teste', rotulo: 'Teste seus conhecimentos' },
           { id: 'aracaju', rotulo: 'Normas de Aracaju' },
-          { id: 'compras', rotulo: <span className="flex items-center gap-1.5"><Database className="size-4" aria-hidden />Dados abertos (Compras.gov.br)</span> },
         ]} ativa={aba} aoMudar={setAba} />
         {aba === 'trilha' && <Trilha />}
         {aba === 'consulta' && <Consulta />}

@@ -128,12 +128,12 @@ const TOPICOS: Topico[] = [
     'Suspeita de acesso indevido ou vazamento: comunique imediatamente a administração do órgão.',
   ] },
   { id: 'dados-abertos', grupo: 'Contratos e execução', titulo: 'Pesquisar preços e contratos no Compras.gov.br (dados abertos)', link: '/ajuda/capacitacao?aba=compras', passos: [
-    'Abra Ajuda e manual → Capacitação de fiscais → aba "Dados abertos (Compras.gov.br)" (ou o botão amarelo "Consultar preços e contratos").',
-    'Para pesquisar preço: primeiro ache o código do item no catálogo do governo (CATMAT para material, CATSER para serviço).',
-    'Escolha "Preços praticados", informe o código e, se quiser, a UF. Clique em "Abrir consulta no Compras.gov.br".',
+    'Abra Ajuda e manual → Capacitação de fiscais → aba "Pesquisa de preços (Compras.gov.br)" (ou o botão amarelo "Pesquisar preços").',
+    'Escolha "Preço de material" ou "Preço de serviço" e digite parte do nome do item: a lista mostra os códigos CATMAT/CATSER liberados para o órgão (na SMS, os de saúde).',
+    'Se quiser, filtre por UF e data e clique em "Pesquisar": o resultado aparece no próprio MEASURE, com menor preço, mediana, média e maior preço.',
     'Também dá para consultar a situação de um fornecedor pelo CNPJ e as atas de registro de preços com o item.',
     'Compare preço unitário, quantidade, data e unidade de fornecimento, e guarde o resultado no processo.',
-  ], dicas: ['A consulta abre no site do governo; nenhum dado do órgão sai do MEASURE.', 'É apoio à fiscalização: a pesquisa de preço formal segue o art. 23 da Lei 14.133/2021 e os modelos do município.'] },
+  ], dicas: ['Os dados vêm da página oficial do Compras.gov.br; o MEASURE consulta e mostra sem você sair do sistema.', 'Quem administra o órgão define as categorias de códigos (CATMAT por classe, CATSER por grupo) e atualiza os códigos com o catálogo do governo.', 'É apoio à fiscalização: a pesquisa de preço formal segue o art. 23 da Lei 14.133/2021 e os modelos do município.'] },
 ];
 
 function Item({ t, aberto, alternar }: { t: Topico; aberto: boolean; alternar: () => void }): ReactNode {

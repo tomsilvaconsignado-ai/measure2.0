@@ -148,7 +148,7 @@ const MAIS = [
   { icone: <ClipboardCheck className="size-5" aria-hidden />, titulo: 'Ordens de serviço', texto: 'Pedidos de serviço ligados ao contrato, com prioridade e acompanhamento.' },
   { icone: <FileSpreadsheet className="size-5" aria-hidden />, titulo: 'Relatórios', texto: 'Consumo e notas por classificação, fornecedor e período, em PDF e Excel.' },
   { icone: <GraduationCap className="size-5" aria-hidden />, titulo: 'Capacitação de fiscais', texto: 'Curso com lições curtas, gráficos e teste, explicando o papel do fiscal.' },
-  { icone: <Database className="size-5" aria-hidden />, titulo: 'Dados abertos do Compras.gov.br', texto: 'Preços praticados, atas de registro de preços e situação de fornecedores, com a consulta montada pelo sistema.' },
+  { icone: <Database className="size-5" aria-hidden />, titulo: 'Dados abertos do Compras.gov.br', texto: 'Preços praticados, atas de registro de preços e situação de fornecedores, consultados na fonte oficial e mostrados no próprio sistema.' },
 ];
 
 const SEGURANCA = [
@@ -331,9 +331,9 @@ export function PorQueMeasure() {
         <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/25"><Database className="size-7" aria-hidden /></span>
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-extrabold sm:text-2xl">O preço está certo? Compare com o que o governo já pagou</h2>
-          <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE leva o gestor e o fiscal aos dados abertos do Compras.gov.br: preços praticados por outros órgãos, contratos, atas de registro de preços e a situação do fornecedor. O sistema monta a consulta; basta informar o código do item ou o CNPJ.</p>
+          <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE consulta os dados abertos do Compras.gov.br e mostra, sem sair do sistema, quanto outros órgãos pagaram pelo item (com menor preço, mediana e maior preço), as atas de registro de preços e a situação do fornecedor. Os códigos do ramo de cada secretaria já vêm prontos para escolher.</p>
         </div>
-        <Link to="/ajuda/capacitacao?aba=compras" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Consultar preços e contratos</Link>
+        <Link to="/ajuda/capacitacao?aba=compras" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>
       </section>
 
       {/* ------------------------------------------------ segurança e celular */}
