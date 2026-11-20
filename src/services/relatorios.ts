@@ -121,6 +121,28 @@ export async function painel(tenantId: string, ano: number | null) {
   return falhou(await supabase.rpc('painel', { p_tenant: tenantId, p_ano: ano })) as Painel;
 }
 
+/** Painel gerencial com filtros (exercício, meses e coordenação), no estilo de dashboard financeiro */
+export interface PainelGerencial {
+  ano: number;
+  unidades: Array<{ id: string; sigla: string | null; nome: string }>;
+  indicadores: {
+    contratos_vigentes: number; contratos_a_vencer: number; contratos_vencidos: number; valor_vigentes: Decimal;
+    empenhado: Decimal; saldo_empenhos: Decimal; empenhos_saldo_baixo: number;
+    notas_quantidade: number; notas_valor: Decimal; pago_bruto: Decimal; pago_liquido: Decimal; a_pagar: Decimal;
+    pendentes_atesto: number; pendentes_pagamento: number;
+  };
+  mensal: Array<{ mes: number; lancado: Decimal; pago: Decimal; a_pagar: Decimal }>;
+  execucao: Array<{ mes: number; saldo: Decimal }>;
+  espera: Array<{ faixa: string; atestadas: Decimal; sem_atesto: Decimal }>;
+  top_fornecedores: Array<{ nome: string; valor: Decimal }>;
+  top_acoes: Array<{ codigo: string; descricao: string; valor: Decimal }>;
+  vencendo: Array<{ id: string; numero: string; fornecedor_nome: string; data_fim_atual: string; dias_para_vencer: number; saldo: Decimal }>;
+}
+
+export async function painelGerencial(tenantId: string, ano: number, meses: number[], unidadeId: string | null) {
+  return falhou(await supabase.rpc('painel_gerencial', { p_tenant: tenantId, p_ano: ano, p_meses: meses.length ? meses : null, p_unidade: unidadeId })) as PainelGerencial;
+}
+
 export interface Notificacao { tipo: 'ATESTO' | 'VENCIMENTO' | 'PAGAMENTO' | 'SALDO'; severidade: 'alta' | 'media'; titulo: string; descricao: string; link: string }
 
 export async function minhasNotificacoes(tenantId: string) {

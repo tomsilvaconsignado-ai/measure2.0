@@ -4,7 +4,7 @@
 import { useState, type ReactNode } from 'react';
 import { cx } from './ui/basicos';
 
-export const CORES = { emitido: '#2f66bd', pago: '#14a38b', trilho: '#e8eef6', grade: '#eef2f6', base: '#cbd5e1' } as const;
+export const CORES = { emitido: '#2f66bd', pago: '#14a38b', aPagar: '#d97706', trilho: '#e8eef6', grade: '#eef2f6', base: '#cbd5e1' } as const;
 
 const limitar = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const pct = (parte: number, total: number) => (total > 0 ? limitar((parte / total) * 100, 0, 100) : 0);
@@ -137,13 +137,16 @@ export function LinhaSuave({ rotulos, valores: todos, formatar, nome, cor = CORE
   );
 }
 
-/** Colunas agrupadas (até 3 séries): barras finas com 2px de folga, ponta arredondada, dica por mês */
-export function ColunasAgrupadas({ rotulos, series, formatar, rotulo }: {
+/** Colunas agrupadas (até 3 séries): barras finas com 2px de folga, ponta arredondada, dica por mês.
+ *  `linha`: série extra desenhada como linha com marcadores, na mesma escala (mesma unidade, um eixo só).
+ *  `destacar`: colunas fora do filtro ficam esmaecidas. `largura`: proporção do desenho (menor em cartões estreitos, para o texto não encolher). */
+export function ColunasAgrupadas({ rotulos, series, formatar, rotulo, linha, destacar, largura = 640 }: {
   rotulos: string[]; series: Array<{ nome: string; cor: string; valores: number[] }>; formatar: (v: number) => string; rotulo: string;
+  linha?: { nome: string; cor: string; valores: number[] }; destacar?: (i: number) => boolean; largura?: number;
 }) {
   const [ativo, setAtivo] = useState<number | null>(null);
-  const L = 640, A = 210, base = 182, topo = 16;
-  const max = Math.max(1, ...series.flatMap((s) => s.valores));
+  const L = largura, A = 210, base = 182, topo = 16;
+  const max = Math.max(1, ...series.flatMap((s) => s.valores), ...(linha?.valores ?? []));
   const faixa = L / rotulos.length, larg = Math.min(14, (faixa * 0.62) / series.length - 2), grupo = series.length * larg + (series.length - 1) * 2;
   const coluna = (x: number, h: number) => {
     const r = Math.min(4, h, larg / 2);
@@ -156,7 +159,7 @@ export function ColunasAgrupadas({ rotulos, series, formatar, rotulo }: {
         {rotulos.map((r, i) => {
           const x0 = i * faixa + (faixa - grupo) / 2;
           return (
-            <g key={r} opacity={ativo === null || ativo === i ? 1 : 0.5}>
+            <g key={r} opacity={ativo === i || (ativo === null && (!destacar || destacar(i))) ? 1 : 0.4}>
               {ativo === i && <rect x={i * faixa + 2} y={topo - 8} width={faixa - 4} height={base - topo + 8} rx={6} fill="#f1f5f9" />}
               {series.map((s, j) => {
                 const v = s.valores[i] ?? 0, h = v > 0 ? Math.max(2, ((base - topo) * v) / max) : 0;
@@ -164,15 +167,24 @@ export function ColunasAgrupadas({ rotulos, series, formatar, rotulo }: {
               })}
               <text x={i * faixa + faixa / 2} y={base + 17} textAnchor="middle" fontSize={11} fill="#64748b">{r}</text>
               <rect x={i * faixa} y={0} width={faixa} height={A} fill="transparent" tabIndex={0}
-                aria-label={`${r}: ${series.map((s) => `${s.nome} ${formatar(s.valores[i] ?? 0)}`).join(', ')}`}
+                aria-label={`${r}: ${[...series, ...(linha ? [linha] : [])].map((s) => `${s.nome} ${formatar(s.valores[i] ?? 0)}`).join(', ')}`}
                 onMouseEnter={() => setAtivo(i)} onFocus={() => setAtivo(i)} onBlur={() => setAtivo(null)} />
             </g>
           );
         })}
         <line x1={0} x2={L} y1={base} y2={base} stroke={CORES.base} strokeWidth={1} />
+        {linha && (() => {
+          const pts = linha.valores.map((v, i) => [i * faixa + faixa / 2, base - ((base - topo) * v) / max] as [number, number]);
+          return (
+            <g pointerEvents="none">
+              <path d={caminhoSuave(pts)} fill="none" stroke={linha.cor} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              {pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={ativo === i ? 5 : 4} fill="#fff" stroke={linha.cor} strokeWidth={2} />)}
+            </g>
+          );
+        })()}
       </svg>
       {ativo !== null && <Dica x={((ativo + 0.5) / rotulos.length) * 100} titulo={rotulos[ativo]!}
-        linhas={series.map((s) => ({ nome: s.nome, cor: s.cor, valor: formatar(s.valores[ativo] ?? 0) }))} />}
+        linhas={[...series, ...(linha ? [linha] : [])].map((s) => ({ nome: s.nome, cor: s.cor, valor: formatar(s.valores[ativo] ?? 0) }))} />}
     </div>
   );
 }
