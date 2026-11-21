@@ -29,6 +29,9 @@ function Moldura({ titulo, subtitulo, children }: { titulo: string; subtitulo?: 
           <h1 className="text-2xl font-semibold text-slate-900">{titulo}</h1>
           {subtitulo && <p className="mt-1 text-sm text-slate-600">{subtitulo}</p>}
           <div className="mt-6">{children}</div>
+          <p className="mt-10 text-center text-xs text-slate-500">
+            Desenvolvido por <a href="https://measuresistemas.com.br/" target="_blank" rel="noopener" className="font-semibold text-marca-700 underline-offset-2 hover:underline">MEASURE Sistemas</a>
+          </p>
         </div>
       </main>
     </div>

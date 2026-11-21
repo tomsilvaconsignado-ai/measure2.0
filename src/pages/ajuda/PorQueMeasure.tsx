@@ -479,6 +479,9 @@ export function PorQueMeasurePublico() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8"><PorQueMeasure publico /></main>
+      <footer className="border-t border-slate-200 px-4 py-6 text-center text-xs text-slate-500">
+        Desenvolvido por <a href="https://measuresistemas.com.br/" target="_blank" rel="noopener" className="font-semibold text-marca-700 underline-offset-2 hover:underline">MEASURE Sistemas</a>
+      </footer>
     </div>
   );
 }
