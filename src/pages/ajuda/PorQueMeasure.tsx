@@ -1,14 +1,16 @@
-// "Por que usar o MEASURE": apresentação do sistema dentro de Ajuda e manual.
+// "Por que usar o MEASURE": apresentação do sistema dentro de Ajuda e manual
+// e também aberta ao público, sem login, em /por-que-usar (link na tela de entrada).
 // Explica, em linguagem simples, o que o sistema faz e o que muda no dia a dia de cada perfil.
 // Os prints são de um órgão de EXEMPLO, com dados fictícios (nenhum dado real de pessoas ou empresas).
 import {
   ArrowRight, BarChart3, Banknote, Bell, BookOpen, CalendarCheck2, Database, Search, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSpreadsheet,
-  FileText, Gavel, GraduationCap, History, Home, KeyRound, Lock, Mail, MessagesSquare, Package, Receipt, ShieldCheck, Smartphone, Sparkles, Users, Wallet, Wand2,
+  FileText, Gavel, GraduationCap, History, Home, KeyRound, Lock, LogIn, Mail, MessagesSquare, Package, Receipt, ShieldCheck, Smartphone, Sparkles, Users, Wallet, Wand2,
   X, XCircle, ZoomIn,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cx } from '@/components/ui/basicos';
+import { LogoCompleto } from '@/components/layout/Marca';
 
 const img = (nome: string) => `${import.meta.env.BASE_URL}ajuda/apresentacao/${nome}.webp`;
 
@@ -158,7 +160,7 @@ const SEGURANCA = [
   { icone: <ShieldCheck className="size-5" aria-hidden />, titulo: 'Acesso com dupla proteção', texto: 'Senha forte e confirmação em duas etapas para quem administra o órgão.' },
 ];
 
-export function PorQueMeasure() {
+export function PorQueMeasure({ publico = false }: { publico?: boolean }) {
   const [aberta, setAberta] = useState<Print | null>(null);
   useEffect(() => {
     if (!aberta) return;
@@ -190,9 +192,15 @@ export function PorQueMeasure() {
               <a href="#funcionalidades" className="inline-flex items-center gap-2 rounded-xl bg-chamada-400 px-5 py-3 text-sm font-bold text-marca-950 shadow-lg shadow-chamada-500/30 hover:bg-chamada-300">
                 Ver o que ele faz<ArrowRight className="size-4" aria-hidden />
               </a>
-              <Link to="/ajuda" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/15">
-                <BookOpen className="size-4" aria-hidden />Passo a passo do manual
-              </Link>
+              {publico ? (
+                <Link to="/entrar" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/15">
+                  <LogIn className="size-4" aria-hidden />Entrar no sistema
+                </Link>
+              ) : (
+                <Link to="/ajuda" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/15">
+                  <BookOpen className="size-4" aria-hidden />Passo a passo do manual
+                </Link>
+              )}
             </div>
           </div>
           <div className="relative hidden lg:block">
@@ -333,7 +341,7 @@ export function PorQueMeasure() {
           <h2 className="text-xl font-extrabold sm:text-2xl">O preço está certo? Compare com o que o governo já pagou</h2>
           <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE consulta os dados abertos do Compras.gov.br e mostra, sem sair do sistema, quanto outros órgãos pagaram pelo item (com menor preço, mediana e maior preço), as atas de registro de preços e a situação do fornecedor. Os códigos do ramo de cada secretaria já vêm prontos para escolher.</p>
         </div>
-        <Link to="/pesquisa-precos" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>
+        {!publico && <Link to="/pesquisa-precos" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>}
       </section>
 
       {/* ------------------------------------------------ segurança e celular */}
@@ -372,12 +380,21 @@ export function PorQueMeasure() {
       <section className="relative mt-12 overflow-hidden rounded-3xl bg-gradient-to-r from-marca-800 via-marca-700 to-marca-600 px-6 py-10 text-center text-white sm:px-10">
         <div className="pointer-events-none absolute -left-16 -top-16 size-64 rounded-full bg-acento-400/20 blur-3xl" aria-hidden />
         <h2 className="relative text-2xl font-extrabold sm:text-3xl">Pronto para começar?</h2>
+        {publico ? (
+          <>
+            <p className="relative mx-auto mt-2 max-w-xl text-marca-100">Já tem acesso? Entre com o e-mail institucional e a senha cadastrados pelo seu órgão.</p>
+            <div className="relative mt-6 flex flex-wrap justify-center gap-3">
+              <Link to="/entrar" className="inline-flex items-center gap-2 rounded-xl bg-chamada-400 px-5 py-3 text-sm font-bold text-marca-950 shadow-lg hover:bg-chamada-300"><LogIn className="size-4" aria-hidden />Entrar no sistema</Link>
+            </div>
+          </>
+        ) : (<>
         <p className="relative mx-auto mt-2 max-w-xl text-marca-100">Comece pela página inicial: ela mostra o que está esperando por você. Se ficar com dúvida, toque na bússola no topo para ver os balões de ajuda.</p>
         <div className="relative mt-6 flex flex-wrap justify-center gap-3">
           <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-chamada-400 px-5 py-3 text-sm font-bold text-marca-950 shadow-lg hover:bg-chamada-300"><Home className="size-4" aria-hidden />Ir para o início</Link>
           <Link to="/ajuda" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 hover:bg-white/15"><BookOpen className="size-4" aria-hidden />Manual passo a passo</Link>
           <Link to="/ajuda/capacitacao" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 hover:bg-white/15"><GraduationCap className="size-4" aria-hidden />Capacitação de fiscais</Link>
         </div>
+        </>)}
       </section>
       <p className="mt-4 text-center text-xs text-slate-400">As telas desta página usam um órgão de exemplo com dados fictícios. <Users className="inline size-3" aria-hidden /> Nenhum dado real de servidores ou empresas foi usado.</p>
 
@@ -391,6 +408,24 @@ export function PorQueMeasure() {
           </figure>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Versão aberta ao público (sem login): mesma apresentação, com um topo simples e o botão de entrar */
+export function PorQueMeasurePublico() {
+  useEffect(() => { const t = document.title; document.title = 'Por que usar o MEASURE'; return () => { document.title = t; }; }, []);
+  return (
+    <div className="min-h-dvh bg-white">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link to="/entrar" aria-label="MEASURE: ir para a tela de entrada"><LogoCompleto className="h-10 w-auto" /></Link>
+          <Link to="/entrar" className="inline-flex items-center gap-2 rounded-xl bg-marca-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-marca-800">
+            <LogIn className="size-4" aria-hidden />Entrar
+          </Link>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8"><PorQueMeasure publico /></main>
     </div>
   );
 }

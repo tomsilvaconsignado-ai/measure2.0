@@ -74,6 +74,7 @@ const Consolidado = pagina(() => import('@/pages/cadastros/Consolidado'), 'Conso
 const Ajuda = pagina(() => import('@/pages/Ajuda'), 'Ajuda');
 const Capacitacao = pagina(() => import('@/pages/ajuda/Capacitacao'), 'Capacitacao');
 const PorQueMeasure = pagina(() => import('@/pages/ajuda/PorQueMeasure'), 'PorQueMeasure');
+const PorQueMeasurePublico = pagina(() => import('@/pages/ajuda/PorQueMeasure'), 'PorQueMeasurePublico');
 const Erros = pagina(() => import('@/pages/plataforma/Erros'), 'Erros');
 const Dotacoes = pagina(() => import('@/pages/plataforma/Dotacoes'), 'Dotacoes');
 const Monitoramento = pagina(() => import('@/pages/plataforma/Monitoramento'), 'Monitoramento');
@@ -120,6 +121,8 @@ export function App() {
       <Routes>
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        {/* única página aberta sem login: apresentação do sistema */}
+        <Route path="/por-que-usar" element={<Suspense fallback={<Carregando />}><PorQueMeasurePublico /></Suspense>} />
         <Route path="*" element={<Navigate to="/entrar" replace />} />
       </Routes>
     );
@@ -174,6 +177,7 @@ export function App() {
         <Route path="ajuda" element={<Ajuda />} />
         <Route path="ajuda/capacitacao" element={<Capacitacao />} />
         <Route path="ajuda/por-que-usar" element={<PorQueMeasure />} />
+        <Route path="por-que-usar" element={<Navigate to="/ajuda/por-que-usar" replace />} />
         <Route path="unidades-atendidas" element={<UnidadesAtendidas />} />
         <Route path="classificacao" element={<Classificacao />} />
         <Route path="tipos-servico" element={<TiposServico />} />

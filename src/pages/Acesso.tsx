@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -72,6 +72,9 @@ export function Entrar() {
         <Botao type="submit" carregando={enviando} disabled={!email || !senha} className="w-full">Entrar</Botao>
         <Link to="/esqueci-senha" className="text-center text-sm text-marca-700 hover:underline">Esqueci minha senha</Link>
       </form>
+      <Link to="/por-que-usar" className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-marca-700 hover:underline">
+        <Sparkles className="size-4" aria-hidden />Por que usar o MEASURE
+      </Link>
       <p className="mt-8 text-xs text-slate-500">Não tem acesso? Peça ao administrador do seu órgão para cadastrar você. Não há cadastro público.</p>
     </Moldura>
   );
