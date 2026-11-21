@@ -16,7 +16,7 @@ const img = (nome: string) => `${import.meta.env.BASE_URL}ajuda/apresentacao/${n
 
 interface Print { arquivo: string; legenda: string }
 
-function Imagem({ print, abrir, destaque }: { print: Print; abrir: (p: Print) => void; destaque?: boolean }) {
+function Imagem({ print, abrir, destaque, escuro }: { print: Print; abrir: (p: Print) => void; destaque?: boolean; escuro?: boolean }) {
   return (
     <figure className="group">
       <button type="button" onClick={() => abrir(print)} aria-label={`Ampliar: ${print.legenda}`}
@@ -32,7 +32,7 @@ function Imagem({ print, abrir, destaque }: { print: Print; abrir: (p: Print) =>
           <ZoomIn className="size-3.5" aria-hidden />Ampliar
         </span>
       </button>
-      <figcaption className="mt-2.5 text-center text-xs text-slate-500">{print.legenda}</figcaption>
+      <figcaption className={cx('mt-2.5 text-center text-xs', escuro ? 'text-marca-100' : 'text-slate-500')}>{print.legenda}</figcaption>
     </figure>
   );
 }
@@ -143,15 +143,66 @@ const PERFIS = [
   },
 ];
 
-const MAIS = [
+const MAIS: Array<{ icone: ReactNode; titulo: string; texto: string; destaque?: boolean }> = [
+  { icone: <Database className="size-5" aria-hidden />, titulo: 'Dados abertos do Compras.gov.br', destaque: true, texto: 'Preços praticados, atas de registro de preços e situação de fornecedores, consultados na fonte oficial e mostrados no próprio sistema.' },
   { icone: <MessagesSquare className="size-5" aria-hidden />, titulo: 'CONECTA', texto: 'Mural de comunicação interna, com avisos para setores ou pessoas, comentários e anexos.' },
   { icone: <Package className="size-5" aria-hidden />, titulo: 'Gestão patrimonial', texto: 'Bens, responsáveis, transferências, inventário e relatórios do patrimônio.' },
   { icone: <Gavel className="size-5" aria-hidden />, titulo: 'Notificações à empresa', texto: 'Notificação formal, resposta da empresa e sanções, com o histórico completo.' },
   { icone: <ClipboardCheck className="size-5" aria-hidden />, titulo: 'Ordens de serviço', texto: 'Pedidos de serviço ligados ao contrato, com prioridade e acompanhamento.' },
   { icone: <FileSpreadsheet className="size-5" aria-hidden />, titulo: 'Relatórios', texto: 'Consumo e notas por classificação, fornecedor e período, em PDF e Excel.' },
   { icone: <GraduationCap className="size-5" aria-hidden />, titulo: 'Capacitação de fiscais', texto: 'Curso com lições curtas, gráficos e teste, explicando o papel do fiscal.' },
-  { icone: <Database className="size-5" aria-hidden />, titulo: 'Dados abertos do Compras.gov.br', texto: 'Preços praticados, atas de registro de preços e situação de fornecedores, consultados na fonte oficial e mostrados no próprio sistema.' },
 ];
+
+// Destaque: pesquisa de preços nos dados abertos oficiais do Compras.gov.br
+function ComprasGov({ abrir, publico }: { abrir: (p: Print) => void; publico: boolean }) {
+  const pontos = [
+    { icone: <BarChart3 className="size-5" aria-hidden />, titulo: 'Preços praticados', texto: 'Quanto outros órgãos pagaram pelo mesmo item, com menor preço, mediana, média e maior preço calculados na hora.' },
+    { icone: <FileText className="size-5" aria-hidden />, titulo: 'Atas de registro de preços', texto: 'Atas vigentes com valor unitário, quantidade registrada, fornecedor e órgão gerenciador.' },
+    { icone: <ShieldCheck className="size-5" aria-hidden />, titulo: 'Situação do fornecedor', texto: 'Digite o CNPJ e veja se a empresa está ativa e habilitada a licitar, com porte e atividade.' },
+  ];
+  return (
+    <section id="compras-gov" className="relative mt-12 scroll-mt-24 overflow-hidden rounded-3xl bg-gradient-to-br from-marca-950 via-marca-900 to-marca-800 px-5 py-10 text-white shadow-2xl ring-2 ring-chamada-400/70 sm:px-10 sm:py-14">
+      <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-chamada-400/15 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-acento-400/15 blur-3xl" aria-hidden />
+      <div className="relative mx-auto max-w-3xl text-center">
+        <span className="inline-flex items-center gap-2 rounded-full bg-chamada-400 px-3 py-1 text-xs font-bold uppercase tracking-wider text-marca-950">
+          <Database className="size-3.5" aria-hidden />Dados abertos do Compras.gov.br
+        </span>
+        <h2 className="mt-4 text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+          O preço está certo? <span className="bg-gradient-to-r from-chamada-300 to-acento-300 bg-clip-text text-transparent">Compare com o que o governo já pagou.</span>
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-marca-100 sm:text-base">
+          Preços praticados, atas de registro de preços e situação de fornecedores, consultados na <b className="text-white">fonte oficial</b> e mostrados no próprio sistema.
+          Digite o nome do item, escolha na lista e pronto: sem garimpar sites, sem montar planilha.
+        </p>
+      </div>
+      <div className="relative mt-8 grid gap-4 md:grid-cols-3">
+        {pontos.map((p) => (
+          <div key={p.titulo} className="rounded-2xl bg-white/[0.07] p-5 ring-1 ring-white/15 backdrop-blur">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-chamada-400/20 text-chamada-300">{p.icone}</span>
+            <b className="mt-3 block">{p.titulo}</b>
+            <span className="mt-1 block text-sm leading-relaxed text-marca-200">{p.texto}</span>
+          </div>
+        ))}
+      </div>
+      <div className="relative mt-10">
+        <Imagem print={{ arquivo: 'precos-resultado', legenda: 'Preços praticados: menor preço, mediana, média e maior preço, com cada compra e o órgão comprador' }} abrir={abrir} destaque escuro />
+      </div>
+      <div className="relative mt-6 grid gap-6 md:grid-cols-2">
+        <Imagem print={{ arquivo: 'precos-sugestoes', legenda: 'Busca pelo nome do item no catálogo oficial (CATMAT/CATSER)' }} abrir={abrir} escuro />
+        <Imagem print={{ arquivo: 'precos-atas', legenda: 'Atas de registro de preços vigentes para o mesmo item' }} abrir={abrir} escuro />
+      </div>
+      <p className="relative mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-marca-200">
+        <ShieldCheck className="size-3.5 text-acento-300" aria-hidden />Apoio à pesquisa de preços prevista no art. 23 da Lei nº 14.133/2021. Nas telas, empresas e órgãos são fictícios.
+      </p>
+      {!publico && (
+        <div className="relative mt-6 flex justify-center">
+          <Link to="/pesquisa-precos" className="inline-flex items-center gap-2 rounded-xl bg-chamada-400 px-5 py-3 text-sm font-bold text-marca-950 shadow-lg hover:bg-chamada-300"><Search className="size-4" aria-hidden />Pesquisar preços agora</Link>
+        </div>
+      )}
+    </section>
+  );
+}
 
 const SEGURANCA = [
   { icone: <KeyRound className="size-5" aria-hidden />, titulo: 'Cada um vê só o que pode', texto: 'Permissões por função e por setor. Quem só consulta não consegue alterar nada.' },
@@ -318,6 +369,9 @@ export function PorQueMeasure({ publico = false }: { publico?: boolean }) {
           prints={[{ arquivo: 'avisos', legenda: 'Avisos no sininho do sistema' }, { arquivo: 'meus-contratos', legenda: '"Meus contratos": o que o gestor e o fiscal acompanham' }]} abrir={abrir} />
       </div>
 
+      {/* ------------------------------------------------ destaque: dados abertos do Compras.gov.br */}
+      <ComprasGov abrir={abrir} publico={publico} />
+
       {/* ------------------------------------------------ e mais */}
       <section className="py-12">
         <div className="mx-auto max-w-3xl text-center">
@@ -325,23 +379,22 @@ export function PorQueMeasure({ publico = false }: { publico?: boolean }) {
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Outros módulos que ajudam a gestão</h2>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MAIS.map((m) => (
+          {MAIS.map((m) => m.destaque ? (
+            <a key={m.titulo} href="#compras-gov" className="flex gap-4 rounded-2xl bg-gradient-to-br from-marca-950 to-marca-800 p-5 text-white shadow-lg ring-2 ring-chamada-400 transition hover:-translate-y-0.5 hover:shadow-xl">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-chamada-400 text-marca-950">{m.icone}</span>
+              <span>
+                <span className="mb-1 inline-block rounded-full bg-chamada-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-marca-950">Destaque</span>
+                <b className="block">{m.titulo}</b><span className="text-sm text-marca-100">{m.texto}</span>
+                <span className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-chamada-300">Ver as telas<ArrowRight className="size-3.5" aria-hidden /></span>
+              </span>
+            </a>
+          ) : (
             <div key={m.titulo} className="flex gap-4 rounded-2xl bg-white p-5 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-marca-50 text-marca-700 ring-1 ring-marca-100">{m.icone}</span>
               <span><b className="block text-slate-900">{m.titulo}</b><span className="text-sm text-slate-600">{m.texto}</span></span>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* ------------------------------------------------ dados abertos do governo */}
-      <section className="mb-12 flex flex-wrap items-center gap-5 rounded-3xl border-l-4 border-chamada-500 bg-gradient-to-r from-marca-950 via-marca-900 to-marca-800 p-6 text-white shadow-xl sm:p-8">
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/25"><Database className="size-7" aria-hidden /></span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-extrabold sm:text-2xl">O preço está certo? Compare com o que o governo já pagou</h2>
-          <p className="mt-1 max-w-2xl text-sm text-marca-100">O MEASURE consulta os dados abertos do Compras.gov.br e mostra, sem sair do sistema, quanto outros órgãos pagaram pelo item (com menor preço, mediana e maior preço), as atas de registro de preços e a situação do fornecedor. Os códigos do ramo de cada secretaria já vêm prontos para escolher.</p>
-        </div>
-        {!publico && <Link to="/pesquisa-precos" className="inline-flex items-center gap-2 rounded-xl bg-chamada-500 px-5 py-3 text-sm font-bold text-marca-950 shadow hover:bg-chamada-400"><Search className="size-4" aria-hidden />Pesquisar preços</Link>}
       </section>
 
       {/* ------------------------------------------------ segurança e celular */}
