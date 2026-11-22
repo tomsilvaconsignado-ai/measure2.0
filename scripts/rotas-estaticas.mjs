@@ -17,3 +17,34 @@ for (const r of rotas) {
 }
 fs.writeFileSync(path.join(dist, '404.html'), indice);
 console.log(`${rotas.length} rotas com página própria; demais caminhos pelo 404.html`);
+
+// Google: só a entrada e a página pública "Por que usar o MEASURE" aparecem na busca. As demais rotas
+// (telas internas) e o 404.html continuam com noindex, herdado do index.html.
+const SITE = 'https://measuregcp.com.br';
+const DESCRICAO = 'Sistema de gestão de contratos públicos: empenhos, notas fiscais, fiscalização, pesquisa de preços com dados do Compras.gov.br e controle de despesas.';
+const PUBLICAS = [
+  { arquivo: 'index.html', url: `${SITE}/`, titulo: 'MEASURE 2.0 | Gestão de contratos públicos' },
+  { arquivo: 'por-que-usar.html', url: `${SITE}/por-que-usar`, titulo: 'Por que usar o MEASURE | Gestão de contratos públicos' },
+];
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+for (const p of PUBLICAS) {
+  const alvo = path.join(dist, p.arquivo);
+  if (!fs.existsSync(alvo)) throw new Error(`página pública ausente: ${p.arquivo}`);
+  const extra = [
+    `<link rel="canonical" href="${p.url}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:locale" content="pt_BR" />`,
+    `<meta property="og:site_name" content="MEASURE 2.0" />`,
+    `<meta property="og:title" content="${esc(p.titulo)}" />`,
+    `<meta property="og:description" content="${esc(DESCRICAO)}" />`,
+    `<meta property="og:url" content="${p.url}" />`,
+    `<meta property="og:image" content="${SITE}/marca/icone-512.png" />`,
+  ].join('\n    ');
+  const html = indice.toString()
+    .replace(/<meta name="robots" content="[^"]*" \/>/, '<meta name="robots" content="index, follow" />')
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(p.titulo)}</title>`)
+    .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${esc(DESCRICAO)}" />\n    ${extra}`);
+  if (!html.includes('index, follow')) throw new Error('não foi possível liberar a indexação de ' + p.arquivo);
+  fs.writeFileSync(alvo, html);
+}
+console.log(`indexáveis: ${PUBLICAS.map((p) => p.arquivo).join(', ')}`);

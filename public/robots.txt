@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://measuregcp.com.br/sitemap.xml
