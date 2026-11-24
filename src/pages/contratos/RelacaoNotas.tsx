@@ -1,17 +1,23 @@
 // Imprimir relação de notas: escolhe a situação (não pagas, pagas, faltando atesto ou todas) e o filtro
-// (um contrato ou uma empresa). Emite o documento e abre a página de impressão ("Imprimir / salvar PDF").
+// (um contrato ou uma empresa) e, se quiser, o período (ano e meses, pela data de emissão da nota).
+// Emite o documento e abre a página de impressão ("Imprimir / salvar PDF").
 import { useMutation } from '@tanstack/react-query';
 import { Printer } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Botao, cx } from '@/components/ui/basicos';
+import { Botao, Selecao, cx } from '@/components/ui/basicos';
 import { Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
+import { periodoDe } from '@/lib/relacaoNotas';
 import { emitirRelacaoNotas } from '@/services/execucao';
 import { SITUACOES_RELACAO, type SituacaoRelacao } from './ImprimirRelacaoNotas';
 import { SeletorContrato, SeletorFornecedor } from './comum';
 
 type Escolha = { id: string; rotulo: string } | null;
+
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const ANO_ATUAL = Number(new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' }).slice(0, 4));
+const ANOS = Array.from({ length: 10 }, (_, i) => ANO_ATUAL + 1 - i);
 
 export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: boolean; aoFechar: () => void; contratoInicial?: Escolha }) {
   const navegar = useNavigate();
@@ -20,14 +26,21 @@ export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: bo
   const [contrato, setContrato] = useState<Escolha>(contratoInicial ?? null);
   const [empresa, setEmpresa] = useState<Escolha>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // período: "todos os anos" por padrão (nada some da relação sem querer); escolhendo o ano, os meses aparecem
+  const [ano, setAno] = useState<number | null>(null);
+  const [mesDe, setMesDe] = useState(1);
+  const [mesAte, setMesAte] = useState(12);
+  const periodoInvertido = ano !== null && mesDe > mesAte;
   const escolhido = por === 'CONTRATO' ? contrato : empresa;
   const emitir = useMutation({
-    mutationFn: () => emitirRelacaoNotas(situacao, por === 'CONTRATO' ? { contratoId: contrato!.id } : { fornecedorId: empresa!.id }),
+    mutationFn: () => emitirRelacaoNotas(situacao, por === 'CONTRATO' ? { contratoId: contrato!.id } : { fornecedorId: empresa!.id },
+      ano === null ? null : periodoDe(ano, mesDe, mesAte)),
     onSuccess: (id) => navegar(`/imprimir/${id}`),
     onError: (e) => setErro(traduzirErro(e).mensagem),
   });
   const gerar = () => {
     if (!escolhido) { setErro(por === 'CONTRATO' ? 'Escolha o contrato.' : 'Escolha a empresa.'); return; }
+    if (periodoInvertido) return;
     setErro(null);
     emitir.mutate();
   };
@@ -66,6 +79,29 @@ export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: bo
           : <SeletorFornecedor valor={empresa?.id ?? null} rotuloValor={empresa?.rotulo} erro={erro && !empresa ? erro : null}
               aoMudar={(v, o) => { setEmpresa(v && o ? { id: v, rotulo: o.rotulo } : null); setErro(null); }} />}
         {por === 'EMPRESA' && <p className="mt-1.5 text-xs text-slate-500">Junta as notas de todos os contratos dessa empresa que você pode consultar.</p>}
+      </fieldset>
+      <fieldset className="mt-4">
+        <legend className="mb-1.5 text-sm font-medium text-slate-900">Período <span className="font-normal text-slate-500">(pela data de emissão da nota)</span></legend>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Selecao rotulo="Ano" value={ano ?? ''} onChange={(e) => setAno(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Todos os anos</option>
+            {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </Selecao>
+          {ano !== null && <>
+            <Selecao rotulo="De" value={mesDe} onChange={(e) => setMesDe(Number(e.target.value))} erro={periodoInvertido ? 'Depois do mês final' : undefined}>
+              {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </Selecao>
+            <Selecao rotulo="Até" value={mesAte} onChange={(e) => setMesAte(Number(e.target.value))}>
+              {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </Selecao>
+          </>}
+        </div>
+        <p className="mt-1.5 text-xs text-slate-500">
+          {ano === null ? 'Sem período: entram notas de qualquer data.'
+            : mesDe === mesAte ? `Notas emitidas em ${MESES[mesDe - 1]!.toLowerCase()} de ${ano}.`
+              : periodoInvertido ? 'O mês inicial precisa vir antes do mês final.'
+                : `Notas emitidas de ${MESES[mesDe - 1]!.toLowerCase()} a ${MESES[mesAte - 1]!.toLowerCase()} de ${ano}.`}
+        </p>
       </fieldset>
       {erro && escolhido && <p role="alert" className="mt-3 text-sm text-red-700">{erro}</p>}
     </Modal>

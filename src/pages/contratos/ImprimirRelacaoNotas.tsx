@@ -15,6 +15,8 @@ interface NotaRelacao {
 }
 
 const num = (v: unknown) => Number(v) || 0;
+/** "MAIO A JUNHO/2026" → "Maio a junho/2026" */
+const capitalizar = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 
 export const SITUACOES_RELACAO = {
   NAO_PAGAS: { rotulo: 'Não pagas', explicacao: 'pendentes de pagamento ou pagas só em parte (inclui as que ainda aguardam atesto)' },
@@ -67,6 +69,7 @@ export function ImprimirRelacaoNotas({ doc }: { doc: DocumentoEmitido }) {
                 : campo('Empresa:', f?.nome ?? '-')}
               {campo(d.filtro === 'CONTRATO' ? 'Fornecedor:' : 'Documento:', d.filtro === 'CONTRATO' ? [f?.nome, documento].filter(Boolean).join(' · ') : documento || '-')}
               {campo('Situação:', <><b>{sit.rotulo}</b> <span className="text-slate-600">({sit.explicacao})</span></>)}
+              {campo('Período:', d.periodo?.rotulo ? <>{capitalizar(d.periodo.rotulo)} <span className="text-slate-600">(data de emissão da nota)</span></> : 'Todas as datas')}
               {campo('Notas:', `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'}`)}
             </div>
             {d.filtro === 'CONTRATO' && d.contrato?.objeto && <div className="mt-1">{campo('Objeto:', d.contrato.objeto)}</div>}

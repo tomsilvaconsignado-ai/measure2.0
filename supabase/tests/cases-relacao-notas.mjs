@@ -52,6 +52,25 @@ export default async function ({ db, as, check, expectOk, expectFail, one, u, A,
   check(Object.keys(nossas(empresa)).sort().join() === 'REL-1,REL-2,REL-3,REL-4', 'por empresa: todas as não canceladas dos contratos dela');
   check(empresa?.dados.filtro === 'EMPRESA' && !!empresa.dados.fornecedor.nome, 'retrato guarda o filtro e a empresa');
 
+  // período (data de emissão): as notas acima são de 02/05/2026; esta é de julho
+  await db.exec('RESET ROLE');
+  await nota('REL-6', 600, 'PENDENTE', 'PENDENTE');
+  await db.query(`UPDATE notas_fiscais SET data_emissao = '2026-07-15' WHERE numero = 'REL-6' AND contrato_id = $1`, [ct.id]);
+  await expectFail('período sem o fim é recusado', u.adminCoinfra, `SELECT emitir_relacao_notas('TODAS', $1, null, '2026-05-01', null)`, [ct.id], /início e o fim/);
+  await expectFail('período invertido é recusado', u.adminCoinfra, `SELECT emitir_relacao_notas('TODAS', $1, null, '2026-07-01', '2026-05-31')`, [ct.id], /depois do mês final/);
+  const comPeriodo = async (inicio, fim) => {
+    const id = (await expectOk(`emite com período ${inicio} a ${fim}`, u.adminCoinfra,
+      `SELECT emitir_relacao_notas('TODAS', $1, null, $2, $3) AS id`, [ct.id, inicio, fim])).rows[0].id;
+    return (await as(u.adminCoinfra, `SELECT titulo, dados FROM documentos_emitidos WHERE id = $1`, [id])).rows[0];
+  };
+  const maioJunho = await comPeriodo('2026-05-01', '2026-06-30');
+  check(Object.keys(nossas(maioJunho)).sort().join() === 'REL-1,REL-2,REL-3,REL-4', 'maio a junho: só as emitidas no período (a de julho fica fora)');
+  check(/MAIO A JUNHO\/2026/.test(maioJunho?.dados.titulo) && maioJunho.dados.periodo?.rotulo === 'MAIO A JUNHO/2026', 'título e retrato trazem o período');
+  const julho = await comPeriodo('2026-07-01', '2026-07-31');
+  check(Object.keys(nossas(julho)).join() === 'REL-6' && /JULHO\/2026/.test(julho.dados.titulo), 'só julho: a nota de julho, com "JULHO/2026" no título');
+  const semPeriodo = await emitir('TODAS', ct.id, null);
+  check(Object.keys(nossas(semPeriodo)).length === 5 && !semPeriodo.dados.periodo, 'sem período: todas as datas, como antes');
+
   // escopo: quem é de outra coordenação, buscando pela mesma empresa, não recebe as notas dos contratos da COINFRA
   const coafTenta = await as(u.adminCoaf, `SELECT emitir_relacao_notas('TODAS', null, $1) AS id`, [ct.fornecedor_id]).catch((e) => ({ erro: e.message }));
   if ('erro' in coafTenta) check(/não encontrada/.test(coafTenta.erro), 'outra coordenação sem contrato dessa empresa: empresa não encontrada');
