@@ -11,6 +11,7 @@ import { traduzirErro } from '@/lib/erros';
 import { brl, formatarCnpj, formatarCpf, formatarData, formatarDataHora, formatarTelefone } from '@/lib/formatacao';
 import { obterEmitido } from '@/services/execucao';
 import { ImprimirExtratoNotas } from './ImprimirExtratoNotas';
+import { ImprimirRelacaoNotas } from './ImprimirRelacaoNotas';
 import { DocumentoOs } from '../os/DocumentoOs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -300,6 +301,7 @@ function NotificacaoFormal({ d }: { d: D }) {
 export function FolhaImpressao({ doc }: { doc: DocumentoEmitido }) {
   const d = doc.dados as D;
   if (doc.tipo === 'EXTRATO_NOTAS' || doc.tipo === 'EXTRATO_UNIDADES' || doc.tipo === 'EXTRATO_RATEIO') return <ImprimirExtratoNotas doc={doc} />;
+  if (doc.tipo === 'RELACAO_NOTAS') return <ImprimirRelacaoNotas doc={doc} />;
   const paisagem = doc.tipo === 'CONSOLIDADO_MENSAL';
   const titulo = doc.tipo === 'CONSOLIDADO_MENSAL' || doc.tipo === 'CHECKLIST_NOTA' ? String(d.titulo) : doc.tipo === 'EXTRATO_CONTRATO' ? `EXTRATO DO CONTRATO Nº ${d.contrato.numero}` : doc.tipo === 'EXTRATO_EMPENHO' ? `EXTRATO DO EMPENHO Nº ${d.empenho.numero}/${d.empenho.ano}` : doc.titulo.toUpperCase();
   return (
@@ -342,7 +344,7 @@ export function Imprimir() {
       <Botao icone={<Printer className="size-4" />} onClick={() => window.print()}>Imprimir / salvar PDF</Botao>
     </div>
   );
-  if (doc.tipo === 'EXTRATO_NOTAS' || doc.tipo === 'EXTRATO_UNIDADES' || doc.tipo === 'EXTRATO_RATEIO') {
+  if (doc.tipo === 'EXTRATO_NOTAS' || doc.tipo === 'EXTRATO_UNIDADES' || doc.tipo === 'EXTRATO_RATEIO' || doc.tipo === 'RELACAO_NOTAS') {
     return <div className="min-h-dvh bg-slate-200 py-6 print:bg-white print:py-0">{barra('max-w-[297mm]')}<FolhaImpressao doc={doc} /></div>;
   }
   const paisagem = doc.tipo === 'CONSOLIDADO_MENSAL';

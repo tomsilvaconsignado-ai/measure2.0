@@ -6,7 +6,8 @@ import type { DocumentoEmitido } from '@/lib/tipos';
 import { urlArquivo } from '@/services/api';
 import { FolhaImpressao } from './Imprimir';
 
-const EXTRATOS = ['EXTRATO_NOTAS', 'EXTRATO_UNIDADES', 'EXTRATO_RATEIO'];
+// A4 paisagem com faixa azul e rodapé em todas as páginas (extratos e relação de notas)
+const EXTRATOS = ['EXTRATO_NOTAS', 'EXTRATO_UNIDADES', 'EXTRATO_RATEIO', 'RELACAO_NOTAS'];
 
 export async function pdfDoEmitido(qc: QueryClient, doc: DocumentoEmitido, aoGerarPagina?: (png: string) => void) {
   // o brasão já entra no cache antes de montar a folha (a imagem é privada, por URL temporária)

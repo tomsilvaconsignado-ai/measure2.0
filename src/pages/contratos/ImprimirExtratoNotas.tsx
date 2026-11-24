@@ -10,7 +10,7 @@ import type { DocumentoEmitido } from '@/lib/tipos';
 type D = Record<string, any>;
 interface Nota { numero: string; data: string; valor: number; fornecedor: string; cancelada: boolean; pago: number; liquido: number; retido: number; unidade: string; referencia: string | null; rateio: Array<{ unidade: string; valor: number | null }> }
 
-const AZUL = '#0a2d6e';
+export const AZUL = '#0a2d6e';
 const num = (v: unknown) => Number(v) || 0;
 const pagoInteiro = (n: Nota) => num(n.pago) >= num(n.valor) - 0.01;
 
@@ -36,10 +36,10 @@ function totais(notas: Nota[], valorContrato: number) {
   };
 }
 
-type Coluna = { rotulo: string; largura: string; alinhar?: 'centro' | 'direita' };
+export type Coluna = { rotulo: string; largura: string; alinhar?: 'centro' | 'direita' };
 const alinhamento = (a?: Coluna['alinhar']) => (a === 'direita' ? 'text-right' : a === 'centro' ? 'text-center' : 'text-left');
 
-function Tabela({ colunas, linhas, apagadas }: { colunas: Coluna[]; linhas: ReactNode[][]; apagadas?: boolean[] }) {
+export function Tabela({ colunas, linhas, apagadas }: { colunas: Coluna[]; linhas: ReactNode[][]; apagadas?: boolean[] }) {
   return (
     <table className="w-full table-fixed border-collapse text-[9.5px] leading-tight">
       <colgroup>{colunas.map((c) => <col key={c.rotulo} style={{ width: c.largura }} />)}</colgroup>

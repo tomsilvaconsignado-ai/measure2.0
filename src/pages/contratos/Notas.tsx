@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, FolderDown, Layers, Pencil, Plus, Trash2, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Ban, ClipboardCheck, ClipboardCopy, FolderDown, Layers, Pencil, Plus, Printer, Trash2, Wallet, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -29,6 +29,7 @@ import { TextoDecreto, TextoEncaminhamento } from './TextosNota';
 import { EmitirChecklist } from './EmitirChecklist';
 import { usePendencias } from '@/components/Pendencias';
 import { ExtratosNotas } from './ExtratosNotas';
+import { RelacaoNotas } from './RelacaoNotas';
 import { AvisoVencido, BotaoAtestar, BotaoBaixa, BotaoVisualizar, SeletorContrato, SeletorEmpenho, SeloAtesto, SeloPagamento } from './comum';
 import { ListaSelecao } from '@/components/ui/ListaSelecao';
 
@@ -518,6 +519,7 @@ export function Notas() {
   const [contrato, setContrato] = useState<{ id: string; rotulo: string } | null>(params.get('contrato') ? { id: params.get('contrato')!, rotulo: 'Contrato selecionado' } : null);
   const [pagina, setPagina] = useState(0);
   const [nova, setNova] = useState(false);
+  const [relacao, setRelacao] = useState(false);
   const [empenhoAtalho, setEmpenhoAtalho] = useState<string | null>(null);
   // atalho vindo do contrato ou do empenho: /notas?nova=1&contrato=…&empenho=…
   useEffect(() => {
@@ -578,7 +580,11 @@ export function Notas() {
   return (
     <>
       <CabecalhoPagina titulo="Notas fiscais e execução" descricao="Registro, atesto pelo gestor/fiscal designado e pagamento. Cancelamentos ficam no histórico."
-        acoes={pode('notas_fiscais', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setNova(true)}>Nova nota fiscal</Botao>} />
+        acoes={<>
+          <Botao variante="secundario" icone={<Printer className="size-4" />} onClick={() => setRelacao(true)}
+            title="Relação para responder ao fornecedor: não pagas, pagas ou faltando atesto, por contrato ou por empresa">Imprimir relação</Botao>
+          {pode('notas_fiscais', 'criar') && <Botao icone={<Plus className="size-4" />} onClick={() => setNova(true)}>Nova nota fiscal</Botao>}
+        </>} />
       <Cartao>
         <Abas abas={[{ id: 'TODAS', rotulo: 'Todas' }, { id: 'ATESTO', rotulo: 'Pendentes de atesto', alerta: pendencias.atesto }, { id: 'PAGAMENTO', rotulo: 'Pendentes de pagamento', alerta: pendencias.pagamento }, { id: 'PAGAS', rotulo: 'Pagas' }, { id: 'CANCELADAS', rotulo: 'Canceladas' }]}
           ativa={filtro} aoMudar={setFiltro} />
@@ -590,6 +596,7 @@ export function Notas() {
           !q.data!.itens.length ? <Vazio titulo="Nenhuma nota encontrada" /> : <ul className={cx('divide-y divide-slate-100', q.isFetching && 'opacity-70')}>{q.data!.itens.map(linha)}</ul>}
         {q.data && <Paginacao pagina={pagina} total={q.data.total} porPagina={POR_PAGINA} aoMudar={setPagina} />}
       </Cartao>
+      {relacao && <RelacaoNotas aberto aoFechar={() => setRelacao(false)} contratoInicial={contrato} />}
       <NovaNota aberto={nova} aoFechar={() => { setNova(false); setEmpenhoAtalho(null); }} contratoInicial={contrato?.id} empenhoInicial={empenhoAtalho} aoSalvar={(id) => ver(id)} />
       <DetalheNota key={vendo ?? ''} id={vendo} abaInicial={abaVendo} aoFechar={() => ver(null)} />
       <BaixaPagamento nota={baixando} aoFechar={() => setBaixando(null)} aoConcluir={async () => { await qc.invalidateQueries({ queryKey: ['notas'] }); await qc.invalidateQueries({ queryKey: ['nota'] }); await qc.invalidateQueries({ queryKey: ['fila-pagamentos'] }); }} />
