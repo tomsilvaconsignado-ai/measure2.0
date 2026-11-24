@@ -71,6 +71,36 @@ export default async function ({ db, as, check, expectOk, expectFail, one, u, A,
   const semPeriodo = await emitir('TODAS', ct.id, null);
   check(Object.keys(nossas(semPeriodo)).length === 5 && !semPeriodo.dados.periodo, 'sem período: todas as datas, como antes');
 
+  // "Todos": todos os contratos (de todas as empresas) que a pessoa pode consultar no órgão
+  const todosId = (await expectOk('emite TODOS (todos os contratos do órgão)', u.adminCoinfra,
+    `SELECT emitir_relacao_notas('TODAS', null, null, null, null, $1) AS id`, [A])).rows[0].id;
+  const todos = (await as(u.adminCoinfra, `SELECT titulo, dados FROM documentos_emitidos WHERE id = $1`, [todosId])).rows[0];
+  check(Object.keys(nossas(todos)).length === 5 && todos.dados.filtro === 'TODOS' && /todos os contratos/.test(todos.titulo), 'todos: traz as notas dos contratos que a pessoa vê, marcado como TODOS');
+  const outrosContratos = new Set((todos?.dados.notas ?? []).map((x) => x.contrato));
+  check(outrosContratos.size >= 1 && todos.dados.fornecedor === null, 'todos: sem empresa fixa no cabeçalho');
+  const todosMaio = (await expectOk('todos com período', u.adminCoinfra,
+    `SELECT emitir_relacao_notas('TODAS', null, null, '2026-07-01', '2026-07-31', $1) AS id`, [A])).rows[0].id;
+  const tm = (await as(u.adminCoinfra, `SELECT dados FROM documentos_emitidos WHERE id = $1`, [todosMaio])).rows[0];
+  check(Object.keys(nossas(tm)).join() === 'REL-6', 'todos + período: só as do período');
+  await expectFail('todos de outro órgão: nada a consultar', u.adminB, `SELECT emitir_relacao_notas('TODAS', null, null, null, null, $1)`, [A], /Nenhum contrato/);
+  const coafTodos = await as(u.adminCoaf, `SELECT emitir_relacao_notas('TODAS', null, null, null, null, $1) AS id`, [A]).catch((e) => ({ erro: e.message }));
+  if ('erro' in coafTodos) check(/Nenhum contrato/.test(coafTodos.erro), 'todos por outra coordenação: sem contratos visíveis');
+  else {
+    const d = (await as(u.adminCoaf, `SELECT dados FROM documentos_emitidos WHERE id = $1`, [coafTodos.rows[0].id])).rows[0];
+    check(Object.keys(nossas(d)).length === 0, 'todos por outra coordenação: as notas da COINFRA não entram');
+  }
+  // proteção contra relação gigante (limite de 5.000 notas)
+  await db.exec('RESET ROLE');
+  await db.query(`INSERT INTO notas_fiscais (tenant_id, contrato_id, unidade_id, fornecedor_id, numero, data_emissao, valor)
+    SELECT $1, $2, $3, $4, 'MASSA-' || g, '2020-01-01', 1 FROM generate_series(1, 5001) g`, [A, ct.id, ct.unidade_id, ct.fornecedor_id]);
+  await expectFail('mais de 5.000 notas: pede para estreitar', u.adminCoinfra, `SELECT emitir_relacao_notas('TODAS', null, null, null, null, $1)`, [A], /limite é 5\.000/);
+  await expectOk('com período, a mesma relação passa', u.adminCoinfra, `SELECT emitir_relacao_notas('TODAS', null, null, '2026-05-01', '2026-07-31', $1)`, [A]);
+  // limpeza como dono do banco (a sessão ainda estava "como" o usuário do último teste)
+  await db.exec('RESET ROLE');
+  await db.query(`SELECT set_config('measure.autoria_livre', 'sim', false)`);
+  await db.query(`UPDATE notas_fiscais SET cancelada_em = now(), motivo_cancelamento = 'massa de teste' WHERE numero LIKE 'MASSA-%'`);
+  await db.query(`SELECT set_config('measure.autoria_livre', '', false)`);
+
   // escopo: quem é de outra coordenação, buscando pela mesma empresa, não recebe as notas dos contratos da COINFRA
   const coafTenta = await as(u.adminCoaf, `SELECT emitir_relacao_notas('TODAS', null, $1) AS id`, [ct.fornecedor_id]).catch((e) => ({ erro: e.message }));
   if ('erro' in coafTenta) check(/não encontrada/.test(coafTenta.erro), 'outra coordenação sem contrato dessa empresa: empresa não encontrada');

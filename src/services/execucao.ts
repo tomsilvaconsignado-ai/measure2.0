@@ -329,10 +329,10 @@ export async function emitirExtratoNotas(contratoId: string, modelo: ModeloExtra
 }
 
 /** Relação de notas (para responder ao fornecedor): por contrato ou por empresa, na situação escolhida */
-export async function emitirRelacaoNotas(situacao: 'NAO_PAGAS' | 'PAGAS' | 'FALTANDO_ATESTO' | 'TODAS', filtro: { contratoId?: string; fornecedorId?: string },
+export async function emitirRelacaoNotas(situacao: 'NAO_PAGAS' | 'PAGAS' | 'FALTANDO_ATESTO' | 'TODAS', filtro: { contratoId?: string; fornecedorId?: string; todosDoOrgao?: string },
   periodo?: { inicio: string; fim: string } | null) {
   return falhou(await supabase.rpc('emitir_relacao_notas', { p_situacao: situacao, p_contrato: filtro.contratoId ?? null, p_fornecedor: filtro.fornecedorId ?? null,
-    p_inicio: periodo?.inicio ?? null, p_fim: periodo?.fim ?? null })) as string;
+    p_inicio: periodo?.inicio ?? null, p_fim: periodo?.fim ?? null, p_tenant: filtro.todosDoOrgao ?? null })) as string;
 }
 
 export async function obterEmitido(id: string) {

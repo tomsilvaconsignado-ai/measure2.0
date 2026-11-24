@@ -38,8 +38,10 @@ export function ImprimirRelacaoNotas({ doc }: { doc: DocumentoEmitido }) {
   const sit = SITUACOES_RELACAO[(d.situacao as SituacaoRelacao) ?? 'TODAS'];
   const orgao = ((d.orgao?.cabecalho as string[] | undefined)?.[0] ?? d.orgao?.nome_oficial ?? '').toUpperCase();
   const sigla = d.unidade?.sigla ?? d.unidade?.nome ?? '';
-  const f = d.fornecedor as { nome?: string; documento?: string; tipo_pessoa?: string } | undefined;
+  const f = (d.fornecedor ?? undefined) as { nome?: string; documento?: string; tipo_pessoa?: string } | undefined;
   const documento = f?.documento ? (f.tipo_pessoa === 'PF' ? `CPF ${formatarCpf(f.documento)}` : `CNPJ ${formatarCnpj(f.documento)}`) : '';
+  const empresas = new Set(notas.map((n) => n.fornecedor)).size;
+  const contratos = new Set(notas.map((n) => n.contrato)).size;
   const total = notas.reduce((s, n) => s + num(n.valor), 0);
   const pago = notas.reduce((s, n) => s + num(n.pago), 0);
   const falta = notas.reduce((s, n) => s + Math.max(0, num(n.valor) - num(n.pago)), 0);
@@ -64,10 +66,15 @@ export function ImprimirRelacaoNotas({ doc }: { doc: DocumentoEmitido }) {
           <div className="mx-[10mm] h-[2px] bg-[#00b4c8]" />
           <section className="mx-[12mm] mt-2.5 border-b border-slate-300 pb-2 text-[10px]">
             <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-              {d.filtro === 'CONTRATO'
-                ? campo('Contrato:', `${d.contrato?.numero ?? '-'} - ${f?.nome ?? '-'}`)
-                : campo('Empresa:', f?.nome ?? '-')}
-              {campo(d.filtro === 'CONTRATO' ? 'Fornecedor:' : 'Documento:', d.filtro === 'CONTRATO' ? [f?.nome, documento].filter(Boolean).join(' · ') : documento || '-')}
+              {d.filtro === 'TODOS' ? <>
+                {campo('Abrangência:', 'Todos os contratos e todas as empresas que o emissor pode consultar')}
+                {campo('Empresas:', `${empresas} ${empresas === 1 ? 'empresa' : 'empresas'} · ${contratos} ${contratos === 1 ? 'contrato' : 'contratos'}`)}
+              </> : <>
+                {d.filtro === 'CONTRATO'
+                  ? campo('Contrato:', `${d.contrato?.numero ?? '-'} - ${f?.nome ?? '-'}`)
+                  : campo('Empresa:', f?.nome ?? '-')}
+                {campo(d.filtro === 'CONTRATO' ? 'Fornecedor:' : 'Documento:', d.filtro === 'CONTRATO' ? [f?.nome, documento].filter(Boolean).join(' · ') : documento || '-')}
+              </>}
               {campo('Situação:', <><b>{sit.rotulo}</b> <span className="text-slate-600">({sit.explicacao})</span></>)}
               {campo('Período:', d.periodo?.rotulo ? <>{capitalizar(d.periodo.rotulo)} <span className="text-slate-600">(data de emissão da nota)</span></> : 'Todas as datas')}
               {campo('Notas:', `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'}`)}

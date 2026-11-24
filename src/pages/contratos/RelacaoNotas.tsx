@@ -1,10 +1,11 @@
 // Imprimir relação de notas: escolhe a situação (não pagas, pagas, faltando atesto ou todas) e o filtro
-// (um contrato ou uma empresa) e, se quiser, o período (ano e meses, pela data de emissão da nota).
+// (um contrato, uma empresa ou todos os contratos do órgão) e, se quiser, o período (ano e meses, pela data de emissão da nota).
 // Emite o documento e abre a página de impressão ("Imprimir / salvar PDF").
 import { useMutation } from '@tanstack/react-query';
 import { Printer } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSessao } from '@/auth/Sessao';
 import { Botao, Selecao, cx } from '@/components/ui/basicos';
 import { Modal } from '@/components/ui/Modal';
 import { traduzirErro } from '@/lib/erros';
@@ -21,8 +22,9 @@ const ANOS = Array.from({ length: 10 }, (_, i) => ANO_ATUAL + 1 - i);
 
 export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: boolean; aoFechar: () => void; contratoInicial?: Escolha }) {
   const navegar = useNavigate();
+  const { orgao } = useSessao();
   const [situacao, setSituacao] = useState<SituacaoRelacao>('NAO_PAGAS');
-  const [por, setPor] = useState<'CONTRATO' | 'EMPRESA'>('CONTRATO');
+  const [por, setPor] = useState<'CONTRATO' | 'EMPRESA' | 'TODOS'>('CONTRATO');
   const [contrato, setContrato] = useState<Escolha>(contratoInicial ?? null);
   const [empresa, setEmpresa] = useState<Escolha>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -31,15 +33,16 @@ export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: bo
   const [mesDe, setMesDe] = useState(1);
   const [mesAte, setMesAte] = useState(12);
   const periodoInvertido = ano !== null && mesDe > mesAte;
-  const escolhido = por === 'CONTRATO' ? contrato : empresa;
+  const escolhido = por === 'CONTRATO' ? contrato : por === 'EMPRESA' ? empresa : null;
   const emitir = useMutation({
-    mutationFn: () => emitirRelacaoNotas(situacao, por === 'CONTRATO' ? { contratoId: contrato!.id } : { fornecedorId: empresa!.id },
+    mutationFn: () => emitirRelacaoNotas(situacao,
+      por === 'CONTRATO' ? { contratoId: contrato!.id } : por === 'EMPRESA' ? { fornecedorId: empresa!.id } : { todosDoOrgao: orgao!.id },
       ano === null ? null : periodoDe(ano, mesDe, mesAte)),
     onSuccess: (id) => navegar(`/imprimir/${id}`),
     onError: (e) => setErro(traduzirErro(e).mensagem),
   });
   const gerar = () => {
-    if (!escolhido) { setErro(por === 'CONTRATO' ? 'Escolha o contrato.' : 'Escolha a empresa.'); return; }
+    if (por !== 'TODOS' && !escolhido) { setErro(por === 'CONTRATO' ? 'Escolha o contrato.' : 'Escolha a empresa.'); return; }
     if (periodoInvertido) return;
     setErro(null);
     emitir.mutate();
@@ -66,14 +69,18 @@ export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: bo
         </div>
       </fieldset>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-slate-900">De qual contrato ou empresa</legend>
+        <legend className="mb-1.5 text-sm font-medium text-slate-900">De quais contratos</legend>
         <div className="mb-3 inline-flex rounded-lg border border-slate-200 p-0.5" role="radiogroup" aria-label="Filtrar por">
-          {([['CONTRATO', 'Por contrato'], ['EMPRESA', 'Por empresa']] as const).map(([v, r]) => (
+          {([['CONTRATO', 'Um contrato'], ['EMPRESA', 'Uma empresa'], ['TODOS', 'Todos']] as const).map(([v, r]) => (
             <button key={v} type="button" role="radio" aria-checked={por === v} onClick={() => { setPor(v); setErro(null); }}
               className={cx('rounded-md px-3 py-1.5 text-sm font-medium cursor-pointer', por === v ? 'bg-marca-600 text-white' : 'text-slate-600 hover:text-slate-900')}>{r}</button>
           ))}
         </div>
-        {por === 'CONTRATO'
+        {por === 'TODOS' ? (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <b>Todos os contratos e todas as empresas</b> que você pode consultar neste órgão, agrupados por empresa.
+          </p>
+        ) : por === 'CONTRATO'
           ? <SeletorContrato valor={contrato?.id ?? null} rotuloValor={contrato?.rotulo} erro={erro && !contrato ? erro : null}
               aoMudar={(v, o) => { setContrato(v && o ? { id: v, rotulo: o.rotulo } : null); setErro(null); }} />
           : <SeletorFornecedor valor={empresa?.id ?? null} rotuloValor={empresa?.rotulo} erro={erro && !empresa ? erro : null}
@@ -103,7 +110,7 @@ export function RelacaoNotas({ aberto, aoFechar, contratoInicial }: { aberto: bo
                 : `Notas emitidas de ${MESES[mesDe - 1]!.toLowerCase()} a ${MESES[mesAte - 1]!.toLowerCase()} de ${ano}.`}
         </p>
       </fieldset>
-      {erro && escolhido && <p role="alert" className="mt-3 text-sm text-red-700">{erro}</p>}
+      {erro && (escolhido || por === 'TODOS') && <p role="alert" className="mt-3 text-sm text-red-700">{erro}</p>}
     </Modal>
   );
 }
